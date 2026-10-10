@@ -81,7 +81,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
 | `gzdx` | `.worktrees/gzdx-home-redesign` | `feature/94-home-compose-redesign` | `client/.../ui/home/**`、`ui/components/Common.kt`、`ui/MainActivity.kt`、`res/values*/strings.xml` | 待合并 |
-| `gzdx` | `.worktrees/gzdx-gate-hardening` | `docs/process-gate-hardening` | `CONTRIBUTING.md`、`docs/development/AGENT-WORKFLOW.md` | 待合并 |
+| `gzdx` | `.worktrees/gzdx-release-hardening`、`.worktrees/gzdx-security-gates` | `ci/release-hardening`、`ci/security-gates` | `.github/**`、`SECURITY.md` | 待合并 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
