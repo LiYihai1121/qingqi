@@ -113,7 +113,7 @@ git tag -a vX.Y.Z -m "release: vX.Y.Z" && git push origin vX.Y.Z
 | 阶段 | 时间 | 动作 | 状态 |
 | --- | --- | --- | --- |
 | P0 已完成 | 2026-10-11 | 存量清理（43 分支）、保护规则（strict + 3 检查）、主检出/提交钩子、历史审计与豁免线、PR 治理（6 过时 PR 关闭、6 新 PR 合并） | ✅ |
-| P1 本周 | v3.4.1 发布前 | ① 按 4.1 门禁走一次**新流程演练**：v3.4.1 从 `release/v3.4.1`（已就绪，versionCode 15）经 bump PR → tag → 签名发布；② 启用 GitHub Release 自动说明 + 人工定稿双轨；③ `scripts/generate-changelog.mjs` 落地并登记白名单 | 待执行 |
+| P1 本周 | v3.4.1 发布前 | ① 按 4.1 门禁走一次**新流程演练**：v3.4.1 从 `release/v3.4.1`（已就绪，versionCode 15）经 bump PR → tag → 签名发布；② 启用 GitHub Release 自动说明 + 人工定稿双轨；③ ~~`scripts/generate-changelog.mjs` 落地并登记白名单~~ **✅ 已落地（实测 v3.2.0→v3.4.0 两区间通过）** | ③ 完成；①② 待 v3.4.1 发版执行 |
 | P2 下一 minor（v3.5.0 冻结前） | 随 L2 | ① 开放 PR 逐个裁决完毕；② signed tags（SLSA 演进第一步）；③ 季度分支清理首次例行执行 | 待执行 |
 | P3 随 R3（架构演进） | M4 前 | SBOM（CycloneDX）+ provenance attestation；`/metrics` 与监控告警接入发布门禁 | 待执行 |
 | 例行 | 每季度 | 流程审计复跑（同 FOLLOW-UP-PROCESS-AUDIT 口径）+ 分支/worktree 清理 + 本设计符合性抽查 | 周期任务 |
