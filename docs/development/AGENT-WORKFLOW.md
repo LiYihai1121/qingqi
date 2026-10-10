@@ -62,6 +62,8 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 三项都符合预期再开始写代码；发现「第二份源码」先清理再开工。
 
+并行开发期追加两步：`git worktree list` 与认领板（[3.2](#32-认领板)）确认没有他人正在使用同一目录或同一路径，登记后再写第一个文件。
+
 
 ## 3. 所有权：唯一写入者
 
@@ -79,6 +81,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
 | `gzdx` | `.worktrees/gzdx-home-redesign` | `feature/94-home-compose-redesign` | `client/.../ui/home/**`、`ui/components/Common.kt`、`ui/MainActivity.kt`、`res/values*/strings.xml` | 待合并 |
+| `gzdx` | `.worktrees/gzdx-gate-hardening` | `docs/process-gate-hardening` | `CONTRIBUTING.md`、`docs/development/AGENT-WORKFLOW.md` | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
@@ -93,6 +96,8 @@ git rev-parse --show-toplevel  # 确认工作区根
 > 每个会话必须先执行 `git worktree add .worktrees/<agent>-<slug> <branch>` 并在其中工作
 > （AGENTS.md「多 Agent 协作」一票否决项）。`release/v3.4.1` 的进行中改动（versionCode 15）
 > 应迁入 `.worktrees/<agent>-v341/` 后继续，并在此表登记认领。
+>
+> 逃生口 `ADSKIP_ALLOW_MAIN_COMMIT=1` **仅限紧急修复**，且必须在对应 PR 说明中登记原因与时间——逃生口是审计债，不是常规通道。
 
 ### 3.3 文档单写者
 
@@ -180,6 +185,8 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 | 仓库内不得存在「像仓库但没有 `.git`」的目录（无元数据整仓副本） | 检索结果翻倍、Agent 改错副本、成果丢失 |
 | `docs/README.md` 必须登记 `AGENT-WORKFLOW.md` | 新增文档未进文档地图（AGENTS 规则 CI 化） |
 | 当前分支名必须符合 `type/<id>-<slug>`（detached HEAD 放行） | 分支不可追踪、多人混用同一分支 |
+
+> **服务端钩子边界（2026-10-11 核验）**：GitHub.com 不提供自定义 pre-receive 钩子，主检出防线的「远端」层由分支保护规则承载（强制 PR、禁管理员绕过、禁 force-push/删除、`strict` 必需检查），「本地」层是 `githooks/pre-commit` 与 `githooks/commit-msg`。**不要再尝试为 GitHub.com 配置 pre-receive**；若迁移到自建 Git 服务，再在该层补齐。
 
 ## 10. 与既有规范的关系
 

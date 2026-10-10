@@ -319,6 +319,8 @@ git rebase -i --autosquash origin/main
 - 分支必须基于最新目标分支，合并使用 Squash（`hotfix/*` 例外，见 [§5](#5-合并前的提交压缩)）；合并后自动删除源分支；
 - CI 使用固定 Action 主版本，依赖和权限按最小权限配置。
 
+> **单维护者例外（2026-10-11 核验生效）**：`CODEOWNERS` 当前只有一名 owner，GitHub 不允许自审批，因此 `main` 保护实配 `required_approving_review_count = 0`、`require_code_owner_reviews = false`——上面「至少 1 名维护者批准」在例外期间由**机器门禁与自审清单**替代：三项必需状态检查（`Structure Contract` / `Android Build & Test` / `Server Tests`）+ `strict`（分支须与 `main` 同步才可合并）+ 评论全部解决 + 旧审批失效 + 禁管理员绕过 + `githooks/pre-commit`、`githooks/commit-msg`。**补齐条件**：出现第二名可审批协作者时，审批人数改为 ≥1、启用 CODEOWNERS 强制，并恢复安全/协议/数据变更 2 人审批；基线随季度流程审计复核（口径见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md)）。
+
 ## 多 Agent 并行开发
 
 单人开发时按上面的分支模型即可。当**多个 Agent（或多名协作者）同时在一个仓库工作**时，额外遵守 [docs/development/AGENT-WORKFLOW.md](docs/development/AGENT-WORKFLOW.md)，核心是四点：
@@ -488,6 +490,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - 配置 `main`、`release/*` 分支保护和 CODEOWNERS；
 - 配置必需状态检查、审批人数、旧审批失效和合并后删分支；将 `ktlintCheck` 纳入必需状态检查；
 - 禁止管理员绕过（bypass）——留后门等于没有门禁；
+- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 未配置而 [SECURITY.md](SECURITY.md) 有声明，属待对齐项）；
 - 开启 Dependabot/Renovate，依赖升级走 PR 并保留 lockfile；
 - 发布凭据使用 CI Secret/OIDC，禁止写入仓库和日志；
 - 版本 tag 目标为带签名（GPG / sigstore），CI 制品目标生成 SBOM 与 provenance attestation（见[供应链与可追溯](#供应链与可追溯slsa-对齐)）；
