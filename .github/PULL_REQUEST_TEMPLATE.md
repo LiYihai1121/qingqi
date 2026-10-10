@@ -46,6 +46,10 @@
 <!-- 规则（分支模型、提交格式、审批与发布要求）见 CONTRIBUTING.md；此处不复制，避免两份真相。 -->
 - [ ] 已确认本次变更未违反 [CONTRIBUTING.md](../CONTRIBUTING.md) 的分支与合并规则
 
+## DCO 签名
+
+- [ ] 所有提交均包含 `Signed-off-by` trailer（`git commit -s` 一次补签全部暂存提交；CI `DCO Sign-off` 检查强制执行）
+
 ## 多 Agent 协作检查
 
 - [ ] 开发在独立 worktree（`.worktrees/<agent>-<slug>/`）内进行，未在主检出直接提交（主检出提交会被 `githooks/pre-commit` 拦截）
