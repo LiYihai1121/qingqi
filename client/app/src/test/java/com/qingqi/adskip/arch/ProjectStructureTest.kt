@@ -675,6 +675,7 @@ class ProjectStructureTest {
             "docs", // 文档
             "server", // Bun + TypeScript 服务端
             "githooks", // 仓库级 git 钩子（core.hooksPath 指向；pre-commit 拦截主检出直接提交）
+            "scripts", // 仓库级工具脚本（changelog 草稿生成器等，零依赖 Node）
         ) + AGENT_TOOL_DIRS
 
         /**
