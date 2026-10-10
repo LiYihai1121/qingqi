@@ -166,3 +166,55 @@ jobs:
 
       - name: Run typecheck
         run: bun run typecheck
+
+  dco:
+    name: DCO Sign-off
+    runs-on: ubuntu-latest
+    # DCO 只对 PR 有意义：main 推送时提交已在库内，不再追溯
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 需要 base 与 head 两个提交对象才能枚举 PR 提交范围
+          fetch-depth: 0
+
+      - name: Require Signed-off-by trailer in every PR commit
+        # 排除 merge 提交：同步主干产生的合并提交由 git 生成、无 trailer，
+        # 与 DCO 应用的标准行为一致（只校验作者提交）
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          missing=0
+          while read -r sha; do
+            if ! git log -1 --format='%B' "$sha" | grep -qi '^Signed-off-by:'; then
+              echo "::error::commit ${sha} 缺少 Signed-off-by trailer（git commit -s 补签）"
+              missing=1
+            fi
+          done < <(git rev-list --no-merges "${base}..${head}")
+          if [ "$missing" -ne 0 ]; then
+            echo "DCO 校验失败：本 PR 存在未签名提交，规则见 DCO 文件" >&2
+            exit 1
+          fi
+          echo "DCO 校验通过：$(git rev-list --no-merges "${base}..${head}" | wc -l) 个作者提交均含 Signed-off-by"
+
+  secret-scan:
+    name: Secret Scan (advisory)
+    runs-on: ubuntu-latest
+    # 咨询模式：先观测全历史扫描结果（仓库文档含大量示例密钥文本，直接强制会误伤），
+    # 基线 triage 完成并配置 allowlist 后再转为 required check
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write # gitleaks 在 PR 上评论所需
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
