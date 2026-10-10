@@ -179,6 +179,8 @@ jobs:
           fetch-depth: 0
 
       - name: Require Signed-off-by trailer in every PR commit
+        # 排除 merge 提交：同步主干产生的合并提交由 git 生成、无 trailer，
+        # 与 DCO 应用的标准行为一致（只校验作者提交）
         shell: bash
         run: |
           set -euo pipefail
@@ -190,12 +192,12 @@ jobs:
               echo "::error::commit ${sha} 缺少 Signed-off-by trailer（git commit -s 补签）"
               missing=1
             fi
-          done < <(git rev-list "${base}..${head}")
+          done < <(git rev-list --no-merges "${base}..${head}")
           if [ "$missing" -ne 0 ]; then
             echo "DCO 校验失败：本 PR 存在未签名提交，规则见 DCO 文件" >&2
             exit 1
           fi
-          echo "DCO 校验通过：$(git rev-list "${base}..${head}" | wc -l) 个提交均含 Signed-off-by"
+          echo "DCO 校验通过：$(git rev-list --no-merges "${base}..${head}" | wc -l) 个作者提交均含 Signed-off-by"
 
   secret-scan:
     name: Secret Scan (advisory)
