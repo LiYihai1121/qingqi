@@ -471,6 +471,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - [ ] [Release list](docs/planning/RELEASE-HISTORY.md#release-list) 已记录版本、tag、合并提交和 Release 状态；
 - [ ] tag 为 annotated tag，且指向合并后的 `main` 提交；
 - [ ] GitHub Release 已创建并上传制品与 `SHA256SUMS`；
+- [ ] **Release 说明双轨收尾**：GitHub 自动说明（轨一草稿）已人工复核措辞；发布工作流生成的 `notes-draft.md`（轨二草稿，`scripts/generate-changelog.mjs` 产出）已随 Release 上传并与 `CHANGELOG.md` 的人工定稿条目核对一致；
 - [ ] **制品已用 `apksigner verify` 校验签名并确认可安装**——未签名包在手机上必然报「解析软件包时出现问题」（Issue #23）；命令见 [DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md#apk-安装排障)；
 - [ ] 触及系统集成范围（无障碍/磁贴/跳转/调度/权限）时，真机验收已完成并记录机型与 ROM 版本；
 - [ ] 已确认没有复用或移动历史 tag；
