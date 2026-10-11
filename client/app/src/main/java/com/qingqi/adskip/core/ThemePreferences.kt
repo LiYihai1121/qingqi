@@ -14,10 +14,17 @@ import android.content.Context
  * `core` 两侧皆可依赖，把键与读写收在这里，`Prefs` 与 `SettingsRepository`
  * 只做委托，避免出现第二份真相。存储的是 **tag 字符串**（`light` / `dark` /
  * `null`=跟随系统），存储格式与业务枚举解耦。
+ *
+ * 为什么**不能**复用 `Prefs` 的旧文件名 `adskip_prefs`：那个名字是 data 层
+ * 加密迁移的「遗留明文源」，`Prefs.sp()` 首次初始化时会把它的键搬进加密文件
+ * 并**删除整个文件**——写在这里的偏好会在下次进程重启时被清掉（真机实测）。
+ * 跨层明文偏好必须用独立文件名，见 core/PreferencesFileNameTest。
  */
 object ThemePreferences {
 
-    private const val SP_NAME = "adskip_prefs"
+    /** 独立文件名：不得与 [com.qingqi.adskip.data.Prefs] 的迁移源重名。 */
+    internal const val SP_NAME = "adskip_theme_prefs"
+
     private const val KEY_THEME_MODE = "theme_mode"
 
     /** 已保存的主题 tag；`null` 表示跟随系统。 */

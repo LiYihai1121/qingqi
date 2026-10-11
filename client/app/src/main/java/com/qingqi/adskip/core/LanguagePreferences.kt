@@ -19,7 +19,12 @@ import android.content.Context
  */
 object LanguagePreferences {
 
-    private const val SP_NAME = "adskip_prefs"
+    /**
+     * 独立文件名：不得与 [com.qingqi.adskip.data.Prefs] 的迁移源 `adskip_prefs`
+     * 重名——那个名字会被 `Prefs.sp()` 的遗留迁移**整文件删除**，语言选择会
+     * 在下次进程重启时丢失（真机实测确认的既有 bug）。见 core/PreferencesFileNameTest。
+     */
+    internal const val SP_NAME = "adskip_language_prefs"
     private const val KEY_LANGUAGE = "language"
 
     /** 已保存的语言 tag；`null` 表示跟随系统。 */
