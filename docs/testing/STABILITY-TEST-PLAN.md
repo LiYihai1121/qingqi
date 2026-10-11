@@ -96,7 +96,7 @@ adb shell uiautomator dump /sdcard/ui.xml + screencap   # 效用证据（必须�
 
 ## 9. 第二次执行记录（2026-10-11，Android Emulator / API 33 & 35 / v3.4 本地并行构建）
 
-> 补齐第 5 节设备矩阵的「Android 版本 ≥3」维度：真机 Mi 9 / Android 11 之外，用桌面模拟器覆盖 Android 13（API 33）与 Android 15（API 35），均为 x86_64 default 镜像、WHPX 加速、medium_phone 规格。构建为本地临时 `applicationIdSuffix .debug` 并行 debug 包（v3.4 / versionCode 15，基于 main `81b953f`，按 §7.4 不提交）。模拟器环境（SDK emulator + AVD `adskip_api33` / `adskip_api35`）由 android-emulator 插件流程装妥，后续轮次可直接复用。
+> 补齐第 5 节设备矩阵的「Android 版本 ≥3」维度：真机 Mi 9 / Android 11 之外，用桌面模拟器覆盖 Android 13（API 33）与 Android 15（API 35），均为 x86_64 default 镜像、WHPX 加速、medium_phone 规格。构建为本地临时 `applicationIdSuffix .debug` 并行 debug 包（v3.4 / versionCode 15，基于 main `81b953f`，按 §7.4 不提交）。模拟器环境（SDK emulator + AVD `adskip_api33` / `adskip_api35`）由 android-emulator 插件流程装妥；**本轮结束后已按用户要求卸载**（含引擎与系统镜像），复测时按 §7.5 纪律重装即可。
 
 | KPI | 阈值 | API 33（Android 13）实测 | API 35（Android 15）实测 | 判定 |
 |---|---|---|---|---|
