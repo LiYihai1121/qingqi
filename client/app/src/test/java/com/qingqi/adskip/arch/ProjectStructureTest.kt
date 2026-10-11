@@ -749,7 +749,7 @@ class ProjectStructureTest {
         val SCRATCH_NAMES = setOf(".DS_Store", "Thumbs.db", "desktop.ini")
 
         /** docs/ 下允许的分类目录。 */
-        val ALLOWED_DOC_DIRS = setOf("api", "architecture", "development", "planning", "diagrams")
+        val ALLOWED_DOC_DIRS = setOf("api", "architecture", "development", "planning", "diagrams", "testing")
 
         /** 与 docs/README.md 文档命名规范对应的模块文件名规则。 */
         val DOC_NAME_PATTERNS = mapOf(
@@ -758,6 +758,7 @@ class ProjectStructureTest {
             "development" to Regex("""(?:DEV|AGENT)(?:-[A-Z0-9]+)+\.md"""),
             "planning" to Regex("""(?:ROADMAP|DESIGN|FOLLOW-UP|RELEASE)(?:-[A-Z0-9]+)*\.md"""),
             "guide" to Regex("""GUIDE(?:-[A-Z0-9]+)+\.md"""),
+            "testing" to Regex("""[A-Z0-9]+(?:-[A-Z0-9]+)*\.md"""),
         )
 
         /** src/main 下允许的常规目录。 */
