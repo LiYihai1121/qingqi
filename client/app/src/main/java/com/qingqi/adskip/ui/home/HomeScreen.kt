@@ -151,7 +151,14 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding(),
+                .imePadding()
+                // 浮层盖住首页时，把底层内容从语义树移除：浮层只吃触摸事件，被遮住的
+                // 按钮仍会被 TalkBack 聚焦并激活，视障用户会点到一个看不见的东西。
+                // 清除必须挂在**这层**而不能挂在浮层上——挂在浮层会连带清掉「跳过」
+                // 按钮自身，引擎扫不到节点、自检必超时（2026-10-11 Mi 9 真机实测）。
+                .then(
+                    if (state.fakeAdVisible) Modifier.clearAndSetSemantics {} else Modifier,
+                ),
             contentPadding = PaddingValues(
                 start = Spacing.lg,
                 end = Spacing.lg,
@@ -491,15 +498,16 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
  * 模拟开屏广告浮层：服务生效时应被自动点击「跳过」。
  *
  * 覆盖在首页之上并吃掉触摸事件，防止误触穿透到底层界面。
+ *
+ * 语义树注意：本浮层**不能**自己挂 `clearAndSetSemantics`——那会把「跳过」按钮
+ * 一起从语义树清掉，无障碍引擎与读屏都找不到它，自检必然超时（2026-10-11 真机
+ * 实测复现）。隐藏底层首页内容的职责在 [HomeScreen] 调用处：浮层可见时对
+ * LazyColumn 施清除，只藏下层、不伤本层。
  */
 @Composable
 private fun FakeAdOverlay(countdown: Int, onSkipClicked: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            // 浮层盖住首页时必须同时**从语义树上移除底层内容**：它只吃掉了触摸事件，
-            // 被遮住的按钮仍可被 TalkBack 聚焦并激活，视障用户会点到一个看不见的东西。
-            .clearAndSetSemantics {},
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(
