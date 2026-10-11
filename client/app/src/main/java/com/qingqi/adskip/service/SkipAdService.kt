@@ -20,6 +20,7 @@ import com.qingqi.adskip.data.Prefs
 import com.qingqi.adskip.data.RulesRepository
 import com.qingqi.adskip.data.StatsRepository
 import com.qingqi.adskip.device.AccessibilityStatus
+import com.qingqi.adskip.device.AccessibilityWatchdogJob
 import com.qingqi.adskip.engine.SafetyGuard
 import com.qingqi.adskip.engine.SkipRuleEngine
 import com.qingqi.adskip.net.SyncClient
@@ -174,6 +175,8 @@ class SkipAdService : AccessibilityService() {
         AppEvents.setServiceRunning(true)
         shutdownHandle.register()
         snapshotHandle.register()
+        // P0-2：服务连上即武装守护巡检——失效时通知引导恢复（MIUI 回置开关场景）
+        AccessibilityWatchdogJob.arm(this)
         sendBroadcast(Intent(ACTION_SERVICE_STATE).setPackage(packageName).putExtra(EXTRA_RUNNING, true))
         LogRing.d("Service", "onServiceConnected")
     }
@@ -215,6 +218,13 @@ class SkipAdService : AccessibilityService() {
             ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         Toast.makeText(context, R.string.settings_snapshot_exported, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        // 用户主动关闭会走 onUnbind：延迟复核确认后撤销守护巡检；
+        // 进程被杀/MIUI 回置开关不会走这里，巡检保留并通知用户恢复。
+        AccessibilityWatchdogJob.scheduleConfirm(this)
+        return super.onUnbind(intent)
     }
 
     override fun onInterrupt() {

@@ -202,4 +202,9 @@
     <string name="settings_snapshot_hint">将当前屏幕的无障碍节点树导出为 JSON，用于编写和验证选择器规则。仅当前屏幕，不上传。</string>
     <string name="settings_snapshot_empty">无障碍服务未运行，无法获取当前界面</string>
     <string name="settings_snapshot_exported">快照已导出，请通过分享菜单保存</string>
+
+    <!-- P0-2 无障碍服务守护 -->
+    <string name="watchdog_channel_name">服务守护</string>
+    <string name="watchdog_notify_title">跳过服务已停止</string>
+    <string name="watchdog_notify_text">点按重新开启无障碍服务</string>
 </resources>

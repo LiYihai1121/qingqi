@@ -207,4 +207,9 @@
     <string name="settings_snapshot_hint">Exports the current screen\'s accessibility node tree as JSON, for writing and validating selector rules. Current screen only; never uploaded.</string>
     <string name="settings_snapshot_empty">Accessibility service is not running; cannot capture the current screen</string>
     <string name="settings_snapshot_exported">Snapshot exported; save it from the share sheet</string>
+
+    <!-- P0-2 accessibility service watchdog -->
+    <string name="watchdog_channel_name">Service keeper</string>
+    <string name="watchdog_notify_title">Ad-skip service stopped</string>
+    <string name="watchdog_notify_text">Tap to re-enable the accessibility service</string>
 </resources>
