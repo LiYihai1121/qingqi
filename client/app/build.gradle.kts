@@ -60,8 +60,8 @@ android {
         // BREAKING（v3.4.0，PR #74）：applicationId 与源码 namespace 一并迁移到 qingqi。
         // 已装用户需卸载重装，旧 EncryptedSharedPreferences 数据无法跨包名迁移；re-install 分级在 CHANGELOG 3.4.0 说明。
         applicationId = "com.qingqi.adskip"
-        // 单调递增，禁止复用已发布编号（v3.1.0 = 10，v3.2.0 = 12，v3.3.0 = 13）
-        versionCode = 14
+        // 单调递增，禁止复用已发布编号（v3.1.0 = 10，v3.2.0 = 12，v3.3.0 = 13，v3.4.0 = 14）
+        versionCode = 15
         // 展示值用 X.Y（与 CONTRIBUTING「版本策略」一致；server 侧用完整 X.Y.Z）
         versionName = "3.4"
     }
