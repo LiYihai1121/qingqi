@@ -674,6 +674,8 @@ class ProjectStructureTest {
             "client", // Android 工程根
             "docs", // 文档
             "server", // Bun + TypeScript 服务端
+            "githooks", // 仓库级 git 钩子（core.hooksPath 指向；pre-commit 拦截主检出直接提交）
+            "scripts", // 仓库级工具脚本（changelog 草稿生成器等，零依赖 Node）
         ) + AGENT_TOOL_DIRS
 
         /**
@@ -747,7 +749,7 @@ class ProjectStructureTest {
         val SCRATCH_NAMES = setOf(".DS_Store", "Thumbs.db", "desktop.ini")
 
         /** docs/ 下允许的分类目录。 */
-        val ALLOWED_DOC_DIRS = setOf("api", "architecture", "development", "planning", "diagrams")
+        val ALLOWED_DOC_DIRS = setOf("api", "architecture", "development", "planning", "diagrams", "testing")
 
         /** 与 docs/README.md 文档命名规范对应的模块文件名规则。 */
         val DOC_NAME_PATTERNS = mapOf(
@@ -756,6 +758,7 @@ class ProjectStructureTest {
             "development" to Regex("""(?:DEV|AGENT)(?:-[A-Z0-9]+)+\.md"""),
             "planning" to Regex("""(?:ROADMAP|DESIGN|FOLLOW-UP|RELEASE)(?:-[A-Z0-9]+)*\.md"""),
             "guide" to Regex("""GUIDE(?:-[A-Z0-9]+)+\.md"""),
+            "testing" to Regex("""[A-Z0-9]+(?:-[A-Z0-9]+)*\.md"""),
         )
 
         /** src/main 下允许的常规目录。 */

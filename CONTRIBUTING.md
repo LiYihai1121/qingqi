@@ -57,6 +57,7 @@ Git 历史的成本是**长期**的：`git log`、`git blame`、事故复盘、�
 - **type**：`feat`、`fix`、`refactor`、`perf`、`test`、`docs`、`build`、`ci`、`chore`、`revert`
 - **scope**：模块或领域名（`client`、`server`、`ui`、`engine`、`rules`、`protocol`、`contract`、`roadmap`……）。**禁止用人的名字或工号**——人员会流动，模块名不会。
 - **描述**：祈使句写「做了什么」，不写「改成了什么」；同一 type 下用一致的动词。
+- **机器校验**：格式与长度由 `githooks/commit-msg` 拦截（启用方式见「一人一工作区」的 hooksPath 说明）；历史违规样例与豁免线见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md)。
 
 破坏性变更必须在标题追加 `!`（`feat(protocol)!:`）**或**正文使用 `BREAKING CHANGE:` 段落，并同步更新协议/API 文档。
 
@@ -318,6 +319,8 @@ git rebase -i --autosquash origin/main
 - 分支必须基于最新目标分支，合并使用 Squash（`hotfix/*` 例外，见 [§5](#5-合并前的提交压缩)）；合并后自动删除源分支；
 - CI 使用固定 Action 主版本，依赖和权限按最小权限配置。
 
+> **单维护者例外（2026-10-11 核验生效）**：`CODEOWNERS` 当前只有一名 owner，GitHub 不允许自审批，因此 `main` 保护实配 `required_approving_review_count = 0`、`require_code_owner_reviews = false`——上面「至少 1 名维护者批准」在例外期间由**机器门禁与自审清单**替代：三项必需状态检查（`Structure Contract` / `Android Build & Test` / `Server Tests`）+ `strict`（分支须与 `main` 同步才可合并）+ 评论全部解决 + 旧审批失效 + 禁管理员绕过 + `githooks/pre-commit`、`githooks/commit-msg`。**补齐条件**：出现第二名可审批协作者时，审批人数改为 ≥1、启用 CODEOWNERS 强制，并恢复安全/协议/数据变更 2 人审批；基线随季度流程审计复核（口径见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md)）。
+
 ## 多 Agent 并行开发
 
 单人开发时按上面的分支模型即可。当**多个 Agent（或多名协作者）同时在一个仓库工作**时，额外遵守 [docs/development/AGENT-WORKFLOW.md](docs/development/AGENT-WORKFLOW.md)，核心是四点：
@@ -436,6 +439,9 @@ git push origin vX.Y.Z
 ```
 
 版本标签一经推送不得删除或移动；指向非 `main` 提交的 tag 不得补建 Release、不得复用版本号。
+- **标签唯一性**：一个提交不得承载多个版本标签（历史反例：v3.0.0 与 v3.0.1 曾指向同一提交，见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md) 第 2 节豁免线）。
+- **发布提交同样走 PR**：`chore(release): vX.Y.Z` 的版本 bump 在 `release/vX.Y.Z` 分支提交并经 PR 合入，禁止在主检出直推。
+- **main 历史线性**：合并一律 Squash（每个 main 提交携带 `(#N)`）；本地不得产生进入 main 的 merge commit。
 
 ### 发布顺序
 
@@ -484,6 +490,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - 配置 `main`、`release/*` 分支保护和 CODEOWNERS；
 - 配置必需状态检查、审批人数、旧审批失效和合并后删分支；将 `ktlintCheck` 纳入必需状态检查；
 - 禁止管理员绕过（bypass）——留后门等于没有门禁；
+- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 未配置而 [SECURITY.md](SECURITY.md) 有声明，属待对齐项）；
 - 开启 Dependabot/Renovate，依赖升级走 PR 并保留 lockfile；
 - 发布凭据使用 CI Secret/OIDC，禁止写入仓库和日志；
 - 版本 tag 目标为带签名（GPG / sigstore），CI 制品目标生成 SBOM 与 provenance attestation（见[供应链与可追溯](#供应链与可追溯slsa-对齐)）；
