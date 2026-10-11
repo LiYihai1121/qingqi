@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.qingqi.adskip.R
+import com.qingqi.adskip.core.ThemeMode
 import com.qingqi.adskip.device.KeepAliveNavigator
 import com.qingqi.adskip.device.LanguageMode
 import com.qingqi.adskip.ui.Messenger
@@ -101,6 +102,18 @@ fun SettingsContent(
     var pickingStart by remember { mutableStateOf(false) }
     var pickingEnd by remember { mutableStateOf(false) }
     var pickingLanguage by remember { mutableStateOf(false) }
+    var pickingTheme by remember { mutableStateOf(false) }
+
+    if (pickingTheme) {
+        ThemePickerDialog(
+            current = state.themeMode,
+            onPick = { mode ->
+                pickingTheme = false
+                viewModel.setThemeMode(mode)
+            },
+            onDismiss = { pickingTheme = false },
+        )
+    }
 
     if (pickingLanguage) {
         LanguagePickerDialog(
@@ -123,6 +136,14 @@ fun SettingsContent(
                 value = stringResource(state.language.labelRes()),
                 onClick = { pickingLanguage = true },
                 icon = AdSkipIcons.Globe,
+            )
+            HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
+            LabeledChoiceRow(
+                title = stringResource(R.string.settings_theme_label),
+                subtitle = stringResource(R.string.settings_theme_hint),
+                value = stringResource(state.themeMode.labelRes()),
+                onClick = { pickingTheme = true },
+                icon = AdSkipIcons.Contrast,
             )
         }
 
@@ -396,6 +417,48 @@ private fun LanguageMode.labelRes(): Int = when (this) {
     LanguageMode.SYSTEM -> R.string.language_system
     LanguageMode.CHINESE -> R.string.language_zh
     LanguageMode.ENGLISH -> R.string.language_en
+}
+
+@Composable
+private fun ThemePickerDialog(current: ThemeMode, onPick: (ThemeMode) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_theme_label)) },
+        text = {
+            Column {
+                ThemeMode.entries.forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = mode == current,
+                                role = Role.RadioButton,
+                                onClick = { onPick(mode) },
+                            )
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = mode == current, onClick = null)
+                        Spacer(Modifier.width(Spacing.md))
+                        Text(stringResource(mode.labelRes()))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        },
+    )
+}
+
+/** 深色模式 → 显示名（跟随系统 / 浅色 / 深色）。 */
+@StringRes
+private fun ThemeMode.labelRes(): Int = when (this) {
+    ThemeMode.SYSTEM -> R.string.theme_system
+    ThemeMode.LIGHT -> R.string.theme_light
+    ThemeMode.DARK -> R.string.theme_dark
 }
 
 /** M3 TimePicker 封装为对话框（分钟粒度，24 小时制） */

@@ -17,6 +17,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.qingqi.adskip.core.ThemeMode
 
 /**
  * 应用主题。
@@ -134,10 +135,15 @@ val LocalStatusPalette = staticCompositionLocalOf { LightStatusPalette }
  */
 @Composable
 fun AdSkipTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.DEFAULT,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
     val context = LocalContext.current
     val supportsDynamic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val colorScheme = when {

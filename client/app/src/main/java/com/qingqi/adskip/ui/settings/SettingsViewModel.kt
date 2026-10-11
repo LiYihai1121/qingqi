@@ -11,6 +11,7 @@ import com.qingqi.adskip.AdSkipApp
 import com.qingqi.adskip.AppContainer
 import com.qingqi.adskip.R
 import com.qingqi.adskip.core.AppEvents
+import com.qingqi.adskip.core.ThemeMode
 import com.qingqi.adskip.data.ServerEndpoint
 import com.qingqi.adskip.device.BatteryExemption
 import com.qingqi.adskip.device.KeepAliveNavigator
@@ -52,6 +53,8 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         val batteryExemption: BatteryExemption = BatteryExemption.UNKNOWN,
         /** 界面语言选择。 */
         val language: LanguageMode = LanguageMode.DEFAULT,
+        /** 深色模式选择。 */
+        val themeMode: ThemeMode = ThemeMode.DEFAULT,
         /** 当前设备所属 ROM，用于保活引导文案与手动路径提示（device/VendorKeepAlive） */
         val keepAliveVendor: Vendor = Vendor.GENERIC,
     ) {
@@ -82,6 +85,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             dndEndMinute = container.settingsRepo.getDoNotDisturbEnd(),
             batteryExemption = queryBatteryExemption(),
             language = LanguageMode.fromTag(container.settingsRepo.languageTag()),
+            themeMode = ThemeMode.fromTag(container.settingsRepo.themeTag()),
             keepAliveVendor = KeepAliveNavigator.detectVendor(),
         ),
     )
@@ -184,6 +188,19 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             _effects.tryEmit(UiEffect.ShowMessage(container.app.getString(R.string.settings_saved)))
             _effects.tryEmit(UiEffect.RecreateActivity)
         }
+    }
+
+    /**
+     * 切换深色模式。
+     *
+     * 组合根（MainActivity）在 setContent 时读一次偏好，因此这里写完偏好后
+     * 必须重建 Activity 才能生效——与语言切换的低版本路径同一机制，
+     * 不为它做跨组合的响应式订阅。
+     */
+    fun setThemeMode(mode: ThemeMode) {
+        container.settingsRepo.setThemeTag(mode.tag)
+        _uiState.value = _uiState.value.copy(themeMode = mode)
+        _effects.tryEmit(UiEffect.RecreateActivity)
     }
 
     fun refreshBatteryStatus() {

@@ -36,6 +36,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.qingqi.adskip.R
+import com.qingqi.adskip.core.ThemeMode
+import com.qingqi.adskip.core.ThemePreferences
 import com.qingqi.adskip.device.LocaleApplier
 import com.qingqi.adskip.ui.apps.AppsScreen
 import com.qingqi.adskip.ui.home.HomeScreen
@@ -88,7 +90,10 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            AdSkipTheme {
+            // 主题模式在组合根读一次：设置页改完会发 RecreateActivity 整体重建，
+            // 与语言切换同一机制，组合内不需要响应式订阅偏好存储。
+            val themeMode = ThemeMode.fromTag(ThemePreferences.themeTag(this))
+            AdSkipTheme(themeMode = themeMode) {
                 AdSkipShell()
             }
         }

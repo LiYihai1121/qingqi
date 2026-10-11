@@ -448,6 +448,24 @@ object AdSkipIcons {
         }
     }
 
+    /** 深色模式（对比圆：右半实心 = 明暗各半）。 */
+    val Contrast: ImageVector by lazy {
+        icon("AdSkip.Contrast") {
+            pathStroke {
+                moveTo(3.6f, 12f)
+                arcTo(8.4f, 8.4f, 0f, false, false, 20.4f, 12f)
+                arcTo(8.4f, 8.4f, 0f, false, false, 3.6f, 12f)
+                close()
+            }
+            pathFill {
+                moveTo(12f, 4.4f)
+                curveTo(16.2f, 4.4f, 19.2f, 7.8f, 19.2f, 12f)
+                curveTo(19.2f, 16.2f, 16.2f, 19.6f, 12f, 19.6f)
+                close()
+            }
+        }
+    }
+
     /** 免打扰（月牙，开口朝右）。 */
     val Moon: ImageVector by lazy {
         icon("AdSkip.Moon") {

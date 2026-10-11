@@ -190,6 +190,11 @@
     <string name="profile_privacy_hint">Skip logs and statistics stay on this device and are never uploaded.</string>
     <string name="profile_link_project">Project homepage</string>
     <string name="profile_link_feedback">Send feedback</string>
+    <string name="settings_theme_label">Dark mode</string>
+    <string name="settings_theme_hint">Applies immediately</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
     <string name="permission_section">Permissions &amp; system switches</string>
     <string name="permission_summary">%1$d of %2$d ready</string>
     <string name="permission_accessibility">Accessibility service</string>

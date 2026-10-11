@@ -2,6 +2,7 @@ package com.qingqi.adskip.data
 
 import android.content.Context
 import com.qingqi.adskip.core.LanguagePreferences
+import com.qingqi.adskip.core.ThemePreferences
 import com.qingqi.adskip.net.SyncClient
 import com.qingqi.adskip.sync.SyncJobService
 
@@ -71,6 +72,18 @@ class SettingsRepository(private val context: Context, private val rulesRepo: Ru
     fun languageTag(): String? = LanguagePreferences.languageTag(context)
 
     fun setLanguageTag(tag: String?) = LanguagePreferences.setLanguageTag(context, tag)
+
+    // ---------- 深色模式 ----------
+
+    /**
+     * 深色模式选择（`null` = 跟随系统）。
+     *
+     * 存储实体在 `core/ThemePreferences`，理由与语言一致：`ui/` 两侧（设置页写、
+     * 组合根读）都要用它但不 import `data/`。此处只做门面转发，不另存一份。
+     */
+    fun themeTag(): String? = ThemePreferences.themeTag(context)
+
+    fun setThemeTag(tag: String?) = ThemePreferences.setThemeTag(context, tag)
 
     // ---------- 应用元数据（供「我的」页展示） ----------
 
