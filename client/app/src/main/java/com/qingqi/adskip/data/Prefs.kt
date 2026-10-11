@@ -66,10 +66,17 @@ object Prefs {
         spInstance?.let { return it }
         synchronized(this) {
             spInstance?.let { return it }
+            // setKeyScheme 必须显式声明：security-crypto 1.1.0-alpha07 的 MasterKey.Builder
+            // 在未设置 scheme/spec 时 build() 直接抛 IllegalArgumentException——真机
+            // （API 23+ 的 AndroidKeyStore）首次启动即崩，Robolectric 环境测不出。
+            // AES256_GCM 与 1.0.0 MasterKeys 默认方案一致，既有密文兼容。
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
             val encrypted = EncryptedSharedPreferences.create(
                 context,
                 SP_NAME,
-                MasterKey.Builder(context).build(),
+                masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
