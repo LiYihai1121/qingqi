@@ -20,6 +20,8 @@
 | 11 | `SkipAdService` 接收器注册/注销模板重复 | 提取 `ReceiverHandle` 内部类，收敛注册/注销公共路径，消除 4 个重复方法 | `SkipAdService.kt` |
 | 12 | 服务端无结构化日志 | 新增 `src/utils/logger.ts`（JSONL 格式，零运行时依赖），替换 `server.ts` 中的 `console.*` | `server.ts`, `logger.ts` |
 | 13 | 服务端无 TLS 配置 | 新增 `TLS_CERT`/`TLS_KEY` 环境变量支持，`Bun.serve` 条件启用 TLS | `config.ts`, `server.ts` |
+| 14 | v1 批量上报事件缺 `label`（服务端已接受但客户端从未发送） | 服务端 `cleanReportEvent` 接受可选 label（`2532046`）；客户端 v1 事件补 `label` 字段（`30d73d1`）；API 文档同步更新（`a5c8b63`） | `rulesApi.ts`, `SyncClient.kt`, `API.md` |
+| 15 | `reportSkip` 上报通道无证书锁定（`httpPost` 用 `plainClient`，与同步通道 `clientForPins` 不一致） | `httpPost` 增 pins 参数改用 `clientForPins`；未配 pins 时 fail-closed 拒发；移除死代码 `plainClient`/`client()`（`30d73d1`）；单测验证（`749a4d0`） | `SyncClient.kt`, `SkipAdService.kt`, `SyncClientTest.kt` |
 
 ---
 
@@ -30,7 +32,7 @@
 | 优先级 | 问题 | 建议修复方案 | 预计工作量 |
 |--------|------|--------------|------------|
 | P0 | 服务端 HTTPS 支持（TLS 配置已就绪，待部署证书） | 设置 `TLS_CERT`/`TLS_KEY` 环境变量即可启用 HTTPS；客户端 release 强制 HTTPS | 部署时配置 |
-| P0 | `SyncClient` HTTP 无证书锁定 | ✅ 已修复（v3.4.0 批次）：迁移 OkHttp 后接入 `CertificatePinner`，指纹经设置下发（必须配置） | — |
+| P0 | `SyncClient` HTTP 无证书锁定 | ✅ 已修复（v3.4.0 批次）：迁移 OkHttp 后接入 `CertificatePinner`，指纹经设置下发（必须配置）；S1 补全：上报通道 `httpPost` 同步接入证书锁定 + fail-closed（`30d73d1`） | — |
 | P1 | `Prefs` 迁移逻辑幂等性不足 | ✅ 已修复：改用 `deleteSharedPreferences` 删除明文源文件 | — |
 | P1 | `LanguagePreferences` 未使用加密存储 | ✅ 已修复：同步迁移至 `EncryptedSharedPreferences` | — |
 | P2 | `StatsRepository` 合批写 SP 无错误处理 | ✅ 已修复：`flush()` 添加 `try-catch` + `LogRing.w` | — |

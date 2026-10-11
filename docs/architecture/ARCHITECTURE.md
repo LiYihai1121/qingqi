@@ -147,7 +147,7 @@
         → SafetyGuard.canClick(target, pkg) 安全护栏复核
         → clickNode：ACTION_CLICK，兜底坐标手势
         → StatsRepository.recordSkip（内存计数 → 5s 合批落盘）
-        → SyncClient.reportSkip（v1 批量上报，带 deviceId）
+        → SyncClient.reportSkip（v1 批量上报，带 deviceId + label，证书锁定）
         → AppEvents.emitSkipped → ViewModel 刷新统计
 ```
 
@@ -216,6 +216,7 @@ Doze 模式 → 系统推迟到维护窗口执行
 | **服务端校验** | validate.ts | 包名正则 `^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$`、关键词 ≤12 字、总条目 ≤2000、body 键数/深度上限；选择器 ≤256 字符 + 字符白名单（放行 Unicode 字母数字，否则中文关键词场景整条被丢）+ 括号引号配平 |
 | **请求约束** | readBody + maxRequestBodySize | body 必须 application/json（415）；>1MiB 协议层拒绝（413/断连），不进应用内存 |
 | **客户端护栏** | SafetyGuard | 硬编码黑名单（支付/付款/确认/同意/购买/下单/授权/登录/免密/开通/安装/下载），云规则不可覆盖 |
+| **传输层锁定** | OkHttp CertificatePinner | 规则同步与跳过上报（v0/v1 全路径）均强制证书锁定；指纹经设置页下发（必须配置），未配 pins 时 fail-closed 拒发 |
 
 ## 6. 线程模型
 
