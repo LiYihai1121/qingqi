@@ -6,6 +6,7 @@
 
 ## 目录
 
+- [3.4.1](#341---2026-10-11)
 - [3.4.0](#340---2026-10-10)
 - [3.3.0](#330---2026-10-10)
 - [3.2.0](#320---2026-10-06)
@@ -19,6 +20,16 @@
 - [2.2.0](#220---2026-08-24)
 - [2.1.0](#210---2026-08-24)
 - [2.0.0](#200---2026-08-24)
+
+## [3.4.1] - 2026-10-11
+
+真机启动崩溃修复版。`security-crypto 1.1.0-alpha07` 的 `MasterKey.Builder` 在未显式设置 key scheme 时 `build()` 抛 `IllegalArgumentException`——真机（API 23+ AndroidKeyStore）首启即崩（小米 Mi 9 / Android 11 实测 logcat：`FATAL EXCEPTION at Prefs.sp`），Robolectric 单测无法暴露。显式设置 `AES256_GCM`（与 1.0.0 `MasterKeys` 默认方案一致，既有密文兼容）。
+
+### Fixed (3.4.1)
+
+- **真机启动崩溃（安装成功 → 启动即崩）**：`Prefs.sp()` 的 `MasterKey.Builder` 显式 `setKeyScheme(AES256_GCM)`（[PR #124](https://github.com/LiYihai1121/ui-app/pull/124)）。`versionCode` 递增至 `15`，`versionName` 为 `3.4`。
+
+> **验证范围**：`ktlintCheck` + `testDebugUnitTest`（248 用例）+ `assembleDebug` 全绿；修复后 APK 已回装 Mi 9（Android 11）复验启动。厂商 ROM 保活/磁贴与 Top 30 规则真机矩阵仍按 [ROADMAP.md](docs/planning/ROADMAP.md) 所述欠账执行（见 M1d / 步骤 F）。
 
 ## [3.4.0] - 2026-10-10
 
