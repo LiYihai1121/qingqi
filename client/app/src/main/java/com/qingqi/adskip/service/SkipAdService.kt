@@ -182,6 +182,9 @@ class SkipAdService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        // 生命周期埋点：与 onServiceConnected 配对，用于归因「服务实例重建」
+        // （2026-10-11 真机实测遇到过一次 ServiceRecord 刷新/restartTime 更新）。
+        LogRing.d("Service", "onDestroy")
         running = false
         AppEvents.setServiceRunning(false)
         shutdownHandle.unregister()
@@ -223,6 +226,8 @@ class SkipAdService : AccessibilityService() {
     override fun onUnbind(intent: Intent?): Boolean {
         // 用户主动关闭会走 onUnbind：延迟复核确认后撤销守护巡检；
         // 进程被杀/MIUI 回置开关不会走这里，巡检保留并通知用户恢复。
+        // 埋点：区分「解绑」与「销毁」两条路径，配对 onServiceConnected 还原重建时序。
+        LogRing.d("Service", "onUnbind")
         AccessibilityWatchdogJob.scheduleConfirm(this)
         return super.onUnbind(intent)
     }
