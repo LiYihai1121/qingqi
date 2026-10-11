@@ -83,6 +83,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 | `gzdx` | `.worktrees/gzdx-home-redesign` | `feature/94-home-compose-redesign` | `client/.../ui/home/**`、`ui/components/Common.kt`、`ui/MainActivity.kt`、`res/values*/strings.xml` | 待合并 |
 | `gzdx` | `.worktrees/gzdx-dir-structure` | `docs/directory-structure` | `docs/architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md`、`docs/README.md`、`docs/architecture/ARCHITECTURE.md`、`AGENT-WORKFLOW.md`（认领板自身） | 待合并 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
+| `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
