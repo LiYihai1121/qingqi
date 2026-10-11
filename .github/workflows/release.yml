@@ -170,11 +170,38 @@ jobs:
             cat release/SHA256SUMS
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Generate changelog draft (dual-track release notes)
+        # 双轨说明：
+        #   轨一 = 下方 action 的 generate_release_notes（GitHub 按 PR 标题聚合）作为草稿描述；
+        #   轨二 = 本步在发布链路内自动产出 Keep a Changelog 分节草稿 notes-draft.md，
+        #          随 Release 上传，作为 CHANGELOG.md 人工定稿的输入物（CONTRIBUTING 发布核对清单）。
+        shell: bash
+        run: |
+          set -euo pipefail
+          prev_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]+.[0-9]+.[0-9]+' "${RELEASE_TAG}^{commit}^" 2>/dev/null || true)"
+          if [ -n "$prev_tag" ] && [ "$prev_tag" != "$RELEASE_TAG" ]; then
+            node scripts/generate-changelog.mjs "$prev_tag" "$RELEASE_TAG" > release/notes-draft.md
+          else
+            {
+              echo "## Changelog 草稿（${RELEASE_TAG}）"
+              echo ""
+              echo "> 未找到上一版本 tag（首个版本或历史豁免线之前），本 Release 无自动草稿，CHANGELOG.md 条目全人工撰写。"
+            } > release/notes-draft.md
+          fi
+          echo "prev_tag=${prev_tag:-<none>}"
+          {
+            echo "### Changelog 草稿（双轨第二轨，需人工定稿）"
+            echo ""
+            cat release/notes-draft.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           # workflow_dispatch 重建时必须显式传 tag_name：缺省取 github.ref_name，
           # 手动触发时那是分支名 main，制品会挂到错误的 Release 或直接报错
           tag_name: ${{ env.RELEASE_TAG }}
+          # 轨一：GitHub 自动说明作为 Release 描述草稿；轨二的 notes-draft.md 由
+          # files: release/* 一并上传，CHANGELOG.md 由人工定稿（见 CONTRIBUTING 核对清单）
           generate_release_notes: true
           files: release/*
