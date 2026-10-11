@@ -275,34 +275,9 @@ Doze 模式 → 系统推迟到维护窗口执行
 
 ## 11. 项目结构
 
-```text
-AdSkip/                            全栈 monorepo
-├── client/                        Android 客户端（Kotlin + Compose，Gradle 工程根）
-│   ├── build.gradle.kts           模块与签名配置（签名参数读 local.properties）
-│   ├── settings.gradle.kts        仓库配置（国内镜像优先）
-│   └── app/src/main/java/com/qingqi/adskip/
-│       ├── ui/                   Compose UI（单 Activity + 4 Screen + ViewModel + UiEffect）
-│       ├── core/                 AppEvents / Clock / AppExecutors / LogRing
-│       ├── service/              SkipAdService + FrameworkAdNode（无障碍服务/节点适配）
-│   │       ├── device/               系统级入口：VendorKeepAlive（ROM 识别 + 入口表）
-│   │       │                         / QuickTileLogic（磁贴决策）/ KeepAliveNavigator（跳转出口）
-│   │       │                         / SkipTileService（下拉磁贴）
-│       ├── engine/               规则引擎（纯 JVM 可测：AdNode / RuleSet / SkipRuleEngine / SafetyGuard）
-│       │   └── selector/         选择器引擎（SelectorAst / SelectorParser / SelectorMatcher）
-│       ├── data/                 Prefs / RulesRepository / StatsRepository / SettingsRepository
-│       ├── net/                  SyncClient
-│       └── sync/                 SyncJobService
-├── server/                       Bun + TypeScript 后端
-│   ├── src/
-│   │   ├── api/                  路由拆分（rulesApi / statsApi / healthApi）
-│   │   ├── middleware/           鉴权 + 限流 + 访问日志（auth / rateLimit / accessLog）
-│   │   ├── utils/                HTTP 工具 + 校验（httpUtil.ts / validate.ts）
-│   │   ├── storage/              规则 + 统计存储（store.ts）
-│   │   ├── types/                域模型类型（rules.ts）
-│   │   └── config.ts             全部可调参数
-│   ├── test/                     bun:test 单元 + 冒烟
-│   ├── server.ts                 入口（Bun.serve）
-│   └── public/                   落地页 + 管理后台
-├── docs/                         README.md（文档地图）+ api/ architecture/ development/ planning/ diagrams/
-└── .github/workflows/ci.yml     CI：Android Build + Bun Server Tests
-```
+完整带标注的目录树、每个目录的 SDLC 职责映射与设计原则见
+[ARCHITECTURE-DIRECTORY-STRUCTURE.md](ARCHITECTURE-DIRECTORY-STRUCTURE.md)（目录设计的单点事实源）。
+
+本节只保留与机器强制的接口：**已生效的目录规则**（根级白名单、`client/` 布局、标准源集、
+Kotlin 包与目录一致）以第 2.2 节与 `ProjectStructureTest` 为准——目录变化必须先改契约测试
+（契约先行）。历史上根目录曾长出过 APK 产物与 Agent 工具残留目录，白名单即是对该事故的固化。

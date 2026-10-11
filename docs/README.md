@@ -10,7 +10,8 @@ docs/
 ├── api/               对外接口与协议契约
 │   └── API.md
 ├── architecture/      系统架构与模块职责
-│   └── ARCHITECTURE.md
+│   ├── ARCHITECTURE.md
+│   └── ARCHITECTURE-DIRECTORY-STRUCTURE.md  完整目录树与各目录 SDLC 职责映射（目录设计单点事实源）
 ├── development/       开发环境与工具链
 │   ├── DEV-ENVIRONMENT.md
 │   └── AGENT-WORKFLOW.md         多 Agent 协作：隔离 / 所有权 / 契约 / 交接
@@ -36,6 +37,7 @@ docs/
 | --- | --- |
 | 了解这是什么、怎么用 | [../README.md](../README.md) |
 | 了解架构、模块职责、协议与安全模型 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
+| 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
 | 知道接下来做什么、按什么顺序做 | [planning/ROADMAP.md](planning/ROADMAP.md) → [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
