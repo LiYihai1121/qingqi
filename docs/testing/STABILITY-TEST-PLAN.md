@@ -69,6 +69,7 @@ adb shell uiautomator dump /sdcard/ui.xml + screencap   # 效用证据（必须�
 1. **语义树文本 ≠ 可见状态**：`StatusOrb` 两种状态文案会同时出现在无障碍语义树（读屏重复问题），自动化断言「服务未开启」必须配截图确认——2026-10-11 曾因此产生一次误报。
 2. **PowerShell `$PID` 陷阱**：`$pid` 为只读自动变量，赋值失败后插值打印的是 shell 自身 PID，勿当作设备进程 ID（本次曾造成「进程重启」假象）。
 3. **monkey 启动 ≠ 广告呈现**：自动化打开应用多数窗口不出现可跳过广告，S6 必须用内置自检或人工沉浸兜底。
+4. **复测新构建用并行安装**：给 debug 变体临时加 `applicationIdSuffix .debug` 本地构建（**不提交**），与设备上的 release 正式版共存安装、分别授权无障碍服务——避免「卸载正式版丢失本机 100+ 条记录」；验证后卸载并行包，`enabled_accessibility_services` 恢复为单一组件。
 
 ## 8. 首次执行记录（2026-10-11，Mi 9 / Android 11 / MIUI V125 / v3.4.0 正式版）
 
@@ -81,12 +82,12 @@ adb shell uiautomator dump /sdcard/ui.xml + screencap   # 效用证据（必须�
 | 内存 | 无单调增长 | 前台 158MB → 后台 18 样品收敛 ~98MB 零漂移 → 前台 174MB | ✅ 无泄漏特征 |
 | 压力（S2 子集） | 存活 | `RUNNING_LOW` 存活；`am kill` 杀不死（无障碍进程受保护）；12 次快速切换无碍；深度 Doze 后服务仍活 | ✅ |
 | 网络（S3 子集） | 无崩溃 | 飞行模式往返正常 | ✅ |
-| 跳过效用（S6） | 计数增长 | **未证明**：monkey 驱动 0 新增；内置自检超时 | ⚠️ |
+| 跳过效用（S6） | 计数增长 | 首测未证明（monkey 无广告呈现 + 自检缺陷）；**修复版复测已证明**：自检自动跳过（记录 `16:10:18 com.qingqi.adskip.debug`）+ 真实后台跳过 4 条（com.miui.home） | ✅（复测） |
 
 **本次发现**：
 
-1. **自检结构性失效（已修复，PR #145）**：`FakeAdOverlay` 的 `clearAndSetSemantics` 把「跳过」按钮自身清出语义树，引擎 5 秒窗口内无可点节点，自检必然超时。修复将清除动作移至首页内容层。
-2. **服务实例一次重建**（观察项）：会话中 SkipAdService 的 ServiceRecord 更新、restartTime=-9s，恰逢应用 activity 前台启动；进程未死、无崩溃、恢复 <1s。归因待补（建议在 `onServiceConnected`/`onDestroy` 落 LogRing 时间戳后复跑 S1）。
+1. **自检结构性失效（已修复 #145 并真机验证）**：`FakeAdOverlay` 的 `clearAndSetSemantics` 把「跳过」按钮自身清出语义树，引擎 5 秒窗口内无可点节点，自检必然超时。修复将清除动作移至首页内容层。**复测（2026-10-11 16:10，同机）**：本地临时给 debug 变体加 `applicationIdSuffix .debug` 并行安装（不动正式版），启用其无障碍服务后点击自检——浮层弹出后引擎在约 2 秒内自动点击「跳过」，记录页新增 `16:10:18 | com.qingqi.adskip.debug`，首页「最近应用」变为「轻启」（本应用自身），无超时提示；同会话另有 4 条 `com.miui.home` 真实后台跳过（16:08:17–16:08:57），修复版在真实活动中持续生效。
+2. **服务实例一次重建**（观察项，埋点已补）：会话中 SkipAdService 的 ServiceRecord 更新、restartTime=-9s，恰逢应用 activity 前台启动；进程未死、无崩溃、恢复 <1s。归因埋点已由 PR #151 补齐（`onUnbind`/`onDestroy` LogRing 日志），下轮 S1 浸泡用三段时序还原路径。
 3. monkey 驱动的自动浏览不产生可跳过广告（目标应用登录态、无开屏广告窗口）——S6 的自动化部分按第 7 节纪律改走内置自检 + 人工沉浸。
 
-**证据**：`F:\All_Data\Temp\kilo\stab\`（logcat-soak.txt、mem-baseline.txt、5 张截图）。
+**证据**：`F:\All_Data\Temp\kilo\stab\`（首杀：logcat-soak.txt、mem-baseline.txt、5 张截图；复测：ui-dbg-overlay3.xml、screen-dbg-records.png 等 8 个文件）。
