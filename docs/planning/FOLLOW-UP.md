@@ -52,6 +52,7 @@
 | P1 | `SyncClient` 无网络层单测 | ✅ 已修复（v3.3.0）：OkHttp 迁移同步引入 MockWebServer 回归（`SyncClientTest`） | — |
 | P1 | `store.ts` 无存储层单测 | ✅ 已修复：新增 `rotateStatsBackup` 测试用例，验证备份创建与轮转上限 | — |
 | P2 | 无端到端集成测试 | 补 `androidx.test` instrumentation 或 `AppTest`，覆盖 Service → Engine → 点击 → 上报全链路 | 2-3 天 |
+| P2 | 无 Compose UI 语义回归测试 | 2026-10-11 真机实测：模拟广告浮层的「跳过」按钮曾被 `clearAndSetSemantics` 误清出语义树导致自检必败（#145 已修逻辑，无自动化守卫防复发）。引入 `ui-test-junit4`（Robolectric）写断言：浮层可见时「跳过」在语义树可及、首页内容不可及 | 0.5 天 |
 | P2 | 无结构化日志/指标导出 | ✅ 已修复：新增 `src/utils/logger.ts`（JSONL 格式，零运行时依赖），替换 `server.ts` 中的 `console.*` | — |
 | P3 | `SettingsScreen.kt` 快照 UI 集成未完成 | ✅ 已完成（v3.2.0）：快照工具与设置页入口随 M1c 发布 | — |
 | P3 | 未提交构建产物残留 | ✅ 已确认：`client/build-logic/convention/bin/` 已被 `.gitignore`，不入库 | — |
