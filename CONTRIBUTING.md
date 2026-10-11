@@ -317,7 +317,7 @@ git rebase -i --autosquash origin/main
 - 至少 1 名维护者批准；安全、协议或数据变更至少 2 名审批者，其中包含领域负责人；
 - 所有评论解决，旧审批在新增提交后失效；
 - 分支必须基于最新目标分支，合并使用 Squash（`hotfix/*` 例外，见 [§5](#5-合并前的提交压缩)）；合并后自动删除源分支；
-- CI 使用固定 Action 主版本，依赖和权限按最小权限配置。
+- CI Actions 一律 pin 到完整 commit SHA（行尾注释保留可读版本，形如 `actions/checkout@11d5960… # v4`）；禁止只写可变的主版本 tag——第三方 Action 是可执行代码，`@vN` 指向的内容可被单方面改写。新增或升级 Action 走同一规则，由 Dependabot（github-actions ecosystem）自动提交升级 PR；权限按最小权限配置。
 
 > **单维护者例外（2026-10-11 核验生效）**：`CODEOWNERS` 当前只有一名 owner，GitHub 不允许自审批，因此 `main` 保护实配 `required_approving_review_count = 0`、`require_code_owner_reviews = false`——上面「至少 1 名维护者批准」在例外期间由**机器门禁与自审清单**替代：三项必需状态检查（`Structure Contract` / `Android Build & Test` / `Server Tests`）+ `strict`（分支须与 `main` 同步才可合并）+ 评论全部解决 + 旧审批失效 + 禁管理员绕过 + `githooks/pre-commit`、`githooks/commit-msg`。**补齐条件**：出现第二名可审批协作者时，审批人数改为 ≥1、启用 CODEOWNERS 强制，并恢复安全/协议/数据变更 2 人审批；基线随季度流程审计复核（口径见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md)）。
 
