@@ -57,7 +57,7 @@
 
 | 设备 ID | 厂商/型号 | Android 版本 | ROM/安全补丁 | 测试日期 | 结果/证据 |
 |---|---|---|---|---|---|
-| D1 | 待记录 | Android 13 | 待记录 | 待执行 | 未测 |
+| D1 | Xiaomi / Mi 9 (cepheus) | Android 11 | MIUI V125 / 补丁 2021-10-01 | 2026-10-11 | **冒烟通过 + 2 个真机必现缺陷发现并修复**（见「测试记录」R-2026-10-11）；Top 30 逐 App 场景未执行 |
 | D2 | 待记录 | Android 14 | 待记录 | 待执行 | 未测 |
 | D3 | 待记录 | Android 15 | 待记录 | 待执行 | 未测 |
 | D4（扩展） | Xiaomi / HyperOS | 待记录 | 待记录 | 待执行 | 未测 |
@@ -67,6 +67,17 @@
 | D8（扩展） | Samsung / One UI | 待记录 | 待记录 | 待执行 | 未测 |
 
 D1–D3 是 Android 版本覆盖的最低建议，D4–D8 是 OEM 扩展矩阵。具体能否由同一设备覆盖多项，应按实际 ROM 和版本登记；不得将 AOSP 模拟器等同于 OEM 真机。若没有设备，只能把该矩阵保留为 blocker。
+
+### 测试记录 R-2026-10-11（D1 Xiaomi Mi 9，冒烟 + 缺陷批次）
+
+**范围声明**：本次为安装/启动/服务绑定/引擎实战的**冒烟验证 + 缺陷发现批次**，不构成 Top 30 验收通过；逐 App 广告场景（第 4 节流程）未执行。
+
+- **安装与启动**：`INSTALL_FAILED_USER_RESTRICTED`（MIUI USB 安装限制）排除后安装成功；首启即崩（FATAL at `AdSkipApp.onCreate` → `Prefs.sp`）——**真机必现缺陷 B1**：`MasterKey.Builder` 未显式 `setKeyScheme`，修复于 [#124](https://github.com/LiYihai1121/ui-app/pull/124)（已合并）。结论：**v3.4.0 及之前所有版本在任何 API 23+ 真机上首启必崩**，Robolectric 单测无法暴露；已装用户需更新到含 #124 的版本。
+- **快照导出**：`EXPORT_SNAPSHOT` 广播路径在 Service 上下文 `startActivity` 缺 `FLAG_ACTIVITY_NEW_TASK`，崩溃并连带杀死无障碍服务进程（logcat 实录）——**真机必现缺陷 B2**，修复于 [#125](https://github.com/LiYihai1121/ui-app/pull/125)。
+- **服务绑定**：`dumpsys accessibility` 实测 `Bound services: 轻启·跳过开屏广告`（FEEDBACK_GENERIC，监听 TYPE_WINDOW_STATE_CHANGED/CONTENT_CHANGED）。注意：MIUI 会把 adb 写入的 `accessibility_enabled` 回置为 0，且服务值未变化时不触发重绑——需占位符切换法或系统设置 UI 手动开启。
+- **引擎实战（日常使用路径，非 Top 30 口径）**：服务绑定后日常使用约 20 分钟，累计跳过 83 → 86（`com.android.settings` 弹窗、MIUI 桌面推广等），记录页带时间戳条目（如 `10-11 13:07:19 | com.android.settings`）；观察窗口内**误触 0**、服务无二次崩溃。
+- **来源判别**：应用对模拟广告浮层的跳过来源判别准确（引擎点击 vs 手动点击分别引导），符合「规则命中 ≠ 点击成功」的口径设计。
+- **遗留**：`findTarget` p99 采样未执行（128 规则负载口径）；Top 30 逐 App 试次未执行；安全负向测试（支付宝零动作）未执行。以上为 M1d 剩余范围。
 
 ## 4. 每个 App 的执行流程
 
