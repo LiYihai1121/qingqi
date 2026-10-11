@@ -6,6 +6,7 @@
 
 ## 目录
 
+- [3.4.2](#342---2026-10-11)
 - [3.4.1](#341---2026-10-11)
 - [3.4.0](#340---2026-10-10)
 - [3.3.0](#330---2026-10-10)
@@ -20,6 +21,26 @@
 - [2.2.0](#220---2026-08-24)
 - [2.1.0](#210---2026-08-24)
 - [2.0.0](#200---2026-08-24)
+
+## [3.4.2] - 2026-10-11
+
+上报通道加固与协议补全：`reportSkip` 接入证书锁定（fail-closed）+ v1 批量上报事件补 `label` 字段。
+
+### Added (3.4.2)
+
+- **v1 批量上报事件 `label` 字段**：服务端 `cleanReportEvent` 接受可选 `label`（向后兼容，旧客户端不发送不影响）；客户端 v1 事件补 `event.put("label", label)`。API 文档同步更新。
+- **上报通道证书锁定**：`reportSkip` 的 `httpPost` 改用 `clientForPins`（`CertificatePinner`），与规则同步通道一致。指纹经设置页下发，未配置 pins 时 fail-closed 同步拒发（不降级明文通道）。
+
+### Changed (3.4.2)
+
+- 版本号同步：`versionCode` 递增至 `16`（v3.4.1 = 15），`versionName` 为 `3.4`，服务端 `server/package.json` 为 `3.4.2`。
+- 安全模型新增「传输层锁定」行（`CertificatePinner` 覆盖 v0/v1 全路径 + fail-closed）。
+- FOLLOW-UP 已修复表新增 #14（F1: v1 事件缺 label）、#15（S1: 上报通道无证书锁定）。
+
+### Fixed (3.4.2)
+
+- v1 批量上报事件缺 `label`：服务端已接受但客户端从未发送——现已双端对齐。
+- `reportSkip` 上报通道无证书锁定：`httpPost` 原用 `plainClient`（与同步通道 `clientForPins` 不一致），现已统一接入。移除死代码 `plainClient`/`client()`。
 
 ## [3.4.1] - 2026-10-11
 
