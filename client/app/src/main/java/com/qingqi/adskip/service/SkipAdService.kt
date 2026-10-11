@@ -200,6 +200,9 @@ class SkipAdService : AccessibilityService() {
         val snapshot = NodeSnapshot.capture(root, pkg, activity)
         val text = snapshot.toShareText()
 
+        // 从 Service 上下文 startActivity 必须带 NEW_TASK：无障碍服务的快照接收器
+        // 在收到 EXPORT_SNAPSHOT 广播后走此路径（真机实测缺失该 flag 时
+        // AndroidRuntimeException 崩溃并连带杀死无障碍服务进程，Mi 9/Android 11）。
         context.startActivity(
             Intent.createChooser(
                 Intent(Intent.ACTION_SEND).apply {
@@ -208,7 +211,8 @@ class SkipAdService : AccessibilityService() {
                     putExtra(Intent.EXTRA_TEXT, text)
                 },
                 context.getString(R.string.logs_share),
-            ),
+                // 或有系统差异下额外兜底：显式标记新任务栈
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         Toast.makeText(context, R.string.settings_snapshot_exported, Toast.LENGTH_SHORT).show()
     }
