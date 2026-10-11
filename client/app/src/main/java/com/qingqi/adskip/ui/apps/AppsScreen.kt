@@ -13,10 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -49,6 +45,7 @@ import com.qingqi.adskip.ui.components.SkeletonList
 import com.qingqi.adskip.ui.components.TwoLineRow
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 
 /**
  * 应用管理：所有可启动应用，逐项开关自动跳过并显示跳过次数。
@@ -100,7 +97,7 @@ fun AppsScreen(viewModel: AppsViewModel = viewModel(factory = AppsViewModel.Fact
             // 排在 loading 之前是因为失败时 loading 已由 ViewModel 置回 false，
             // 若顺序颠倒，将来任何忘记复位 loading 的改动都会把错误态挡住。
             state.failed -> ErrorState(
-                icon = Icons.Default.Warning,
+                icon = AdSkipIcons.Warning,
                 title = stringResource(R.string.error_generic_title),
                 subtitle = stringResource(R.string.error_generic_hint),
                 action = {
@@ -116,7 +113,7 @@ fun AppsScreen(viewModel: AppsViewModel = viewModel(factory = AppsViewModel.Fact
             )
 
             visible.isEmpty() -> EmptyState(
-                icon = Icons.Default.Search,
+                icon = AdSkipIcons.Search,
                 title = stringResource(
                     if (state.items.isEmpty()) R.string.apps_empty else R.string.apps_no_match,
                 ),
@@ -185,7 +182,7 @@ private fun SearchField(
         keyboardActions = KeyboardActions(onSearch = { onSearchDone() }),
         leadingIcon = {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = AdSkipIcons.Search,
                 contentDescription = null,
             )
         },
@@ -193,7 +190,7 @@ private fun SearchField(
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = AdSkipIcons.Close,
                         contentDescription = stringResource(R.string.apps_search_clear),
                     )
                 }

@@ -27,11 +27,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -86,6 +81,7 @@ import com.qingqi.adskip.ui.components.rememberAppLabel
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.StatusColors
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import kotlinx.coroutines.launch
 
 /**
@@ -323,19 +319,19 @@ private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: ()
 private fun QuickActionsRow(onOpenLogs: () -> Unit, onOpenApps: () -> Unit, onScrollToKeywords: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         QuickAction(
-            icon = Icons.Filled.DateRange,
+            icon = AdSkipIcons.Logs,
             label = stringResource(R.string.quick_open_logs),
             onClick = onOpenLogs,
             modifier = Modifier.weight(1f),
         )
         QuickAction(
-            icon = Icons.Filled.Add,
+            icon = AdSkipIcons.Plus,
             label = stringResource(R.string.quick_add_keyword),
             onClick = onScrollToKeywords,
             modifier = Modifier.weight(1f),
         )
         QuickAction(
-            icon = Icons.AutoMirrored.Filled.List,
+            icon = AdSkipIcons.Apps,
             label = stringResource(R.string.quick_open_apps),
             onClick = onOpenApps,
             modifier = Modifier.weight(1f),
@@ -444,7 +440,7 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
             keyboardActions = KeyboardActions(onDone = { submit() }),
             trailingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = AdSkipIcons.Plus,
                     contentDescription = stringResource(R.string.btn_add),
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -481,7 +477,7 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
                         },
                         trailingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = AdSkipIcons.Close,
                                 // 动作语义已挂在 chip 上，图标本身不再重复声明。
                                 contentDescription = null,
                                 modifier = Modifier.size(InputChipDefaults.AvatarSize),
