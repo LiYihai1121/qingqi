@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  启动器图标背景层：对角线性渐变（#1E88E5 → #0D47A1），两端都取品牌蓝家族色，
-  视觉上夹住 M3 主色 #1565C0，保证图标与应用内主题是同一个「蓝」而不是两套配色。
+  启动器图标背景层：深空导航蓝对角渐变（#0A1830 → #103C78）+ 中心径向辉光（#4FC3F7）。
+
+  2026-10 图标改版（科技感方向）把背景从亮品牌蓝换成深空蓝：HUD 取景框与霓虹对勾
+  需要深色底才能发出「辉光」对比，亮蓝底会同时吞掉白色取景框与青色对勾的层次。
+  色相仍锚在品牌蓝-青家族：辉光 #4FC3F7 与对勾渐变 #2DE1FC→#2E7CF6 都取自
+  M3 主色 #1565C0 的邻域，应用内主题没有第二套配色。
 
   为什么用矢量渐变而不是 @color：改成矢量后即可在不改前景层的前提下做夜间版或品牌换色；
   代价是背景层的 color 资源不再被引用（见 colors.xml 的说明）。
@@ -13,6 +17,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- 底：对角线性渐变（左上深 → 右下稍亮） -->
     <path android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -21,8 +26,22 @@
                 android:startY="0"
                 android:endX="108"
                 android:endY="108">
-                <item android:offset="0" android:color="#1E88E5" />
-                <item android:offset="1" android:color="#0D47A1" />
+                <item android:offset="0" android:color="#0A1830" />
+                <item android:offset="1" android:color="#103C78" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 中心径向辉光：把视线聚到箭头上，径向 alpha 线性衰减到 0 -->
+    <path android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="54"
+                android:gradientRadius="36">
+                <item android:offset="0" android:color="#594FC3F7" />
+                <item android:offset="1" android:color="#004FC3F7" />
             </gradient>
         </aapt:attr>
     </path>

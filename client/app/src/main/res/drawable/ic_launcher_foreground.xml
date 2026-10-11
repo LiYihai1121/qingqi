@@ -2,26 +2,56 @@
 <!--
   启动器图标前景层（108dp 画布，坐标系与 Android 自适应图标一致）。
 
-  设计要点（改动前请先读，避免退化成通用「快进」图形）：
-  - 安全区 66dp（21..87）、可视区 72dp（18..90）。圆盘直径 62（23..85）落在安全区内；
-  - 圆盘 + 负空间「跳过」箭头：负空间在小尺寸下对比度最高，48dp 与磁贴 24dp 仍可辨识，
-    而实心描边方案在 24px 会糊成一团；
-  - 箭头必须**完全位于圆盘内**：evenOdd 填充下「在槽内但在圆盘外」的点会重新被填上，
-    负空间消失。因此箭头尖端正好落在圆盘最右点 (85,54)，不再向外穿出；
-  - 单色层见 ic_launcher_monochrome.xml（Android 13+ 主题图标）。
+  2026-10 图标改版（科技感方向，舍弃旧「圆盘 + 负空间箭头」的全部箭头母题）：
+  母题是「HUD 取景框 + 霓虹对勾」——取景框与对焦点指代无障碍服务对界面节点的
+  自动扫描，对勾指代「这个开屏已被自动跳过」，与产品的「自动识别 → 自动跳过」
+  链路一一对应，且不依赖任何箭头元素。要点：
+  - 安全区 66dp（21..87）：取景框四角 (32.5,32.5) 径向距离 √(21.5²×2) ≈ 30.4，
+    加 3.4 描边外沿 ≈ 32.8 ≤ 33；对勾最远点 (70,42.5) 径向 ≈ 19.7。整个剪影
+    收在安全区内，任何遮罩（圆 / 方圆 / 圆角方）都不会切角；
+  - 对勾用**圆头描边 + 霓虹渐变**（青 #2DE1FC → 蓝 #2E7CF6，沿书写方向）：
+    深空底上渐变实笔才有「识别完成」的能量感；负空间方案在深底上对比不足；
+  - 对焦点（上下边中点）用实心圆点补足「正在对焦」的细节，层级低于取景框。
 
-  预览与本文件使用同一组坐标：渲染脚本输出即为此处的 pathData。
+  单色层见 ic_launcher_monochrome.xml（Android 13+ 主题图标），形状与本层一致。
+
+  预览与本文件使用同一组坐标：离线渲染脚本的输出即为此处的 pathData。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 圆盘 + 负空间箭头合并为一条 evenOdd 路径 -->
+    <!-- HUD 取景框：四角臂长 10，描边 3.4，直角斜接 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.4"
+        android:pathData="M32.5,42.5 V32.5 H42.5 M65.5,32.5 H75.5 V42.5 M75.5,65.5 V75.5 H65.5 M42.5,75.5 H32.5 V65.5" />
+
+    <!-- 对焦点：上下边中点，实心圆点 -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M23.0,54.0 a31.0,31.0 0 1,0 62.0,0 a31.0,31.0 0 1,0 -62.0,0 Z
-                          M26,47.5 L61,47.5 L61,35.5 L85,54 L61,72.5 L61,60.5 L26,60.5 Z" />
+        android:pathData="M51.8,32.5 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z
+                          M51.8,75.5 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z" />
+
+    <!-- 对勾：圆头描边 + 霓虹渐变（青→蓝，沿书写方向） -->
+    <path
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M40,55.5 L50.5,66 L70,42.5">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="60"
+                android:endX="70"
+                android:endY="42">
+                <item android:offset="0" android:color="#2DE1FC" />
+                <item android:offset="1" android:color="#2E7CF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

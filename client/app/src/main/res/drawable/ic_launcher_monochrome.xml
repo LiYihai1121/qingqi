@@ -3,8 +3,9 @@
   启动器图标单色层（Android 13+ 主题图标 / Material You 桌面取形）。
 
   主题化桌面会把本层用系统色重新着色，因此这里必须是**单色、无渐变、无透明叠加**的纯形状，
-  否则会出现「彩色图标 / 单色图标」两套观感。形状与 ic_launcher_foreground.xml 完全一致，
-  只换颜色：前景层用白（压在品牌蓝背景上），本层用黑（由系统着色）。
+  否则会出现「彩色图标 / 单色图标」两套观感。形状与 ic_launcher_foreground.xml 完全一致
+  （取景框 + 对焦点 + 对勾），只换颜色：前景层用白/霓虹（压在深空蓝背景上），
+  本层统一用黑（由系统着色）。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -13,8 +14,19 @@
     android:viewportHeight="108">
 
     <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.4"
+        android:pathData="M32.5,42.5 V32.5 H42.5 M65.5,32.5 H75.5 V42.5 M75.5,65.5 V75.5 H65.5 M42.5,75.5 H32.5 V65.5" />
+
+    <path
         android:fillColor="#000000"
-        android:fillType="evenOdd"
-        android:pathData="M23.0,54.0 a31.0,31.0 0 1,0 62.0,0 a31.0,31.0 0 1,0 -62.0,0 Z
-                          M26,47.5 L61,47.5 L61,35.5 L85,54 L61,72.5 L61,60.5 L26,60.5 Z" />
+        android:pathData="M51.8,32.5 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z
+                          M51.8,75.5 a2.2,2.2 0 1,0 4.4,0 a2.2,2.2 0 1,0 -4.4,0 Z" />
+
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M40,55.5 L50.5,66 L70,42.5" />
 </vector>

@@ -80,8 +80,9 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| `gzdx` | `.worktrees/gzdx-home-redesign` | `feature/94-home-compose-redesign` | `client/.../ui/home/**`、`ui/components/Common.kt`、`ui/MainActivity.kt`、`res/values*/strings.xml` | 待合并 |
-| `gzdx` | `.worktrees/gzdx-tsc-pin` | `fix/server-tsc-pin` | `server/package.json`、`server/bun.lock` | 待合并 |
+| `gzdx` | `.worktrees/gzdx-home-redesign` | `feature/94-home-compose-redesign` | `client/.../ui/home/**`、`ui/components/Common.kt`、`ui/MainActivity.kt`、`res/values*/strings.xml` | 已完成（PR #100 已合并） |
+| `gzdx` | `.worktrees/gzdx-tsc-pin` | `fix/server-tsc-pin` | `server/package.json`、`server/bun.lock` | 已完成（PR #126 已合并） |
+| `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh` → `feature/theme-mode-setting` → `feature/ui-detail-polish`（同工作区串行三分支） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/profile/**`、`ui/settings/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、本文件认领板行 | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。

@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  快捷磁贴图标：与启动器图标同源的「跳过箭头」符号（去掉外圈圆盘，只留核心符号）。
+  快捷磁贴图标：与启动器图标同源的「HUD 取景框 + 对勾」符号。
 
   磁贴只有 24dp 且由系统按主题着色（可能是纯白、纯黑或半透明单色），因此：
-  - 必须是单色纯形状，无渐变、无描边、无透明叠加；
-  - 24dp 下圆盘 + 箭头会糊成一团，故只保留箭头；
-  - 坐标已按 24 视口重新排布（与启动器图标的 108 视口不是同一套坐标）。
+  - 必须是单色纯形状，无渐变、无描边叠加、无透明层次；
+  - 启动器图标的对焦点在 24dp 下缩为亚像素点，磁贴版本省略；
+  - 描边 1.9 / 对勾 2.6 是 24 视口下仍能渲染清晰的最低线宽
+    （约 2dp，与 Material 描边类图标一致）；
+  - 坐标按 24 视口重新排布（与启动器图标的 108 视口不是同一套坐标）。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -14,6 +16,13 @@
     android:viewportHeight="24"
     android:tint="#FFFFFF">
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="M4.0,8.0 L10.5,8.0 L10.5,4.0 L19.0,12.0 L10.5,20.0 L10.5,16.0 L4.0,16.0 Z" />
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.9"
+        android:pathData="M4,9 V4 H9 M15,4 H20 V9 M20,15 V20 H15 M9,20 H4 V15" />
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M7.2,12.2 L10.5,15.5 L17,8.6" />
 </vector>
