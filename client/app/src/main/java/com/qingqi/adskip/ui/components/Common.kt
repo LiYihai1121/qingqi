@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -159,6 +162,8 @@ fun StatusDot(ready: Boolean, modifier: Modifier = Modifier) {
  * （用户看不到当前选的是哪个），且「点整行」的语义是「打开选择」，不是「切换」。
  *
  * 整行是一个 `Role.Button` 语义节点，读屏会念「标题，当前取值，按钮」。
+ * [icon] 为可选的品牌图标（AdSkipIcons），纯装饰（`contentDescription = null`），
+ * 语义由标题承担。
  */
 @Composable
 fun LabeledChoiceRow(
@@ -167,6 +172,7 @@ fun LabeledChoiceRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    icon: ImageVector? = null,
 ) {
     Row(
         modifier = modifier
@@ -176,6 +182,15 @@ fun LabeledChoiceRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(UiSizes.rowIcon),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(Spacing.md))
+        }
         Column(Modifier.weight(1f).padding(end = Spacing.lg)) {
             Text(
                 text = title,
@@ -261,6 +276,7 @@ fun LabeledSwitch(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
 ) {
     Row(
         modifier = modifier
@@ -274,6 +290,15 @@ fun LabeledSwitch(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(UiSizes.rowIcon),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(Spacing.md))
+        }
         Column(Modifier.weight(1f).padding(end = Spacing.lg)) {
             Text(
                 text = title,

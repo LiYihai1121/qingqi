@@ -188,6 +188,8 @@
     <string name="profile_active_apps_label">Apps skipped for</string>
     <string name="profile_value_unknown">Unknown</string>
     <string name="profile_privacy_hint">Skip logs and statistics stay on this device and are never uploaded.</string>
+    <string name="profile_link_project">Project homepage</string>
+    <string name="profile_link_feedback">Send feedback</string>
     <string name="permission_section">Permissions &amp; system switches</string>
     <string name="permission_summary">%1$d of %2$d ready</string>
     <string name="permission_accessibility">Accessibility service</string>
