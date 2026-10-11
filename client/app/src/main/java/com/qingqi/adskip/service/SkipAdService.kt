@@ -267,7 +267,8 @@ class SkipAdService : AccessibilityService() {
         if (!AppEvents.testActive) {
             Toast.makeText(this, getString(R.string.toast_skipped, label), Toast.LENGTH_SHORT).show()
         }
-        syncClient.reportSkip(Prefs.getServerUrl(this), pkg, label, Prefs.getDeviceId(this))
+        // S1：上报经证书锁定通道——取已配 pins 传入，未配时 reportSkip 内部 fail-closed 拒发
+        syncClient.reportSkip(Prefs.getServerUrl(this), pkg, label, Prefs.getDeviceId(this), Prefs.getCertPins(this))
         AppEvents.emitSkipped(label)
         // 广播一律 setPackage 收窄到本应用：ACTION_SKIPPED 携带用户正在使用的应用名，
         // 不加限制会让任意第三方应用注册同名 action 即可监听（隐私泄露）。
