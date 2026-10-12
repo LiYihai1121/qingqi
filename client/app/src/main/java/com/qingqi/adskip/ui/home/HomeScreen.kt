@@ -241,72 +241,59 @@ fun HomeScreen(
 @Composable
 private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: () -> Unit) {
     SectionCard(
-        contentPadding = PaddingValues(Spacing.lg),
+        contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.xxl),
         brush = Brush.linearGradient(
             listOf(
                 MaterialTheme.colorScheme.primaryContainer,
+                MaterialTheme.colorScheme.surfaceContainerLowest,
                 MaterialTheme.colorScheme.surfaceContainerLow,
             ),
         ),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // 参考新版视觉稿：服务状态是首页的第一视觉焦点，改为居中状态徽章，
+            // 让用户打开首页后无需阅读多段说明即可判断服务是否生效。
             StatusOrb(
                 running = running,
-                diameter = UiSizes.statusOrb,
+                diameter = 124.dp,
             )
-            Spacer(Modifier.width(Spacing.lg))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(if (running) R.string.status_on else R.string.status_off),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (running) StatusColors.on else StatusColors.off,
-                )
-                Spacer(Modifier.height(Spacing.xs))
-                Text(
-                    text = stringResource(
-                        if (running) R.string.status_on_hint else R.string.status_off_hint,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Spacer(Modifier.height(Spacing.md))
+            Text(
+                text = stringResource(if (running) R.string.status_on else R.string.status_off),
+                style = MaterialTheme.typography.titleLarge,
+                color = if (running) StatusColors.on else StatusColors.off,
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(
+                    if (running) R.string.status_on_hint else R.string.status_off_hint,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.xl))
+
+            // 主要操作保持高对比度；服务运行时改为次级强调，避免误导用户重复开启。
+            if (running) {
+                FilledTonalButton(
+                    onClick = onPrimaryAction,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.btn_manage_settings))
+                }
+            } else {
+                Button(
+                    onClick = onPrimaryAction,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.btn_open_settings))
+                }
             }
-        }
 
-        Spacer(Modifier.height(Spacing.lg))
-
-        // 动作分级：只有服务没开时，「去开启」才是用户必须做的事，用 filled 表达；
-        // 已运行时降级为 tonal，避免让用户误以为还有必须点的操作。
-        if (running) {
-            FilledTonalButton(
-                onClick = onPrimaryAction,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
-            }
-        } else {
-            Button(
-                onClick = onPrimaryAction,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
-            }
-        }
-
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = Spacing.xs),
-            color = MaterialTheme.colorScheme.outlineVariant,
-        )
-
-        // 「测试」是可选的验证动作，用 TextButton 让它明确矮于主行动。
-        //
-        // 这里**不能**用 `enabled = running` 把按钮禁用：那样服务未开启时用户只看到一个
-        // 灰按钮，既没有原因也没有下一步（灰控件不解释自己是常见 UX 反模式）。
-        // HomeViewModel.startFakeAdTest() 已实现「未开启则提示先开启服务」的分支，
-        // 之前被 enabled 挡住而永远不可达；改为始终可点后，那条提示才真正生效。
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
+            Spacer(Modifier.height(Spacing.sm))
             TextButton(onClick = onTest) {
                 Text(stringResource(R.string.btn_test))
             }
