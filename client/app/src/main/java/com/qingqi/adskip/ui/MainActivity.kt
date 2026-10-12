@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -45,7 +46,9 @@ import com.qingqi.adskip.device.LocaleApplier
 import com.qingqi.adskip.ui.apps.AppsScreen
 import com.qingqi.adskip.ui.home.HomeScreen
 import com.qingqi.adskip.ui.logs.LogsScreen
+import com.qingqi.adskip.ui.onboarding.OnboardingScreen
 import com.qingqi.adskip.ui.profile.ProfileScreen
+import com.qingqi.adskip.ui.rules.RulesScreen
 import com.qingqi.adskip.ui.theme.AdSkipTheme
 import com.qingqi.adskip.ui.theme.screenContentWidth
 
@@ -104,8 +107,8 @@ private data class TopLevelDestination(val route: String, val labelRes: Int, val
 
 private val TopLevelDestinations = listOf(
     TopLevelDestination(Routes.HOME, R.string.nav_home, Icons.Filled.Home),
-    TopLevelDestination(Routes.APPS, R.string.nav_apps, Icons.AutoMirrored.Filled.List),
     TopLevelDestination(Routes.LOGS, R.string.nav_logs, Icons.Filled.DateRange),
+    TopLevelDestination(Routes.RULES, R.string.nav_rules, Icons.AutoMirrored.Filled.List),
     TopLevelDestination(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person),
 )
 
@@ -122,6 +125,11 @@ private val TopLevelDestinations = listOf(
 @Composable
 private fun AdSkipShell() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val onboardingComplete = remember {
+        context.getSharedPreferences("adskip_ui", Context.MODE_PRIVATE)
+            .getBoolean("onboarding_complete", false)
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -131,7 +139,7 @@ private fun AdSkipShell() {
     // 系统返回键：在非首页时回到首页，而不是逐级退出应用。
     // 用 popBackStack 而非 popUpTo(inclusive) + 重新 navigate：后者会销毁并重建首页，
     // 用户按返回后滚动位置、输入的关键词草稿全部丢失——「回首页」不该等价于「重开首页」。
-    BackHandler(enabled = currentRoute != null && currentRoute != Routes.HOME) {
+    BackHandler(enabled = currentRoute != null && currentRoute != Routes.HOME && currentRoute != Routes.ONBOARDING) {
         if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
             navController.navigate(Routes.HOME) {
                 popUpTo(Routes.HOME) { inclusive = true }
@@ -147,47 +155,49 @@ private fun AdSkipShell() {
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp,
-            ) {
-                TopLevelDestinations.forEach { destination ->
-                    val selected = currentDestination?.hierarchy
-                        ?.any { it.route == destination.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                navController.navigate(destination.route) {
-                                    popUpTo(Routes.HOME) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+            if (currentRoute != Routes.ONBOARDING) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 0.dp,
+                ) {
+                    TopLevelDestinations.forEach { destination ->
+                        val selected = currentDestination?.hierarchy
+                            ?.any { it.route == destination.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (!selected) {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(Routes.HOME) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                // null 而非 labelRes：下方 label 已渲染同一文案，
-                                // 给图标再挂一次会让读屏把每个 tab 名念两遍。
-                                contentDescription = null,
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(destination.labelRes),
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = destination.icon,
+                                    // null 而非 labelRes：下方 label 已渲染同一文案，
+                                    // 给图标再挂一次会让读屏把每个 tab 名念两遍。
+                                    contentDescription = null,
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(destination.labelRes),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                    }
                 }
             }
         },
@@ -207,13 +217,23 @@ private fun AdSkipShell() {
             Box(modifier = Modifier.screenContentWidth()) {
                 NavHost(
                     navController = navController,
-                    startDestination = Routes.HOME,
+                    startDestination = if (onboardingComplete) Routes.HOME else Routes.ONBOARDING,
                     modifier = Modifier.fillMaxSize(),
                     enterTransition = { fadeIn(tween(160)) },
                     exitTransition = { fadeOut(tween(120)) },
                     popEnterTransition = { fadeIn(tween(160)) },
                     popExitTransition = { fadeOut(tween(120)) },
                 ) {
+                    composable(Routes.ONBOARDING) {
+                        OnboardingScreen(onStart = {
+                            context.getSharedPreferences("adskip_ui", Context.MODE_PRIVATE)
+                                .edit().putBoolean("onboarding_complete", true).apply()
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.ONBOARDING) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        })
+                    }
                     composable(Routes.HOME) {
                         HomeScreen(
                             messenger = messenger,
@@ -227,6 +247,7 @@ private fun AdSkipShell() {
                     }
                     composable(Routes.APPS) { AppsScreen() }
                     composable(Routes.LOGS) { LogsScreen(messenger) }
+                    composable(Routes.RULES) { RulesScreen(messenger) }
                     composable(Routes.PROFILE) { ProfileScreen(messenger) }
                 }
             }

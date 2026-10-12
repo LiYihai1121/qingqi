@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +44,8 @@ import com.qingqi.adskip.ui.components.PageHeader
 import com.qingqi.adskip.ui.components.TwoLineRow
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * 跳过日志：最近 200 条自动跳过记录，支持清空与分享。
@@ -60,6 +63,17 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showClearConfirm by rememberSaveable { mutableStateOf(false) }
+    var timeFilter by rememberSaveable { mutableStateOf("ALL") }
+    val now = System.currentTimeMillis()
+    val todayStart = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    val visibleLogs = state.logs.filter { entry ->
+        when (timeFilter) {
+            "TODAY" -> entry.ts >= todayStart
+            "7D" -> entry.ts >= now - 7L * 24 * 60 * 60 * 1000
+            "30D" -> entry.ts >= now - 30L * 24 * 60 * 60 * 1000
+            else -> true
+        }
+    }
 
     LaunchedEffect(Unit) { viewModel.reload() }
 
@@ -141,6 +155,32 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
             }
         }
 
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            FilterChip(
+                selected = timeFilter == "ALL",
+                onClick = { timeFilter = "ALL" },
+                label = { Text(stringResource(R.string.logs_filter_all)) },
+            )
+            FilterChip(
+                selected = timeFilter == "TODAY",
+                onClick = { timeFilter = "TODAY" },
+                label = { Text(stringResource(R.string.logs_filter_today)) },
+            )
+            FilterChip(
+                selected = timeFilter == "7D",
+                onClick = { timeFilter = "7D" },
+                label = { Text(stringResource(R.string.logs_filter_7days)) },
+            )
+            FilterChip(
+                selected = timeFilter == "30D",
+                onClick = { timeFilter = "30D" },
+                label = { Text(stringResource(R.string.logs_filter_30days)) },
+            )
+        }
+
         if (state.logs.isEmpty()) {
             EmptyState(
                 // 此前用 Check（勾号）表示「暂无记录」：勾号在语义上是「已完成」，
@@ -150,9 +190,22 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
                 subtitle = stringResource(R.string.logs_empty_hint),
                 modifier = Modifier.fillMaxSize(),
             )
+        } else if (visibleLogs.isEmpty()) {
+            EmptyState(
+                icon = Icons.AutoMirrored.Filled.List,
+                title = stringResource(R.string.logs_filter_empty),
+                subtitle = stringResource(R.string.logs_empty_hint),
+                modifier = Modifier.fillMaxSize(),
+            )
         } else {
-            LazyColumn(contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl)) {
-                items(state.logs, key = { "${it.ts}:${it.pkg}:${it.label}" }) { entry ->
+            LazyColumn(
+                contentPadding = PaddingValues(
+                    start = Spacing.lg,
+                    end = Spacing.lg,
+                    bottom = Spacing.xl,
+                ),
+            ) {
+                items(visibleLogs, key = { "${it.ts}:${it.pkg}:${it.label}" }) { entry ->
                     TwoLineRow(
                         title = entry.label,
                         // 走 stringResource 而非硬编码「 ｜ 」，否则英文环境仍显示中文分隔符，
