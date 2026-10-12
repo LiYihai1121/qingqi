@@ -314,12 +314,14 @@ class ProjectStructureTest {
         val routesSource = readUiSource("Routes.kt")
         val navSource = readUiSource("MainActivity.kt")
 
+        // ONBOARDING 是首次启动流程，不属于底部一级导航；其余五个路由必须可从底栏到达。
         val declared = ROUTE_CONST_REGEX.findAll(routesSource)
             .map { it.groupValues[1] }
+            .filterNot { it == "ONBOARDING" }
             .toSet()
         assertTrue(
-            "Routes 应恰好登记 4 个一级路由（首页/应用/日志/我的），实际为 ${declared.sorted()}",
-            declared.size == 4,
+            "Routes 应恰好登记 5 个一级路由（首页/应用/日志/规则/我的），实际为 ${declared.sorted()}",
+            declared.size == 5,
         )
         assertTrue(
             "Routes 缺少 PROFILE（「我的」页路由）",
@@ -328,7 +330,7 @@ class ProjectStructureTest {
         // 设置已内嵌进「我的」页，不再是一级路由：若有人再加回 SETTINGS 并挂到底部导航，
         // 就回到了「设置与关于本机分成两页」的老结构。
         assertTrue(
-            "Routes 不应再声明 SETTINGS：设置内容已内嵌于「我的」页（v3.2 起底部导航为 4 项）",
+            "Routes 不应再声明 SETTINGS：设置内容已内嵌于「我的」页（当前底部导航为 5 项）",
             !declared.contains("SETTINGS"),
         )
 
