@@ -154,48 +154,48 @@ private fun AdSkipShell() {
         bottomBar = {
             if (currentRoute != Routes.ONBOARDING) {
                 NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 0.dp,
-            ) {
-                TopLevelDestinations.forEach { destination ->
-                    val selected = currentDestination?.hierarchy
-                        ?.any { it.route == destination.route } == true
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (!selected) {
-                                navController.navigate(destination.route) {
-                                    popUpTo(Routes.HOME) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 0.dp,
+                ) {
+                    TopLevelDestinations.forEach { destination ->
+                        val selected = currentDestination?.hierarchy
+                            ?.any { it.route == destination.route } == true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (!selected) {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(Routes.HOME) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                // null 而非 labelRes：下方 label 已渲染同一文案，
-                                // 给图标再挂一次会让读屏把每个 tab 名念两遍。
-                                contentDescription = null,
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = stringResource(destination.labelRes),
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = destination.icon,
+                                    // null 而非 labelRes：下方 label 已渲染同一文案，
+                                    // 给图标再挂一次会让读屏把每个 tab 名念两遍。
+                                    contentDescription = null,
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = stringResource(destination.labelRes),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                    }
                 }
-            }
             }
         },
     ) { innerPadding ->

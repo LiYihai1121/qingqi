@@ -52,10 +52,7 @@ import com.qingqi.adskip.ui.theme.UiSizes
 
 /** Dedicated keyword rules page. Add/remove operations use the same repository as HomeScreen. */
 @Composable
-fun RulesScreen(
-    messenger: Messenger,
-    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory),
-) {
+fun RulesScreen(messenger: Messenger, viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -67,11 +64,13 @@ fun RulesScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is UiEffect.ShowMessage -> messenger.show(effect.message)
+
                 is UiEffect.KeywordRemoved -> messenger.showUndoable(
                     message = context.getString(R.string.keyword_removed, effect.keyword),
                     undoLabel = context.getString(R.string.action_undo),
                     onUndo = viewModel::undoRemoveKeyword,
                 )
+
                 is UiEffect.RecreateActivity -> Unit
             }
         }
@@ -145,7 +144,14 @@ fun RulesScreen(
                         color = MaterialTheme.colorScheme.surfaceContainerLow,
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = Spacing.lg,
+                                    end = Spacing.xs,
+                                    top = Spacing.xs,
+                                    bottom = Spacing.xs,
+                                ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(vertical = Spacing.sm)) {
