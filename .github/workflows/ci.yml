@@ -10,6 +10,29 @@ on:
     branches: [ main ]
 
 jobs:
+  version-contract:
+    name: Version & Release Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version sources and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_version="$(node -p "require('./server/package.json').version")"
+          android_version_name="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)"/\1/p' client/app/build.gradle.kts)"
+          android_version_code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\)/\1/p' client/app/build.gradle.kts)"
+          [[ "$server_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::server/package.json version must be stable SemVer X.Y.Z"; exit 1; }
+          [[ "$android_version_name" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "::error::Android versionName must be X.Y"; exit 1; }
+          [[ "$android_version_code" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Android versionCode must be a positive integer"; exit 1; }
+          expected_android="${server_version%.*}"
+          test "$android_version_name" = "$expected_android" || { echo "::error::Android versionName ($android_version_name) must match server major.minor ($expected_android)"; exit 1; }
+          grep -Fq "## [$server_version]" CHANGELOG.md || { echo "::error::CHANGELOG.md must contain a section for server version $server_version"; exit 1; }
+          echo "Version contract OK: server=$server_version Android=$android_version_name versionCode=$android_version_code"
+
   structure:
     name: Structure Contract
     runs-on: ubuntu-latest
