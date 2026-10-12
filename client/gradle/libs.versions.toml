@@ -11,7 +11,7 @@ agp = "9.4.1"                        # Android Gradle Plugin（Gradle 9.6+ 移�
 kotlin = "2.2.10"                   # 仅用于 Compose 编译器插件：必须与 AGP 9.4.1 内置 Kotlin 版本一致
 
 # AndroidX（BOM 之外的坐标也统一收口）
-composeBom = "2026.08.00"           # Jetpack Compose BOM
+composeBom = "2026.09.00"           # Jetpack Compose BOM
 activityCompose = "1.9.3"
 lifecycle = "2.8.7"
 navigationCompose = "2.8.5"
