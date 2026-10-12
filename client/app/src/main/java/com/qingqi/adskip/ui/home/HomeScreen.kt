@@ -167,7 +167,10 @@ fun HomeScreen(
             item {
                 // 一级页面都要有位置锚点（见 ScreenHeaderContractTest）。
                 // 首页此前是四屏里唯一没有标题的：用户切过来后整屏像浮在空中的仪表盘。
-                PageHeader(title = stringResource(R.string.home_title))
+                PageHeader(
+                    title = stringResource(R.string.home_title),
+                    subtitle = stringResource(R.string.home_subtitle),
+                )
             }
 
             item {
@@ -274,14 +277,14 @@ private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: ()
                 onClick = onPrimaryAction,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.btn_open_settings))
+                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
             }
         } else {
             Button(
                 onClick = onPrimaryAction,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.btn_open_settings))
+                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
             }
         }
 
@@ -344,8 +347,9 @@ private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit, m
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.sm),
+            .padding(vertical = Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -382,23 +386,26 @@ private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit, m
  */
 @Composable
 private fun UsageTiles(state: HomeViewModel.UiState, lastAppLabel: String) {
-    SectionCard(contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.lg)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            StatTile(
-                value = state.totalSkips.toString(),
-                label = stringResource(R.string.stats_total_label),
-                modifier = Modifier.weight(1f),
-            )
-            StatTile(
-                value = state.keywords.size.toString(),
-                label = stringResource(R.string.stats_keywords_label),
-                modifier = Modifier.weight(1f),
-            )
-            StatTile(
-                value = lastAppLabel.ifBlank { "—" },
-                label = stringResource(R.string.stats_recent_label),
-                modifier = Modifier.weight(1f),
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionTitle(stringResource(R.string.stats_overview_title))
+        SectionCard(contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                StatTile(
+                    value = state.totalSkips.toString(),
+                    label = stringResource(R.string.stats_total_label),
+                    modifier = Modifier.weight(1f),
+                )
+                StatTile(
+                    value = state.keywords.size.toString(),
+                    label = stringResource(R.string.stats_keywords_label),
+                    modifier = Modifier.weight(1f),
+                )
+                StatTile(
+                    value = lastAppLabel.ifBlank { "—" },
+                    label = stringResource(R.string.stats_recent_label),
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
