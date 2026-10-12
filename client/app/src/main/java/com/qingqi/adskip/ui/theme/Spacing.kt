@@ -59,8 +59,11 @@ object UiSizes {
     /** 行内次要图标边长（日志行状态点等） */
     val inlineIcon = 18.dp
 
-    /** 首页状态环直径 */
+    /** 首页紧凑状态环直径 */
     val statusOrb = 56.dp
+
+    /** 首页主视觉状态环直径 */
+    val statusOrbHero = 124.dp
 
     /** 状态环外层光晕直径 */
     val orbHalo = 108.dp
