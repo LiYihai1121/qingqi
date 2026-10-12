@@ -18,7 +18,6 @@
     <string name="stats_overview_title">使用概览</string>
     <string name="stats_total_label">累计跳过（次）</string>
     <string name="nav_home">首页</string>
-    <string name="nav_apps">应用</string>
     <string name="nav_rules">规则</string>
     <string name="rules_title">关键词管理</string>
     <string name="rules_subtitle">共 %1$d 条关键词规则</string>
@@ -27,7 +26,7 @@
     <string name="rules_empty">还没有关键词</string>
     <string name="rules_no_match">没有匹配的关键词</string>
     <string name="rules_empty_hint">添加关键词后，服务会用它识别可跳过的广告文案。</string>
-    <string name="onboarding_title">轻启 AdSkip</string>
+    <string name="onboarding_title">轻启</string>
     <string name="onboarding_subtitle">让好用的应用，更纯净</string>
     <string name="onboarding_feature_smart">智能识别广告内容</string>
     <string name="onboarding_feature_secure">多重安全保护</string>
