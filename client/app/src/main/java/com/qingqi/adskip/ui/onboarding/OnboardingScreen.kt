@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.qingqi.adskip.R
 import com.qingqi.adskip.ui.theme.Spacing
+import com.qingqi.adskip.ui.theme.UiSizes
 
 /** First-run introduction. It explains capabilities but never enables permissions without consent. */
 @Composable
@@ -44,7 +45,7 @@ fun OnboardingScreen(onStart: () -> Unit) {
         Spacer(Modifier.height(Spacing.sm))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
-                modifier = Modifier.size(88.dp).background(
+                modifier = Modifier.size(UiSizes.onboardingLogo).background(
                     Brush.linearGradient(
                         listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
                     ),
@@ -56,13 +57,13 @@ fun OnboardingScreen(onStart: () -> Unit) {
                     imageVector = Icons.Default.Shield,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(54.dp),
+                    modifier = Modifier.size(UiSizes.onboardingShield),
                 )
                 Icon(
                     imageVector = Icons.Default.Bolt,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(UiSizes.onboardingBolt),
                 )
             }
             Spacer(Modifier.height(Spacing.lg))
@@ -105,7 +106,7 @@ fun OnboardingScreen(onStart: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(Spacing.md))
-            Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            Button(onClick = onStart, modifier = Modifier.fillMaxWidth().height(UiSizes.onboardingButtonHeight)) {
                 Text(stringResource(R.string.onboarding_start))
             }
         }

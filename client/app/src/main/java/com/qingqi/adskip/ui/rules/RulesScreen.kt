@@ -120,7 +120,7 @@ fun RulesScreen(
                         keyboard?.hide()
                     }
                 },
-                modifier = Modifier.size(width = 88.dp, height = UiSizes.touchTarget),
+                modifier = Modifier.size(width = UiSizes.ruleAddButtonWidth, height = UiSizes.touchTarget),
                 contentPadding = PaddingValues(horizontal = Spacing.sm),
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)

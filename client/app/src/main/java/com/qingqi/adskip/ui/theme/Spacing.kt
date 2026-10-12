@@ -59,6 +59,21 @@ object UiSizes {
     /** 行内次要图标边长（日志行状态点等） */
     val inlineIcon = 18.dp
 
+    /** 首次引导页品牌标记边长 */
+    val onboardingLogo = 88.dp
+
+    /** 首次引导页盾牌图标边长 */
+    val onboardingShield = 54.dp
+
+    /** 首次引导页闪电图标边长 */
+    val onboardingBolt = 26.dp
+
+    /** 引导页主操作按钮高度 */
+    val onboardingButtonHeight = 52.dp
+
+    /** 关键词管理页添加按钮宽度 */
+    val ruleAddButtonWidth = 88.dp
+
     /** 首页紧凑状态环直径 */
     val statusOrb = 56.dp
 
