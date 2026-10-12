@@ -18,7 +18,6 @@
     <string name="stats_overview_title">Usage overview</string>
     <string name="stats_total_label">Total skips</string>
     <string name="nav_home">Home</string>
-    <string name="nav_apps">Apps</string>
     <string name="nav_rules">Rules</string>
     <string name="rules_title">Keyword rules</string>
     <string name="rules_subtitle">%1$d keyword rules</string>
@@ -27,7 +26,7 @@
     <string name="rules_empty">No keywords yet</string>
     <string name="rules_no_match">No matching keywords</string>
     <string name="rules_empty_hint">Add keywords so the service can recognize ad text to skip.</string>
-    <string name="onboarding_title">Light Launch AdSkip</string>
+    <string name="onboarding_title">Light Launch</string>
     <string name="onboarding_subtitle">A cleaner experience for the apps you love</string>
     <string name="onboarding_feature_smart">Smart ad content recognition</string>
     <string name="onboarding_feature_secure">Multiple layers of protection</string>
