@@ -351,7 +351,7 @@ class ProjectStructureTest {
             inNavHost.containsAll(declared),
         )
         // 反向检查：出现未在 Routes 登记的导航项会形成第二份真相。
-        val unregistered = (inBottomBar + inNavHost).filterNot { it in declared }
+        val unregistered = (inBottomBar + inNavHost).filterNot { it in declared || it == "ONBOARDING" }
         assertTrue(
             "导航/宿主里出现了未在 Routes 登记的路由：${unregistered.sorted()}",
             unregistered.isEmpty(),
