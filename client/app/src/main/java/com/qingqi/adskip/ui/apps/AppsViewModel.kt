@@ -33,6 +33,7 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
         val failed: Boolean = false,
         val query: String = "",
         val onlyEnabled: Boolean = false,
+        val onlyDisabled: Boolean = false,
     ) {
         /** 搜索 + 筛选后的可见列表；匹配包名与应用名，大小写不敏感。 */
         val visibleItems: List<AppRow>
@@ -40,6 +41,7 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
                 val q = query.trim().lowercase()
                 return items.filter { row ->
                     (onlyEnabled.not() || row.disabled.not()) &&
+                        (onlyDisabled.not() || row.disabled) &&
                         (
                             q.isEmpty() ||
                                 row.label.lowercase().contains(q) ||
@@ -57,7 +59,11 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun setOnlyEnabled(onlyEnabled: Boolean) {
-        _uiState.update { it.copy(onlyEnabled = onlyEnabled) }
+        _uiState.update { it.copy(onlyEnabled = onlyEnabled, onlyDisabled = false) }
+    }
+
+    fun setOnlyDisabled(onlyDisabled: Boolean) {
+        _uiState.update { it.copy(onlyEnabled = false, onlyDisabled = onlyDisabled) }
     }
 
     /**
@@ -73,7 +79,7 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
      * 由页面在离开时调用（见 [com.qingqi.adskip.ui.apps.AppsScreen] 的 DisposableEffect）。
      */
     fun clearTransientFilters() {
-        _uiState.update { if (it.query.isEmpty() && !it.onlyEnabled) it else it.copy(query = "", onlyEnabled = false) }
+        _uiState.update { if (it.query.isEmpty() && !it.onlyEnabled && !it.onlyDisabled) it else it.copy(query = "", onlyEnabled = false, onlyDisabled = false) }
     }
 
     init {

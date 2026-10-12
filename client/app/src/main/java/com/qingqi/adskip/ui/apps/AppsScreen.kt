@@ -1,6 +1,8 @@
 package com.qingqi.adskip.ui.apps
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -88,12 +90,26 @@ fun AppsScreen(viewModel: AppsViewModel = viewModel(factory = AppsViewModel.Fact
             modifier = Modifier.padding(horizontal = Spacing.lg),
         )
 
-        FilterChip(
-            selected = state.onlyEnabled,
-            onClick = { viewModel.setOnlyEnabled(!state.onlyEnabled) },
-            label = { Text(stringResource(R.string.apps_filter_enabled)) },
+        Row(
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        )
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            FilterChip(
+                selected = !state.onlyEnabled && !state.onlyDisabled,
+                onClick = { viewModel.setOnlyEnabled(false) },
+                label = { Text(stringResource(R.string.apps_filter_all, state.items.size)) },
+            )
+            FilterChip(
+                selected = state.onlyEnabled,
+                onClick = { viewModel.setOnlyEnabled(!state.onlyEnabled) },
+                label = { Text(stringResource(R.string.apps_filter_enabled_count, state.items.count { !it.disabled })) },
+            )
+            FilterChip(
+                selected = state.onlyDisabled,
+                onClick = { viewModel.setOnlyDisabled(!state.onlyDisabled) },
+                label = { Text(stringResource(R.string.apps_filter_disabled_count, state.items.count { it.disabled })) },
+            )
+        }
 
         when {
             // 错误优先于 loading 与空态：失败是可恢复态，必须给出重试入口；
