@@ -13,11 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -47,6 +42,7 @@ import com.qingqi.adskip.ui.home.HomeScreen
 import com.qingqi.adskip.ui.logs.LogsScreen
 import com.qingqi.adskip.ui.profile.ProfileScreen
 import com.qingqi.adskip.ui.theme.AdSkipTheme
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import com.qingqi.adskip.ui.theme.screenContentWidth
 
 /**
@@ -99,14 +95,25 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** 一级目的地：底部导航栏的唯一数据源。 */
-private data class TopLevelDestination(val route: String, val labelRes: Int, val icon: ImageVector)
+/**
+ * 一级目的地：底部导航栏的唯一数据源。
+ *
+ * 图标成对携带（描边 + 实心）：未选中用描边、选中用实心，再叠加
+ * `NavigationBarItemDefaults` 的指示器底色——形状与颜色双重编码，
+ * 色觉障碍用户也能分辨当前页。
+ */
+private data class TopLevelDestination(
+    val route: String,
+    val labelRes: Int,
+    val icon: ImageVector,
+    val iconSelected: ImageVector,
+)
 
 private val TopLevelDestinations = listOf(
-    TopLevelDestination(Routes.HOME, R.string.nav_home, Icons.Filled.Home),
-    TopLevelDestination(Routes.APPS, R.string.nav_apps, Icons.AutoMirrored.Filled.List),
-    TopLevelDestination(Routes.LOGS, R.string.nav_logs, Icons.Filled.DateRange),
-    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person),
+    TopLevelDestination(Routes.HOME, R.string.nav_home, AdSkipIcons.Home, AdSkipIcons.HomeFilled),
+    TopLevelDestination(Routes.APPS, R.string.nav_apps, AdSkipIcons.Apps, AdSkipIcons.AppsFilled),
+    TopLevelDestination(Routes.LOGS, R.string.nav_logs, AdSkipIcons.Logs, AdSkipIcons.LogsFilled),
+    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, AdSkipIcons.Profile, AdSkipIcons.ProfileFilled),
 )
 
 /**
@@ -167,7 +174,7 @@ private fun AdSkipShell() {
                         },
                         icon = {
                             Icon(
-                                imageVector = destination.icon,
+                                imageVector = if (selected) destination.iconSelected else destination.icon,
                                 // null 而非 labelRes：下方 label 已渲染同一文案，
                                 // 给图标再挂一次会让读屏把每个 tab 名念两遍。
                                 contentDescription = null,
