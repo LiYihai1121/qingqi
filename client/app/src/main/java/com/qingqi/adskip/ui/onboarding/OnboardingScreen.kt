@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -90,10 +89,10 @@ fun OnboardingScreen(onStart: () -> Unit) {
                 modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                FeatureRow(Icons.Default.Shield, R.string.onboarding_feature_smart)
+                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_smart)
                 FeatureRow(Icons.Default.Lock, R.string.onboarding_feature_secure)
-                FeatureRow(Icons.Default.Cloud, R.string.onboarding_feature_sync)
-                FeatureRow(Icons.Default.Bolt, R.string.onboarding_feature_local)
+                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_sync)
+                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_local)
             }
         }
 
