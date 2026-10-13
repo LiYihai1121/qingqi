@@ -8,7 +8,8 @@
 # 构建工具链（版本互相有硬性兼容关系，升级前先对照官方兼容矩阵）
 agp = "9.4.1"                        # Android Gradle Plugin（Gradle 9.6+ 移除了 AGP 8.x 依赖的内部 API，必须 9.x；
                                      # AGP 9 内置 Kotlin 2.2.10，kotlin.android 插件不得再单独应用；镜像已核对）
-kotlin = "2.2.10"                   # 仅用于 Compose 编译器插件：必须与 AGP 9.4.1 内置 Kotlin 版本一致
+kotlin = "2.4.21"                   # 仅用于 Compose 编译器插件（含 compose-group-mapping 映射数据）；
+                                    # AGP 9 内置 Kotlin 仍是 2.2.10，映射产物坐标在 :app 显式对齐（见 app/build.gradle.kts）
 
 # AndroidX（BOM 之外的坐标也统一收口）
 composeBom = "2026.09.00"           # Jetpack Compose BOM
