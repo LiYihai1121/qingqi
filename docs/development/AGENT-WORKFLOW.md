@@ -100,6 +100,8 @@ git rev-parse --show-toplevel  # 确认工作区根
   `current branch follows the naming convention` 会失败（CI 用 `actions/checkout` 检到 PR merge ref、处于 detached HEAD，
   `readHeadRef` 返回空串即放行，故不影响 CI 绿灯）。GitHub 不支持重命名 PR 的 head 分支，
   故原 #161 关闭、由内容完全一致的 #166 替代（同一 head 提交，#161 已留审计说明）。
+  **未处理**：PR #160 的 head 分支 `ui/reference-home-redesign-clean` 属同类违规（`ui` 不在允许列表），
+  但其 head 提交为当日推送、正处于活跃开发且 `mergeable = CONFLICTING`，故不动作，留待该分支属主协商后再改。
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
