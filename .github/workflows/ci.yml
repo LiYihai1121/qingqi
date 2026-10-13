@@ -10,6 +10,29 @@ on:
     branches: [ main ]
 
 jobs:
+  version-contract:
+    name: Version & Release Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version sources and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_version="$(node -p "require('./server/package.json').version")"
+          android_version_name="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)"/\1/p' client/app/build.gradle.kts)"
+          android_version_code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\)/\1/p' client/app/build.gradle.kts)"
+          [[ "$server_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::server/package.json version must be stable SemVer X.Y.Z"; exit 1; }
+          [[ "$android_version_name" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "::error::Android versionName must be X.Y"; exit 1; }
+          [[ "$android_version_code" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Android versionCode must be a positive integer"; exit 1; }
+          expected_android="${server_version%.*}"
+          test "$android_version_name" = "$expected_android" || { echo "::error::Android versionName ($android_version_name) must match server major.minor ($expected_android)"; exit 1; }
+          grep -Fq "## [$server_version]" CHANGELOG.md || { echo "::error::CHANGELOG.md must contain a section for server version $server_version"; exit 1; }
+          echo "Version contract OK: server=$server_version Android=$android_version_name versionCode=$android_version_code"
+
   structure:
     name: Structure Contract
     runs-on: ubuntu-latest
@@ -200,11 +223,11 @@ jobs:
           echo "DCO 校验通过：$(git rev-list --no-merges "${base}..${head}" | wc -l) 个作者提交均含 Signed-off-by"
 
   secret-scan:
-    name: Secret Scan (advisory)
+    name: Secret Scan
     runs-on: ubuntu-latest
-    # 咨询模式：先观测全历史扫描结果（仓库文档含大量示例密钥文本，直接强制会误伤），
-    # 基线 triage 完成并配置 allowlist 后再转为 required check
-    continue-on-error: true
+    # 2026-10-11 基线 triage 完成（gitleaks 8.30.1 全历史 detect：190 commits / 2 命中，
+    # 均为 RFC 4226/6238 公开测试向量——收窄规则见根 .gitleaks.toml 的 allowlist，
+    # 含证据与理由）。由咨询模式转强制：PR 引入新泄漏在此 job 直接判红。
     permissions:
       contents: read
       pull-requests: write # gitleaks 在 PR 上评论所需

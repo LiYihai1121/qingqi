@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 持久化 JobScheduler 任务需要此权限（替代 BootReceiver） -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- P0-2 守护通知（Android 13+ 需运行时授权，未授权时静默降级） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- 应用管理页需要列出其他可启动应用（Android 11+ 可见性声明） -->
@@ -97,6 +99,12 @@
         <!-- 规则同步任务（JobScheduler，三合一替代 AlarmManager 套件） -->
         <service
             android:name=".sync.SyncJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- 无障碍服务守护巡检（P0-2）：服务失效时通知引导恢复 -->
+        <service
+            android:name=".device.AccessibilityWatchdogJob"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
