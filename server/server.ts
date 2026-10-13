@@ -1,20 +1,26 @@
 import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
+import { isIP } from "node:net";
 import { config } from "./src/config";
 import { handleApi } from "./src/api";
-import { withCors, errorJson, errorResponseFrom, HttpError } from "./src/utils/httpUtil";
+import { withCors, errorJson } from "./src/utils/httpUtil";
 import { base32Decode } from "./src/utils/totp";
 import { cleanupOldStats, flush } from "./src/storage/store";
 import { recordAccess } from "./src/middleware/accessLog";
 import { logger } from "./src/utils/logger";
-
 export interface StartOptions {
   port?: number;
   host?: string;
   adminToken?: string;
   apkFile?: string;
   dataDir?: string;
+}
+
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.replace(/^\[|\]$/g, "").toLowerCase();
+  if (normalized === "localhost" || normalized === "::1") return true;
+  return isIP(normalized) === 4 && Number(normalized.split(".")[0]) === 127;
 }
 
 /**
@@ -36,8 +42,54 @@ const APP_VERSION = readAppVersion();
 /** 模块级引用，供优雅停机使用（仅 import.meta.main 场景赋值） */
 let server: Bun.Server<undefined> | null = null;
 
-/** 启动 HTTP 服务，返回 Bun.Server（供测试注入端口/数据目录/令牌） */
+/**
+ * 全响应安全头（含 Bun error() 兜底路径与 OPTIONS 预检）。
+ *
+ * CSP 里的 script-src 'unsafe-inline' 是**已知取舍**：管理后台
+ * public/admin.html 由内联 <script> 与 onclick handler 构成，收紧到
+ * 'self' 会直接破坏发布/模拟器入口。frame-ancestors 'none' + X-Frame-Options
+ * 已挡住点击劫持；把内联脚本外移后可摘掉 'unsafe-inline'（已列入后续）。
+ */
+function applySecurityHeaders(resp: Response): Response {
+  const h = resp.headers;
+  h.set("X-Content-Type-Options", "nosniff");
+  h.set("X-Frame-Options", "DENY");
+  h.set("Referrer-Policy", "no-referrer");
+  h.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "connect-src 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join("; ")
+  );
+  // 仅 TLS 模式下发 HSTS：明文部署发 HSTS 没有意义且会钉死浏览器
+  if (config.TLS_CERT && config.TLS_KEY) {
+    h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  return resp;
+}
+
+/** 启动服务；明文 HTTP 仅允许 loopback 绑定用于本地开发或反向代理。 */
 export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
+  const port = options.port ?? config.PORT;
+  const host = options.host ?? config.HOST;
+  const hasTlsCert = Boolean(config.TLS_CERT);
+  const hasTlsKey = Boolean(config.TLS_KEY);
+  if (hasTlsCert !== hasTlsKey) {
+    throw new Error("TLS_CERT and TLS_KEY must both be configured");
+  }
+  if (!hasTlsCert && !isLoopbackHost(host)) {
+    throw new Error(
+      "TLS_CERT and TLS_KEY are required for non-loopback binds; use a loopback bind behind a TLS-terminating reverse proxy for proxy deployments"
+    );
+  }
+
   if (options.adminToken !== undefined) config.ADMIN_TOKEN = options.adminToken;
   if (options.apkFile !== undefined) config.APK_FILE = options.apkFile;
   if (options.dataDir !== undefined) {
@@ -49,14 +101,7 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
 
   if (config.STATS_DIR_CLEANUP_ON_START) cleanupOldStats();
 
-  const port = options.port ?? config.PORT;
-  const host = options.host ?? config.HOST;
-
-  // TLS 必须整对配置：只给一半（挂了证书忘配私钥）静默回退明文是最危险的失败方式
-  if (Boolean(config.TLS_CERT) !== Boolean(config.TLS_KEY)) {
-    throw new Error("TLS_CERT and TLS_KEY must be configured together (half-configured TLS is refused)");
-  }
-  const tlsConfig = config.TLS_CERT && config.TLS_KEY
+  const tlsConfig = hasTlsCert && hasTlsKey
     ? { tls: { cert: Bun.file(config.TLS_CERT), key: Bun.file(config.TLS_KEY) } }
     : {};
 
@@ -85,14 +130,25 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
       try {
         resp = await route(req, url, origin, ctx);
       } catch (e: any) {
-        // 5xx 不回显内部错误细节（fs 异常等可能带完整路径）；细节只进 JSONL 日志
-        if (!(e instanceof HttpError)) {
-          logger.error("request_failed", {
+        const status =
+          typeof e?.statusCode === "number" ? e.statusCode : 500;
+        // <500 的 HttpError 消息是固定文案（body too large 等），可回显；
+        // 500 的异常消息可能含内部路径/配置细节，只进服务端日志，响应体通用化
+        if (status >= 500) {
+          logger.error("unhandled_error", {
+            status,
             path: url.pathname,
             error: String(e?.message ?? e),
           });
         }
-        resp = withCors(errorResponseFrom(e), origin);
+        const message = status >= 500 ? "internal error" : String(e?.message ?? e);
+        resp = withCors(
+          new Response(JSON.stringify({ error: message }), {
+            status,
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+          }),
+          origin
+        );
       }
       recordAccess({
         method: req.method,
@@ -101,10 +157,15 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
         ip,
         ms: Math.round(performance.now() - started),
       });
-      return resp;
+      return applySecurityHeaders(resp);
     },
     error() {
-      return new Response("Internal Error", { status: 500 });
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ error: "internal error" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        })
+      );
     },
   });
 
@@ -202,6 +263,20 @@ if (import.meta.main) {
     logger.warn("admin_2fa_disabled", {
       impact: "admin_token_compromise_grants_full_access",
       hint: "运行 bun run totp:gen 生成密钥并配 ADMIN_TOTP_SECRET 启用双因素",
+    });
+  }
+  if (!config.RULES_SIGNING_KEY) {
+    logger.warn("rules_signing_key_missing", {
+      impact: "cloud_rules_integrity_off",
+      hint: "配置 RULES_SIGNING_KEY 后 /api/*/rules/latest 才会下发 HMAC 签名；配了密钥的客户端会拒绝未签名载荷",
+    });
+  } else {
+    logger.info("rules_signing_enabled", { header: "X-Rules-Signature" });
+  }
+  if (config.TRUSTED_PROXIES.length === 0) {
+    logger.info("trusted_proxies_empty", {
+      impact: "x_forwarded_for_ignored",
+      hint: "反向代理部署时用 TRUSTED_PROXIES 声明代理 IP，否则限流以 socket IP 为键",
     });
   }
   for (const info of Object.values(os.networkInterfaces())) {

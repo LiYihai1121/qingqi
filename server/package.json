@@ -1,6 +1,6 @@
 {
   "name": "adskip-server",
-  "version": "3.2.0",
+  "version": "3.4.2",
   "private": true,
   "description": "净启动 AdSkip 后端：规则中心 + 统计 API + 管理后台 + 落地页（Bun + TypeScript，零运行时依赖）",
   "module": "server.ts",
@@ -9,13 +9,14 @@
     "start": "bun run server.ts",
     "dev": "bun --watch server.ts",
     "test": "bun test",
-    "typecheck": "bunx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "totp:gen": "bun run scripts/gen-totp.ts"
   },
   "engines": {
     "bun": ">=1.1"
   },
   "devDependencies": {
-    "@types/bun": "^1.1.0"
+    "@types/bun": "^1.4.2",
+    "typescript": "7.0.2"
   }
 }

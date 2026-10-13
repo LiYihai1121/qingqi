@@ -34,11 +34,19 @@ export interface Config {
   /** 统计汇总是否要求 admin 鉴权（STATS_READ_AUTH=1 开启；默认匿名可读，行为与旧版一致） */
   STATS_READ_AUTH: boolean;
   /**
-   * 是否信任反向代理注入的 X-Forwarded-For 来判定客户端 IP。
-   * 默认 false：XFF 由请求方任意填写，若默认信任则限流桶可被随意换新（限流绕过）。
-   * 仅当服务端确实部署在可信反向代理之后时才置为 true（TRUST_PROXY=1）。
+   * 规则签名密钥（HMAC-SHA256，env RULES_SIGNING_KEY）。
+   *
+   * 置空时 v0/v1 的 rules latest 端点不下发签名头——客户端配了签名密钥会
+   * 因此拒绝载入云端规则（失败关闭）；两端都置空则退回明文生态（历史行为，
+   * 不推荐）。读取端点本身无鉴权，签名是防「规则被中间人改写」的唯一完整性手段。
    */
-  TRUST_PROXY: boolean;
+  RULES_SIGNING_KEY: string;
+  /**
+   * 受信反向代理 IP 列表（env TRUSTED_PROXIES，逗号分隔）。
+   * 只有来自这些 IP 的请求才采信 X-Forwarded-For；空 = 任何人伪造的 XFF 都不认，
+   * 限流一律以 socket 对端 IP 为键（B 链修复：否则所有限流可被绕过）。
+   */
+  TRUSTED_PROXIES: string[];
   CORS_ORIGINS: string[] | null;
   RATE_LIMIT_READ_PER_MIN: number;
   RATE_LIMIT_REPORT_PER_MIN: number;
@@ -86,9 +94,10 @@ export const config: Config = {
   STATS_READ_AUTH: ["1", "true", "yes"].includes(
     (process.env.STATS_READ_AUTH ?? "").toLowerCase()
   ),
-  TRUST_PROXY: ["1", "true", "yes"].includes(
-    (process.env.TRUST_PROXY ?? "").toLowerCase()
-  ),
+  RULES_SIGNING_KEY: process.env.RULES_SIGNING_KEY ?? "",
+  TRUSTED_PROXIES: process.env.TRUSTED_PROXIES
+    ? process.env.TRUSTED_PROXIES.split(",").map((s) => s.trim()).filter(Boolean)
+    : [],
   CORS_ORIGINS: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
     : null,

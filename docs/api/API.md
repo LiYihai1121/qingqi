@@ -1,6 +1,8 @@
 # AdSkip 服务端 API 参考（API）
 
-基础地址：`http://<本机IP>:3210`（局域网）或 `http://localhost:3210`（本机，注意 IPv6 解析回退建议用 `127.0.0.1`）。
+基础地址：`https://<服务器域名>:3210`。云端同步客户端仅接受 HTTPS，并要求配置规则签名密钥和 SHA-256 证书 pin。
+
+服务端非 loopback 监听必须同时配置 `TLS_CERT` 与 `TLS_KEY`。本地开发可绑定 `127.0.0.1` 并使用 HTTP；TLS 由反向代理终止时，服务端也应只绑定 loopback，避免将明文端口暴露到网络。
 
 ## 通用约定
 
@@ -50,7 +52,7 @@
 | 结构 | 引号个数、方括号个数配平（快检，不校验顺序） | 完整文法：key ∈ `text/desc/vid/click`、运算符 ∈ `= * ^ $`、组合符、最多 4 段 compound |
 | 不过时 | 丢弃该条 | 丢弃该条（静默） |
 
-**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/ldp/adskip/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
+**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/qingqi/adskip/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
 
 ### POST /api/v1/rules/test  `[admin]`
 
@@ -68,10 +70,10 @@
 批量补报（读体前先按 IP 预检限流）。`deviceId` 由客户端首次运行时生成并持久化，至少 8 个字符；`ts` 使用 Unix 毫秒时间戳。
 
 ```json
-{ "deviceId": "≥8字符", "events": [ { "pkg": "com.x", "channel": "text|viewId", "ts": 123 } ] }
+{ "deviceId": "≥8字符", "events": [ { "pkg": "com.x", "label": "应用友好名（可选，缺失回退 pkg）", "channel": "text|viewId", "ts": 123 } ] }
 ```
 
-最多 50 条，非法包名事件被静默跳过。响应 `{"ok":true,"accepted":N}`
+每个事件可带可选 `label`（应用友好名，≤256 字符）；缺失或为空时服务端回退 `pkg`，保证旧客户端不传 label 也能在统计页显示包名。最多 50 条，非法包名事件被静默跳过。响应 `{"ok":true,"accepted":N}`
 
 ### GET /api/v1/stats/summary
 

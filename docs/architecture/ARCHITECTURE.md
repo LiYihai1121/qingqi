@@ -76,30 +76,30 @@
 ### 2.1 边界契约
 
 分层不只是目录约定，更是**可执行的依赖规则**。下表为各包允许/禁止的 import 关系，
-由 `client/app/src/test/java/com/ldp/adskip/arch/ArchitectureBoundaryTest.kt` 在每次
+由 `client/app/src/test/java/com/qingqi/adskip/arch/ArchitectureBoundaryTest.kt` 在每次
 `testDebugUnitTest`（及 CI 门禁）中扫描源码强制校验，违反即测试失败。
 
 | 包 | 允许依赖 | 禁止依赖（守护测试强制） |
 | --- | --- | --- |
-| `engine/` | 仅 Kotlin/JDK 与 `engine/` 自身 | `android.*`、`androidx.*`、其他所有 `com.ldp.adskip.*` |
-| `core/` | Kotlin/JDK/协程、`core/` 自身 | 其他所有 `com.ldp.adskip.*` |
-| `ui/` | Compose/AndroidX、组合根（`AdskipApp`/`AppContainer`）、`core/`、`engine/`、`data/` 领域仓库（`RulesRepository`/`StatsRepository`/`SettingsRepository`）、`R` | `service/`、`net/`、`sync/`、`data.Prefs` |
+| `engine/` | 仅 Kotlin/JDK 与 `engine/` 自身 | `android.*`、`androidx.*`、其他所有 `com.qingqi.adskip.*` |
+| `core/` | Kotlin/JDK/协程、`core/` 自身 | 其他所有 `com.qingqi.adskip.*` |
+| `ui/` | Compose/AndroidX、组合根（`AdSkipApp`/`AppContainer`）、`core/`、`engine/`、`data/` 领域仓库（`RulesRepository`/`StatsRepository`/`SettingsRepository`）、`R` | `service/`、`net/`、`sync/`、`data.Prefs` |
 | `data/` | `engine/`（RuleSet）、`net/`（设置门面委托）、`sync/`（调度委托）、Android SDK | `ui/`、`service/` |
 | `net/` | `data/`、Android SDK、org.json | `ui/`、`service/` |
 | `sync/` | `data/`、`core/`、Android SDK | `ui/`、`service/` |
 | `service/` | `core/`、`data/`、`engine/`、`net/`、组合根 | `ui/` |
 | `device/` | `core/`（LogRing）、`service/`（无障碍真实状态 `isEnabled` 与关闭请求 `requestShutdown`）、Android SDK | `ui/`、`data/`、`net/`、`sync/` |
-| 组合根（`AdskipApp`/`AppContainer`） | 全部（唯一 DI 装配点） | —（不承载业务逻辑） |
+| 组合根（`AdSkipApp`/`AppContainer`） | 全部（唯一 DI 装配点） | —（不承载业务逻辑） |
 
 规则解读：
 - **engine 纯 JVM**：不触碰任何 Android 类型——引擎单测可在纯 JVM 毫秒级运行，也是未来若需拆分 `:engine` module 的前提。
 - **ui 单向取值**：UI 只经 `StateFlow`/`UiEffect` 收状态与事件、经 `AppContainer` 拿仓库；不直连网络、后台调度与原始偏好。`data/SettingsRepository` 是设置页的唯一数据出口（收口 `SyncClient`/`SyncJobService`/`Prefs`）。
 - **core 零业务依赖**：`AppEvents` 初值不再引用 `SkipAdService`，Service 连接时主动写入真实状态；ui/service 双向都只经 core 中转。
-- **组合根兜底**：进程级初始化（如 JobScheduler 周期任务重注册）在 `AdskipApp.onCreate` 完成，不进 UI 层。
+- **组合根兜底**：进程级初始化（如 JobScheduler 周期任务重注册）在 `AdSkipApp.onCreate` 完成，不进 UI 层。
 - **device 单向向下**：`device/` 只允许「读系统状态 + 拉起系统页面」，因此可以依赖 `service/` 的只读查询，但不得反向依赖 `ui/`；磁贴关闭服务走 `SkipAdService.requestShutdown()` 发出的进程内定向广播，而非跨包持有 Service 实例。
 
 > 另一条由测试守护的隐式约定：保活入口表依赖 Android 11+ 的包可见性，`<queries>` 声明必须与 `device/VendorKeepAlive.kt` 的入口表逐条对齐，
-> 由 `client/app/src/test/java/com/ldp/adskip/arch/ManifestContractTest.kt` 校验（漏声明只会让跳转静默失败，不会编译报错）。
+> 由 `client/app/src/test/java/com/qingqi/adskip/arch/ManifestContractTest.kt` 校验（漏声明只会让跳转静默失败，不会编译报错）。
 
 > **广播必须收窄到本应用**：所有 `sendBroadcast` 都要带 `setPackage(...)`。
 > `ACTION_SKIPPED` 携带用户正在使用的应用名，未收窄的隐式广播可被任意第三方应用注册同名 action 监听；
@@ -114,12 +114,12 @@
 ### 2.2 目录结构契约
 
 2.1 管的是**包之间的依赖**，2.2 管的是**仓库与工程结构本身**。后者同样由
-`client/app/src/test/java/com/ldp/adskip/arch/ProjectStructureTest.kt` 强制，
+`client/app/src/test/java/com/qingqi/adskip/arch/ProjectStructureTest.kt` 强制，
 随 `testDebugUnitTest` 运行，并在 CI 中作为独立 job（`Structure Contract`）最先执行——让结构问题在几分钟内失败，而不是等完整构建结束。
 
 | 契约 | 强制内容 | 背景（实测故障） |
 | --- | --- | --- |
-| 根目录白名单 | 只允许 `.github/` `.kilo/` `.kilocode/` `.agents/` `.worktrees/` `.cursor/` `.vscode/` `skills/` `client/` `docs/` `server/` 与 9 个治理文件 | 根目录曾长期滞留 `AdSkip-latest.apk` 与 `.kilo/`、`.mimosa/` 工具残留目录；Cursor 会在根目录写 `.cursor/` |
+| 根目录白名单 | 只允许 `.github/` `.kilo/` `.kilocode/` `.agents/` `.worktrees/` `.cursor/` `.vscode/` `skills/` `client/` `docs/` `server/` `githooks/` `scripts/` 与 9 个治理文件 | 根目录曾长期滞留 `AdSkip-latest.apk` 与 `.kilo/`、`.mimosa/` 工具残留目录；Cursor 会在根目录写 `.cursor/` |
 | `.vscode/` 内容 | **选择性入库**：只允许 `settings.json` 与 `extensions.json`，`launch.json` 等个人调试状态一律不入库 | 共享的编辑器行为若只存在于各自本机，任何一条都可能在某台机器上悄悄失效；而带本机路径与断点的个人状态入库即噪声 |
 | 产物不入库 | 禁止 `*.apk/*.aab/*.aar/*.log/*.zip/*.keystore/*.iml`、`.DS_Store` 等（仅放行 `gradle-wrapper.jar`） | 分发以 Releases + `SHA256SUMS` 为准；构建产物属于被忽略目录 |
 | 模块双向一致 | `settings.gradle.kts` 的 `include(":x")` ↔ 磁盘模块目录**双向**校验 | 模块目录被删却仍注册，或建了目录忘注册（代码写了但不编译） |
@@ -147,7 +147,7 @@
         → SafetyGuard.canClick(target, pkg) 安全护栏复核
         → clickNode：ACTION_CLICK，兜底坐标手势
         → StatsRepository.recordSkip（内存计数 → 5s 合批落盘）
-        → SyncClient.reportSkip（v1 批量上报，带 deviceId）
+        → SyncClient.reportSkip（v1 批量上报，带 deviceId + label，证书锁定）
         → AppEvents.emitSkipped → ViewModel 刷新统计
 ```
 
@@ -216,6 +216,7 @@ Doze 模式 → 系统推迟到维护窗口执行
 | **服务端校验** | validate.ts | 包名正则 `^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$`、关键词 ≤12 字、总条目 ≤2000、body 键数/深度上限；选择器 ≤256 字符 + 字符白名单（放行 Unicode 字母数字，否则中文关键词场景整条被丢）+ 括号引号配平 |
 | **请求约束** | readBody + maxRequestBodySize | body 必须 application/json（415）；>1MiB 协议层拒绝（413/断连），不进应用内存 |
 | **客户端护栏** | SafetyGuard | 硬编码黑名单（支付/付款/确认/同意/购买/下单/授权/登录/免密/开通/安装/下载），云规则不可覆盖 |
+| **传输层锁定** | OkHttp CertificatePinner | 规则同步与跳过上报（v0/v1 全路径）均强制证书锁定；指纹经设置页下发（必须配置），未配 pins 时 fail-closed 拒发 |
 
 ## 6. 线程模型
 
@@ -275,34 +276,9 @@ Doze 模式 → 系统推迟到维护窗口执行
 
 ## 11. 项目结构
 
-```text
-AdSkip/                            全栈 monorepo
-├── client/                        Android 客户端（Kotlin + Compose，Gradle 工程根）
-│   ├── build.gradle.kts           模块与签名配置（签名参数读 local.properties）
-│   ├── settings.gradle.kts        仓库配置（国内镜像优先）
-│   └── app/src/main/java/com/ldp/adskip/
-│       ├── ui/                   Compose UI（单 Activity + 4 Screen + ViewModel + UiEffect）
-│       ├── core/                 AppEvents / Clock / AppExecutors / LogRing
-│       ├── service/              SkipAdService + FrameworkAdNode（无障碍服务/节点适配）
-│   │       ├── device/               系统级入口：VendorKeepAlive（ROM 识别 + 入口表）
-│   │       │                         / QuickTileLogic（磁贴决策）/ KeepAliveNavigator（跳转出口）
-│   │       │                         / SkipTileService（下拉磁贴）
-│       ├── engine/               规则引擎（纯 JVM 可测：AdNode / RuleSet / SkipRuleEngine / SafetyGuard）
-│       │   └── selector/         选择器引擎（SelectorAst / SelectorParser / SelectorMatcher）
-│       ├── data/                 Prefs / RulesRepository / StatsRepository / SettingsRepository
-│       ├── net/                  SyncClient
-│       └── sync/                 SyncJobService
-├── server/                       Bun + TypeScript 后端
-│   ├── src/
-│   │   ├── api/                  路由拆分（rulesApi / statsApi / healthApi）
-│   │   ├── middleware/           鉴权 + 限流 + 访问日志（auth / rateLimit / accessLog）
-│   │   ├── utils/                HTTP 工具 + 校验（httpUtil.ts / validate.ts）
-│   │   ├── storage/              规则 + 统计存储（store.ts）
-│   │   ├── types/                域模型类型（rules.ts）
-│   │   └── config.ts             全部可调参数
-│   ├── test/                     bun:test 单元 + 冒烟
-│   ├── server.ts                 入口（Bun.serve）
-│   └── public/                   落地页 + 管理后台
-├── docs/                         README.md（文档地图）+ api/ architecture/ development/ planning/ diagrams/
-└── .github/workflows/ci.yml     CI：Android Build + Bun Server Tests
-```
+完整带标注的目录树、每个目录的 SDLC 职责映射与设计原则见
+[ARCHITECTURE-DIRECTORY-STRUCTURE.md](ARCHITECTURE-DIRECTORY-STRUCTURE.md)（目录设计的单点事实源）。
+
+本节只保留与机器强制的接口：**已生效的目录规则**（根级白名单、`client/` 布局、标准源集、
+Kotlin 包与目录一致）以第 2.2 节与 `ProjectStructureTest` 为准——目录变化必须先改契约测试
+（契约先行）。历史上根目录曾长出过 APK 产物与 Agent 工具残留目录，白名单即是对该事故的固化。
