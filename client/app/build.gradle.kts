@@ -102,8 +102,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    // compose 1.9+ 起图标库不再由 material3 传递提供；仍只用 core 图标集（理由见 catalog 注释）
-    implementation(libs.androidx.compose.material.icons.core)
+    // 图标全部来自自绘 AdSkipIcons（ui/theme/icons），不再依赖 Material 图标集
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // MVVM：Activity Compose + ViewModel + 生命周期感知收集
