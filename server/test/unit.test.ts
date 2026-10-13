@@ -6,6 +6,7 @@ import { config } from "../src/config";
 import {
   cleanRules,
   cleanBatchReport,
+  cleanLabel,
   isValidKeyword,
   isValidViewIdRule,
   isValidPackage,
@@ -14,6 +15,7 @@ import {
 } from "../src/utils/validate";
 import { applyCors } from "../src/utils/httpUtil";
 import { checkAdminAuth, requireAdmin } from "../src/middleware/auth";
+import { summary as statsSummaryHandler } from "../src/api/statsApi";
 import {
   limitRead,
   limitWrite,
@@ -24,11 +26,14 @@ import {
 } from "../src/middleware/rateLimit";
 import {
   getRules,
+  recordSkip,
   statsSummary,
   _resetSummaryCacheForTests,
   _resetStatsCacheForTests,
   _resetRulesCacheForTests,
+  _rotateStatsBackupForTests,
 } from "../src/storage/store";
+import { v1_publish } from "../src/api/rulesApi";
 
 function req(headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/", { headers });
@@ -303,11 +308,70 @@ describe("cors", () => {
     expect(h.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("未配置白名单默认 *", () => {
+  it("未配置白名单不发送 Allow-Origin（跨域默认拒绝）", () => {
     config.CORS_ORIGINS = null;
     const h = new Headers();
     applyCors(h, "https://any.example");
+    expect(h.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("白名单显式含 * 时才回 *", () => {
+    config.CORS_ORIGINS = ["*"];
+    const h = new Headers();
+    applyCors(h, "https://any.example");
     expect(h.get("access-control-allow-origin")).toBe("*");
+  });
+});
+
+describe("statsApi 鉴权", () => {
+  const statsUrl = new URL("http://localhost/api/v1/stats/summary");
+
+  it("STATS_READ_AUTH 开启后统计汇总需要 admin 令牌", async () => {
+    const savedAuth = config.STATS_READ_AUTH;
+    const savedToken = config.ADMIN_TOKEN;
+    const savedDir = config.STATS_DIR;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-stats-auth-"));
+    config.STATS_DIR = tmp;
+    config.STATS_READ_AUTH = true;
+    try {
+      // 安全契约：STATS_READ_AUTH 不是摆设——开启即必须挡匿名读。
+      config.ADMIN_TOKEN = "";
+      let res = await statsSummaryHandler(req(), statsUrl, { ip: "10.0.0.9" });
+      expect(res.status).toBe(503);
+
+      config.ADMIN_TOKEN = "secret";
+      res = await statsSummaryHandler(req(), statsUrl, { ip: "10.0.0.9" });
+      expect(res.status).toBe(401);
+
+      res = await statsSummaryHandler(req({ authorization: "Bearer wrong" }), statsUrl, { ip: "10.0.0.9" });
+      expect(res.status).toBe(401);
+
+      res = await statsSummaryHandler(req({ authorization: "Bearer secret" }), statsUrl, { ip: "10.0.0.9" });
+      expect(res.status).toBe(200);
+    } finally {
+      config.STATS_READ_AUTH = savedAuth;
+      config.ADMIN_TOKEN = savedToken;
+      config.STATS_DIR = savedDir;
+      fs.rmSync(tmp, { recursive: true, force: true });
+      _resetSummaryCacheForTests();
+    }
+  });
+
+  it("STATS_READ_AUTH 关闭时匿名可读（默认行为不变）", async () => {
+    const savedAuth = config.STATS_READ_AUTH;
+    const savedDir = config.STATS_DIR;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-stats-anon-"));
+    config.STATS_DIR = tmp;
+    config.STATS_READ_AUTH = false;
+    try {
+      const res = await statsSummaryHandler(req(), statsUrl, { ip: "10.0.0.10" });
+      expect(res.status).toBe(200);
+    } finally {
+      config.STATS_READ_AUTH = savedAuth;
+      config.STATS_DIR = savedDir;
+      fs.rmSync(tmp, { recursive: true, force: true });
+      _resetSummaryCacheForTests();
+    }
   });
 });
 
@@ -425,5 +489,98 @@ describe("seed rules fallback", () => {
       _resetRulesCacheForTests();
       fs.rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe("stats backup rotation", () => {
+  it("rotateStatsBackup creates backup and keeps only STATS_BACKUP_COUNT", () => {
+    const savedDir = config.STATS_DIR;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-stats-backup-"));
+    config.STATS_DIR = tmp;
+    const day = "2026-10-07";
+    const statsFile = path.join(tmp, `${day}.json`);
+    fs.writeFileSync(statsFile, JSON.stringify({ skip: 1 }));
+    const backupDir = path.join(tmp, "backups");
+
+    try {
+      _rotateStatsBackupForTests(day);
+      const backups = fs.readdirSync(backupDir).filter((f) => f.startsWith(`stats-${day}-`));
+      expect(backups.length).toBe(1);
+
+      for (let i = 0; i < config.STATS_BACKUP_COUNT + 2; i++) {
+        _rotateStatsBackupForTests(day);
+      }
+      const remaining = fs.readdirSync(backupDir).filter((f) => f.startsWith(`stats-${day}-`));
+      expect(remaining.length).toBe(config.STATS_BACKUP_COUNT);
+    } finally {
+      config.STATS_DIR = savedDir;
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("鉴权失败也计限流（防 admin token 暴力猜测）", () => {
+  it("v1_publish 连续错误令牌会先被限流", async () => {
+    const saved = config.ADMIN_TOKEN;
+    _resetRateLimitForTests();
+    config.ADMIN_TOKEN = "secret";
+    try {
+      // 写限频容量 10（首次创建不扣减 → 放行 11 次）：错误令牌尝试必须消耗令牌桶，
+      // 否则鉴权失败零节流，token 可被无限次离线猜测。
+      for (let i = 0; i < 11; i++) {
+        const res = await v1_publish(
+          req({ authorization: "Bearer wrong" }),
+          new URL("http://localhost/api/v1/rules"),
+          { ip: "10.8.8.8" }
+        );
+        expect(res.status).toBe(401);
+      }
+      const res = await v1_publish(
+        req({ authorization: "Bearer wrong" }),
+        new URL("http://localhost/api/v1/rules"),
+        { ip: "10.8.8.8" }
+      );
+      expect(res.status).toBe(429);
+    } finally {
+      config.ADMIN_TOKEN = saved;
+      _resetRateLimitForTests();
+    }
+  });
+});
+
+describe("stats byApp 上限（防伪造包名灌爆统计）", () => {
+  it("超出当日条目上限的包名聚合进 _other", () => {
+    const savedDir = config.STATS_DIR;
+    const savedMax = config.MAX_STATS_APPS_PER_DAY;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-byapp-"));
+    config.STATS_DIR = tmp;
+    config.MAX_STATS_APPS_PER_DAY = 2;
+    _resetStatsCacheForTests();
+    try {
+      recordSkip("com.a.app", "A", "text");
+      recordSkip("com.b.app", "B", "text");
+      recordSkip("com.c.app", "C", "text");
+      recordSkip("com.c.app", "C", "text");
+      recordSkip("com.d.app", "D", "viewId");
+      const s = statsSummary();
+      expect(s.byApp.map((x) => x.pkg).sort()).toEqual(["_other", "com.a.app", "com.b.app"]);
+      const other = s.byApp.find((x) => x.pkg === "_other")!;
+      expect(other.count).toBe(3); // c×2 + d×1
+      expect(s.total).toBe(5);
+    } finally {
+      _resetStatsCacheForTests();
+      config.STATS_DIR = savedDir;
+      config.MAX_STATS_APPS_PER_DAY = savedMax;
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("cleanLabel（上报 label 数据卫生）", () => {
+  it("去掉控制字符并截断到 256", () => {
+    expect(cleanLabel("正常标签")).toBe("正常标签");
+    expect(cleanLabel("a" + String.fromCharCode(7) + "b" + String.fromCharCode(31) + "c")).toBe("a b c");
+    expect(cleanLabel("x".repeat(300)).length).toBe(256);
+    expect(cleanLabel(null)).toBe("");
   });
 });

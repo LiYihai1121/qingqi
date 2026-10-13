@@ -104,6 +104,14 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
     ? { tls: { cert: Bun.file(config.TLS_CERT), key: Bun.file(config.TLS_KEY) } }
     : {};
 
+  if (!tlsConfig.tls && host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
+    // 明文 + 非回环监听：admin bearer 令牌与规则流量可被同网段嗅探，必须显式知悉
+    logger.warn("plaintext_non_loopback", {
+      impact: "admin_token_and_traffic_cleartext",
+      hint: "配置 TLS_CERT/TLS_KEY 启用 HTTPS，或把 HOST 收到 127.0.0.1",
+    });
+  }
+
   const server: Bun.Server<undefined> = Bun.serve({
     port,
     hostname: host,
