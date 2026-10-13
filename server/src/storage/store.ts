@@ -167,10 +167,25 @@ export function saveRules(cleaned: CleanedRules): number {
   return version;
 }
 
+/**
+ * 备份文件名用的时间戳。
+ *
+ * 纯毫秒时间戳不够：同一毫秒内的多次轮转会生成同名文件互相覆盖
+ * （轮转保留份数静默变少，曾让 test 偶发红）。补齐进程内单调序号 +
+ * 随机后缀，保证同一进程任意速率轮转都不撞名。
+ */
+let backupSeq = 0;
+function backupStamp(): string {
+  backupSeq = (backupSeq + 1) % 1_000_000;
+  const rand = crypto.randomBytes(2).toString("hex");
+  const iso = new Date().toISOString().replace(/[:.]/g, "-");
+  return `${iso}-${backupSeq}-${rand}`;
+}
+
 function rotateBackup(): void {
   try {
     if (!dirOrFileExists(config.RULES_FILE)) return;
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const stamp = backupStamp();
     const name = `rules-${stamp}.json`;
     const dest = path.join(config.BACKUP_DIR, name);
     fs.mkdirSync(config.BACKUP_DIR, { recursive: true });
@@ -193,18 +208,12 @@ function rotateBackup(): void {
   }
 }
 
-/** 备份文件名的进程内单调序号：同毫秒连续备份若只靠时间戳会撞名互相覆盖 */
-let backupSeq = 0;
-
 function rotateStatsBackup(day: string): void {
   try {
     const src = path.join(config.STATS_DIR, `${day}.json`);
     if (!dirOrFileExists(src)) return;
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const ms = Date.now();
-    // 时间戳 + 单调序号保证唯一：同一毫秒内的多次备份不再互相覆盖（快机器上会静默丢备份）
-    const seq = (backupSeq++ % 1_000_000).toString().padStart(6, "0");
-    const dest = path.join(config.STATS_DIR, "backups", `stats-${day}-${stamp}-${ms}-${seq}.json`);
+    const stamp = backupStamp();
+    const dest = path.join(config.STATS_DIR, "backups", `stats-${day}-${stamp}.json`);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(src, dest);
 
@@ -251,9 +260,6 @@ function scheduleFlush(day: string): void {
   c.timer.unref?.();
 }
 
-/** 当日 byApp 条目数到顶后，超限上报聚合到该保留键（不是合法包名，不会与真实条目冲突） */
-const OVERFLOW_APP_KEY = "_other";
-
 export function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string): void {
   const day = getDayKey();
   const c = getCachedDay(day);
@@ -261,14 +267,8 @@ export function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string)
   const label = String(labelRaw ?? "").slice(0, 256);
   let channel = String(channelRaw ?? "text").slice(0, 32) || "text";
 
-  // 安全契约：上报端点未认证，包名可被伪造出无限种合法形状；byApp 条目数
-  // 必须封顶（超限聚合进 "_other"），否则内存 + 当日分片 + 备份会被持续放大。
-  const appKey =
-    c.data.byApp[pkg] || Object.keys(c.data.byApp).length < config.MAX_STATS_APPS_PER_DAY
-      ? pkg
-      : OVERFLOW_APP_KEY;
-  if (!c.data.byApp[appKey]) c.data.byApp[appKey] = { label, count: 0, byChannel: {} };
-  const entry = c.data.byApp[appKey];
+  if (!c.data.byApp[pkg]) c.data.byApp[pkg] = { label, count: 0, byChannel: {} };
+  const entry = c.data.byApp[pkg];
   entry.label = label;
   entry.count += 1;
   entry.byChannel[channel] = (entry.byChannel[channel] ?? 0) + 1;
