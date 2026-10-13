@@ -1,0 +1,12 @@
+# Gitleaks 配置（ui-app）
+#
+# 原则：allowlist 只收窄**已核实的误报**，且每条必须附证据与理由；新增条目走 PR 评审。
+# 禁止把「看起来像密钥的真实值」加进来——那是掩盖泄漏，不是治理误报。
+# 全历史基线由 CI 的 secret-scan job 强制（PR 事件 protect 模式）。
+title = "ui-app gitleaks allowlist"
+
+[allowlist]
+description = "RFC 4226/6238 官方测试向量：base32 常量 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ 是 RFC 4226 Appendix D / RFC 6238 Appendix B 公开的标准测试种子（对应 ASCII 12345678901234567890），仅出现在 server/test/totp.test.ts 与 server/test/unit.test.ts 的 RFC 向量用例中，非凭证。2026-10-11 gitleaks 8.30.1 全历史 detect（190 commits）仅此 2 处命中，均属此类。"
+regexes = [
+    '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
+]
