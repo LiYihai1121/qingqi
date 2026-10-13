@@ -1,11 +1,18 @@
 # Pre-commit hooks for ui-app
-# Enforces code quality standards before commits are created
-# Install: pip install pre-commit && pre-commit install
+# Optional contributor tooling: pip install pre-commit && pre-commit install
+#
+# 注意门禁归属：本仓库的强制门禁是 githooks/（主检出提交拦截 + Conventional Commits
+# 校验）与 CI（ktlint / JVM 单测 / 服务端测试 / 类型检查 / secret scan），不是本文件；
+# 本文件仅服务于愿意额外启用 pre-commit 框架的贡献者。
+# 第三方 rev 一律 pin 到完整 commit SHA——与 .github/workflows 的 Actions pin 同一策略
+# （见 CONTRIBUTING.md 门禁条款）。2026-10-11 审计：mirrors-prettier 已归档且不存在
+# v4.5.0 tag、conventional-pre-commit-linter 仓库已删除，两个失效钩子移除
+# （提交格式校验由 githooks/commit-msg 承担）。
 
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: '\.md$'
@@ -24,32 +31,16 @@ repos:
 
   # Kotlin formatting with ktlint
   - repo: https://github.com/shyiko/ktlint
-    rev: 1.8.0
+    rev: c26a4ffd277863086538ec8befd1cb20fd0b63e0 # 1.8.0
     hooks:
       - id: ktlint
         files: \.(kt|kts)$
         additional_dependencies:
           - "ktlint==1.8.0"
 
-  # TypeScript/JavaScript formatting
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.5.0
-    hooks:
-      - id: prettier
-        files: \.(ts|js|json|md|yml|yaml)$
-        exclude: 'gradle/libs\.versions\.toml'
-
-  # Conventional Commits validation
-  - repo: https://github.com/compilerla/conventional-pre-commit-linter
-    rev: v1.3.0
-    hooks:
-      - id: conventional-pre-commit-linter
-        args: ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert']
-        stages: [commit-msg]
-
   # Detect secrets in code
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+    rev: 01886c8a910c64595c47f186ca1ffc0b77fa5458 # v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
@@ -62,5 +53,5 @@ repos:
         name: Validate Gradle wrapper
         entry: bash -c 'cd client && ./gradlew --version'
         language: system
-        pass_filenames: []
+        pass_filenames: false
         always_run: true

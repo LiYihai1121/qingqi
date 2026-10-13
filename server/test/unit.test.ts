@@ -106,7 +106,7 @@ describe("validate", () => {
 
   it("isValidPackage 正则边界", () => {
     expect(isValidPackage("com.example.app")).toBe(true);
-    expect(isValidPackage("com.ldp.adskip")).toBe(true);
+    expect(isValidPackage("com.example.other")).toBe(true);
     expect(isValidPackage("invalid")).toBe(false);
     expect(isValidPackage(".com.example")).toBe(false);
     expect(isValidPackage("com..app")).toBe(false);
@@ -221,21 +221,31 @@ describe("rateLimit", () => {
     expect(limitReport(req(), "10.0.0.4", "dev12345678")).toBe(true);
   });
 
-  it("clientIp 默认忽略 x-forwarded-for（客户端可伪造），只用 socket IP", () => {
-    // 安全契约：XFF 任由请求方填写，若默认信任则每换一个 XFF 就换一个限流桶，
-    // 限流形同虚设。默认必须只认 socket IP。
-    expect(clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "9.9.9.9")).toBe("9.9.9.9");
-    expect(clientIp(req(), "9.9.9.9")).toBe("9.9.9.9");
-  });
-
-  it("显式开启 TRUST_PROXY 后才取 x-forwarded-for 首个地址", () => {
-    const saved = config.TRUST_PROXY;
-    config.TRUST_PROXY = true;
+  it("clientIp 未配置受信代理时忽略 X-Forwarded-For", () => {
+    const saved = config.TRUSTED_PROXIES;
+    config.TRUSTED_PROXIES = [];
     try {
-      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "9.9.9.9")).toBe("1.2.3.4");
+      // 伪造的 XFF 不得成为限流键，否则任何人换头部即可重生令牌桶
+      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4" }), "9.9.9.9")).toBe("9.9.9.9");
       expect(clientIp(req(), "9.9.9.9")).toBe("9.9.9.9");
     } finally {
-      config.TRUST_PROXY = saved;
+      config.TRUSTED_PROXIES = saved;
+    }
+  });
+
+  it("clientIp 对端是受信代理时采信 X-Forwarded-For", () => {
+    const saved = config.TRUSTED_PROXIES;
+    config.TRUSTED_PROXIES = ["10.1.1.1"];
+    try {
+      expect(
+        clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "10.1.1.1")
+      ).toBe("1.2.3.4");
+      // 代理未带头时回退 socket IP
+      expect(clientIp(req(), "10.1.1.1")).toBe("10.1.1.1");
+      // 非受信对端即使带头也不采信
+      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4" }), "9.9.9.9")).toBe("9.9.9.9");
+    } finally {
+      config.TRUSTED_PROXIES = saved;
     }
   });
 

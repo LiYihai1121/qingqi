@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # pre-commit 钩子 rev 升级（与 GitHub Actions pin 同一供应链策略）
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+
+  # GitHub Actions 版本更新（含 SHA pin 的自动升级入口）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+
+  # Android 客户端依赖（version catalog 与 build-logic 均在 client/ 下）
+  - package-ecosystem: gradle
+    directory: /client
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - client
+
+  # 服务端依赖（bun lockfile）
+  - package-ecosystem: bun
+    directory: /server
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - server

@@ -10,6 +10,29 @@ on:
     branches: [ main ]
 
 jobs:
+  version-contract:
+    name: Version & Release Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify version sources and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_version="$(node -p "require('./server/package.json').version")"
+          android_version_name="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)"/\1/p' client/app/build.gradle.kts)"
+          android_version_code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\)/\1/p' client/app/build.gradle.kts)"
+          [[ "$server_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::server/package.json version must be stable SemVer X.Y.Z"; exit 1; }
+          [[ "$android_version_name" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "::error::Android versionName must be X.Y"; exit 1; }
+          [[ "$android_version_code" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Android versionCode must be a positive integer"; exit 1; }
+          expected_android="${server_version%.*}"
+          test "$android_version_name" = "$expected_android" || { echo "::error::Android versionName ($android_version_name) must match server major.minor ($expected_android)"; exit 1; }
+          grep -Fq "## [$server_version]" CHANGELOG.md || { echo "::error::CHANGELOG.md must contain a section for server version $server_version"; exit 1; }
+          echo "Version contract OK: server=$server_version Android=$android_version_name versionCode=$android_version_code"
+
   structure:
     name: Structure Contract
     runs-on: ubuntu-latest
@@ -17,16 +40,16 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           # 只装稳定通道的工具：build-tools 36.0.0 是 AGP 9.x 的最低要求（已在稳定通道）。
           # platform 37 单独在下一步装——它当前是 Beta，不在稳定通道里。
@@ -55,11 +78,11 @@ jobs:
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew testDebugUnitTest --tests 'com.ldp.adskip.arch.*' --no-daemon 2>&1 | tee /tmp/android-contract.log
+          ./gradlew testDebugUnitTest --tests 'com.qingqi.adskip.arch.*' --no-daemon 2>&1 | tee /tmp/android-contract.log
 
       - name: Upload contract logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: android-contract-logs
           path: |
@@ -73,16 +96,16 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           # 与上面 Structure Contract job 保持一致：只装稳定通道工具，
           # platform 37 走下面的 beta 通道安装步骤。
@@ -93,12 +116,12 @@ jobs:
         run: sdkmanager --install "platforms;android-37.0" --channel=1
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v4
+        uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Set up Gradle and dependency cache
         # gradle/actions/setup-gradle 自动以 wrapper、settings、version catalog 与全部构建脚本为缓存键，
         # 覆盖了新增的 gradle/libs.versions.toml 与 build-logic/（手写 actions/cache key 无法跟踪这些「第二事实源」）。
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
           validate-wrappers: true
@@ -120,32 +143,22 @@ jobs:
           set -o pipefail
           ./gradlew testDebugUnitTest --no-daemon 2>&1 | tee /tmp/android-test.log
 
-      - name: Build release APK and verify signing state
+      - name: Build release APK (unsigned, R8 gate)
+        # M2 起禁止静默回退 debug 签名（fix a446e89）：无正式签名时 assembleRelease 会按
+        # build.gradle.kts 的三态策略失败。CI 无发布密钥，这里显式 adskip.unsignedRelease=true
+        # 仅验证 release 变体（R8/minify）可构建；签名与可安装性校验由 release.yml 在
+        # 发布链路强制 apksigner verify（未签名产物一律拒绝上传，Issue #23）。
         run: |
           set -o pipefail
+          printf 'adskip.unsignedRelease=true\n' >> local.properties
           ./gradlew assembleRelease --no-daemon 2>&1 | tee /tmp/android-release-build.log
-          apksigner="$(find "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools" -maxdepth 2 -type f -name apksigner | sort | tail -n 1)"
-          test -n "$apksigner"
-          # 签名策略（Issue #23 的安全收紧版）：配置了 release 签名 → 产物必须可验签；
-          # 未配置 → 产出未签名包是预期行为，禁止再回退 debug 签名（debug keystore 公开，
-          # 用它签的 release 可被任何人伪造升级）。
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            "$apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
-          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            echo "release built unsigned (no signing config) — expected under current policy"
-            # 反向守卫：默认产物必须是未签名包，防止静默改回 debug 签名
-            if "$apksigner" verify app/build/outputs/apk/release/app-release-unsigned.apk >/dev/null 2>&1; then
-              echo "unsigned artifact unexpectedly carries a signature — check signingConfig fallback" >&2
-              exit 1
-            fi
-          else
-            echo "no release APK produced" >&2
-            exit 1
-          fi
+          # unsignedRelease 模式产物名为 app-release-unsigned.apk（有签名时为 app-release.apk），
+          # 用通配符匹配任一形态，仅验证 release 变体（R8/minify）构建产出非空 APK。
+          test -n "$(find app/build/outputs/apk/release -maxdepth 1 -type f -name 'app-release*.apk' -print -quit)"
 
       - name: Upload Android logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: android-logs
           path: |
@@ -163,10 +176,10 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
 
       - name: Install dependencies
         run: bun install
@@ -176,3 +189,55 @@ jobs:
 
       - name: Run typecheck
         run: bun run typecheck
+
+  dco:
+    name: DCO Sign-off
+    runs-on: ubuntu-latest
+    # DCO 只对 PR 有意义：main 推送时提交已在库内，不再追溯
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # 需要 base 与 head 两个提交对象才能枚举 PR 提交范围
+          fetch-depth: 0
+
+      - name: Require Signed-off-by trailer in every PR commit
+        # 排除 merge 提交：同步主干产生的合并提交由 git 生成、无 trailer，
+        # 与 DCO 应用的标准行为一致（只校验作者提交）
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          missing=0
+          while read -r sha; do
+            if ! git log -1 --format='%B' "$sha" | grep -qi '^Signed-off-by:'; then
+              echo "::error::commit ${sha} 缺少 Signed-off-by trailer（git commit -s 补签）"
+              missing=1
+            fi
+          done < <(git rev-list --no-merges "${base}..${head}")
+          if [ "$missing" -ne 0 ]; then
+            echo "DCO 校验失败：本 PR 存在未签名提交，规则见 DCO 文件" >&2
+            exit 1
+          fi
+          echo "DCO 校验通过：$(git rev-list --no-merges "${base}..${head}" | wc -l) 个作者提交均含 Signed-off-by"
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    # 2026-10-11 基线 triage 完成（gitleaks 8.30.1 全历史 detect：190 commits / 2 命中，
+    # 均为 RFC 4226/6238 公开测试向量——收窄规则见根 .gitleaks.toml 的 allowlist，
+    # 含证据与理由）。由咨询模式转强制：PR 引入新泄漏在此 job 直接判红。
+    permissions:
+      contents: read
+      pull-requests: write # gitleaks 在 PR 上评论所需
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
