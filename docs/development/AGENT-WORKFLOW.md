@@ -88,12 +88,18 @@ git rev-parse --show-toplevel  # 确认工作区根
 ### 3.2.1 仓库清理记录
 
 - **2026-10-13**：清理主检出的分支、worktree 与标签混乱。本地分支 33 → 5，worktree 25 → 3（主检出 + 上表两行），删除 16 条远端分支与非版本 tag `backup/m1d-rule-audit-channel`，`git gc --prune=now` 后 `.git` 12.5 MB → 7.9 MB。
-  保留分支与上表**严格一一对应**（每个在研 PR 一个分支，无孤儿分支、无孤儿 worktree）。
+  清理后分支与工作区互不游离：**每个在研 PR 至多一条分支，每个登记工作区至多一个 PR**，无孤儿分支、无孤儿 worktree。
+  上表只登记仍有活跃工作区的任务；仅存分支、暂无工作区的在研 PR 不进表（避免两处状态打架）。
 - 认领板此前的两行 `gzdx` 登记（`.worktrees/gzdx-gitleaks`、`.worktrees/gzdx-ui-polish`）及其全部串联分支已随清理一并移除：
   `ci/gitleaks-enforce`、`feature/ui-icon-library`、`feature/ui-detail-polish` 对应的 PR 已合并且工作区已归档；
   `feature/icon-refresh`、`feature/theme-mode-setting` 的远端分支仍保留为在研 PR 的事实源，本地分支已删（内容完整，可从远端重建）。
 - `.worktrees/` 下 3 个未登记、无 `.git` 元数据的孤儿目录（`degree-report-hardening`、`pr-bodies`、`staging-p0`）
   已移出仓库到仓库外归档目录，未删除内容。
+- **分支命名合规**：`feat/reference-ui-functional-completion` 改为 `feature/reference-ui-functional-completion`。
+  `feat` 不在第 4 节与 `RepoHygieneTest` 允许的 type 列表中；本机在该分支运行 `testDebugUnitTest` 时
+  `current branch follows the naming convention` 会失败（CI 用 `actions/checkout` 检到 PR merge ref、处于 detached HEAD，
+  `readHeadRef` 返回空串即放行，故不影响 CI 绿灯）。GitHub 不支持重命名 PR 的 head 分支，
+  故原 #161 关闭、由内容完全一致的 #166 替代（同一 head 提交，#161 已留审计说明）。
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
