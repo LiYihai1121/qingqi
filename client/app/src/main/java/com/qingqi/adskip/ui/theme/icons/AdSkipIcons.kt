@@ -448,6 +448,19 @@ object AdSkipIcons {
         }
     }
 
+    /** 免打扰（月牙，开口朝右）。 */
+    val Moon: ImageVector by lazy {
+        icon("AdSkip.Moon") {
+            pathStroke {
+                moveTo(12f, 4.4f)
+                // 外弧：圆心 (12,12) 的左半圆；内凹弧让月牙开口朝右。
+                arcTo(7.7f, 7.7f, 0f, false, false, 12f, 19.6f)
+                arcTo(11.1f, 11.1f, 0f, false, false, 12f, 4.4f)
+                close()
+            }
+        }
+    }
+
     /**
      * 暂无记录（HUD 取景框 + 摘要行）。
      *
