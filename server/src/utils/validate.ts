@@ -114,6 +114,7 @@ export function cleanRules(input: unknown): CleanedRules | null {
 
 export function cleanReportEvent(input: unknown): {
   pkg: string;
+  label: string;
   channel: string;
   ts: number;
 } | null {
@@ -126,12 +127,15 @@ export function cleanReportEvent(input: unknown): {
     typeof (input as any).ts === "number" && Number.isFinite((input as any).ts)
       ? (input as any).ts
       : Date.now();
-  return { pkg: pkgRaw, channel, ts };
+  // label 可选：客户端上报的应用友好名。缺失/空字符串时回退包名，
+  // 保证旧客户端不传 label 也能在统计页显示包名（与 v0 语义一致）。
+  const label = String((input as any).label ?? "").trim().slice(0, 256) || pkgRaw;
+  return { pkg: pkgRaw, label, channel, ts };
 }
 
 export function cleanBatchReport(input: unknown): {
   deviceId: string;
-  events: Array<{ pkg: string; channel: string; ts: number }>;
+  events: Array<{ pkg: string; label: string; channel: string; ts: number }>;
 } | null {
   if (!input || typeof input !== "object") return null;
   const deviceId = String((input as any).deviceId ?? "").trim().slice(0, 128);
@@ -139,7 +143,7 @@ export function cleanBatchReport(input: unknown): {
   if (!Array.isArray((input as any).events) || (input as any).events.length === 0) {
     return null;
   }
-  const events: Array<{ pkg: string; channel: string; ts: number }> = [];
+  const events: Array<{ pkg: string; label: string; channel: string; ts: number }> = [];
   for (const e of (input as any).events) {
     const cleaned = cleanReportEvent(e);
     if (cleaned) {

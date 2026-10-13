@@ -6,13 +6,16 @@
 
     <!-- 主页 -->
     <string name="home_title">首页</string>
+    <string name="home_subtitle">更清晰地掌握服务状态与广告跳过情况</string>
     <string name="status_off">服务未开启</string>
     <string name="status_on">服务运行中</string>
     <string name="status_off_hint">请在系统无障碍设置中开启「轻启」</string>
-    <string name="status_on_hint">自动跳过开屏广告已生效，可点击下方按钮测试</string>
-    <string name="btn_open_settings">打开无障碍设置</string>
+    <string name="status_on_hint">服务已开启，可运行模拟测试验证跳过链路</string>
+    <string name="btn_open_settings">开启无障碍服务</string>
+    <string name="btn_manage_settings">管理无障碍设置</string>
     <string name="btn_test">测试：模拟开屏广告</string>
     <string name="settings_open_failed">无法打开无障碍设置页，请手动前往 设置 → 无障碍</string>
+    <string name="stats_overview_title">使用概览</string>
     <string name="stats_total_label">累计跳过（次）</string>
     <string name="nav_home">首页</string>
     <string name="nav_apps">应用</string>

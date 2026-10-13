@@ -10,6 +10,29 @@ on:
     branches: [ main ]
 
 jobs:
+  version-contract:
+    name: Version & Release Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verify version sources and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_version="$(node -p "require('./server/package.json').version")"
+          android_version_name="$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)"/\1/p' client/app/build.gradle.kts)"
+          android_version_code="$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\)/\1/p' client/app/build.gradle.kts)"
+          [[ "$server_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::server/package.json version must be stable SemVer X.Y.Z"; exit 1; }
+          [[ "$android_version_name" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "::error::Android versionName must be X.Y"; exit 1; }
+          [[ "$android_version_code" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Android versionCode must be a positive integer"; exit 1; }
+          expected_android="${server_version%.*}"
+          test "$android_version_name" = "$expected_android" || { echo "::error::Android versionName ($android_version_name) must match server major.minor ($expected_android)"; exit 1; }
+          grep -Fq "## [$server_version]" CHANGELOG.md || { echo "::error::CHANGELOG.md must contain a section for server version $server_version"; exit 1; }
+          echo "Version contract OK: server=$server_version Android=$android_version_name versionCode=$android_version_code"
+
   structure:
     name: Structure Contract
     runs-on: ubuntu-latest
@@ -17,7 +40,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -59,7 +82,7 @@ jobs:
 
       - name: Upload contract logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-contract-logs
           path: |
@@ -73,7 +96,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up JDK 17
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -98,7 +121,7 @@ jobs:
       - name: Set up Gradle and dependency cache
         # gradle/actions/setup-gradle 自动以 wrapper、settings、version catalog 与全部构建脚本为缓存键，
         # 覆盖了新增的 gradle/libs.versions.toml 与 build-logic/（手写 actions/cache key 无法跟踪这些「第二事实源」）。
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
           validate-wrappers: true
@@ -135,7 +158,7 @@ jobs:
 
       - name: Upload Android logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-logs
           path: |
@@ -153,7 +176,7 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -173,7 +196,7 @@ jobs:
     # DCO 只对 PR 有意义：main 推送时提交已在库内，不再追溯
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 需要 base 与 head 两个提交对象才能枚举 PR 提交范围
           fetch-depth: 0
@@ -200,21 +223,21 @@ jobs:
           echo "DCO 校验通过：$(git rev-list --no-merges "${base}..${head}" | wc -l) 个作者提交均含 Signed-off-by"
 
   secret-scan:
-    name: Secret Scan (advisory)
+    name: Secret Scan
     runs-on: ubuntu-latest
-    # 咨询模式：先观测全历史扫描结果（仓库文档含大量示例密钥文本，直接强制会误伤），
-    # 基线 triage 完成并配置 allowlist 后再转为 required check
-    continue-on-error: true
+    # 2026-10-11 基线 triage 完成（gitleaks 8.30.1 全历史 detect：190 commits / 2 命中，
+    # 均为 RFC 4226/6238 公开测试向量——收窄规则见根 .gitleaks.toml 的 allowlist，
+    # 含证据与理由）。由咨询模式转强制：PR 引入新泄漏在此 job 直接判红。
     permissions:
       contents: read
       pull-requests: write # gitleaks 在 PR 上评论所需
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Gitleaks scan
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITLEAKS_ENABLE_COMMENTS: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

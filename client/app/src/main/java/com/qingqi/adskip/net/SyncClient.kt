@@ -53,9 +53,6 @@ object SyncClient {
         .readTimeout(TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
         .writeTimeout(TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
 
-    /** 无 pins 的通用客户端：仅上报等低敏请求使用（httpPost 已强制 HTTPS-only） */
-    private val plainClient: OkHttpClient by lazy { baseBuilder().build() }
-
     private fun clientForPins(host: String, pins: List<String>): OkHttpClient {
         val cacheKey = "$host|${pins.joinToString(",")}"
         return pinnedClients.getOrPut(cacheKey) {
@@ -68,9 +65,6 @@ object SyncClient {
 
     // 测试用客户端（禁用证书锁定，允许 MockWebServer 自签名证书）
     internal var testClient: OkHttpClient? = null
-
-    /** 上报等无 pins 场景的客户端；测试注入优先 */
-    private fun client(): OkHttpClient = testClient ?: plainClient
 
     // ---------- 规则解析 ----------
 
@@ -204,16 +198,18 @@ object SyncClient {
     }
 
     /** 静默上报一次跳过（无 deviceId，仅保留以兼容旧调用方；优先使用带 deviceId 的重载）。 */
-    @Deprecated("Use reportSkip(serverUrl, pkg, label, deviceId)")
-    fun reportSkip(serverUrl: String, pkg: String, label: String) {
+    @Deprecated("Use reportSkip(serverUrl, pkg, label, deviceId, pins)")
+    fun reportSkip(serverUrl: String, pkg: String, label: String, pins: List<String>) {
         if (serverUrl.isBlank()) return
+        // S1：上报同样走证书锁定——未配 pins 且非测试注入时拒发，防 MITM 窃取/篡改用户行为
+        if (pins.isEmpty() && testClient == null) return
         executors.io.execute {
             try {
                 val base = serverUrl.trimEnd('/')
                 val v0Payload = JSONObject()
                 v0Payload.put("pkg", pkg)
                 v0Payload.put("label", label)
-                httpPost("$base/api/skip", v0Payload.toString())
+                httpPost("$base/api/skip", v0Payload.toString(), pins)
             } catch (e: Exception) {
                 // 静默失败
             }
@@ -221,26 +217,29 @@ object SyncClient {
     }
 
     /** 静默上报一次跳过（带 deviceId，v1 批量格式）。 */
-    fun reportSkip(serverUrl: String, pkg: String, label: String, deviceId: String) {
+    fun reportSkip(serverUrl: String, pkg: String, label: String, deviceId: String, pins: List<String>) {
         if (serverUrl.isBlank()) return
+        // S1：上报同样走证书锁定——未配 pins 且非测试注入时拒发，防 MITM 窃取/篡改用户行为
+        if (pins.isEmpty() && testClient == null) return
         executors.io.execute {
             try {
                 val base = serverUrl.trimEnd('/')
                 val payload = JSONObject()
                 val event = JSONObject()
                 event.put("pkg", pkg)
+                event.put("label", label) // F1：v1 事件补 label，与服务端 cleanReportEvent 对齐
                 event.put("channel", "text")
                 event.put("ts", System.currentTimeMillis())
                 payload.put("deviceId", deviceId)
                 payload.put("events", JSONArray().put(event))
                 try {
-                    httpPost("$base/api/v1/reports/batch", payload.toString())
+                    httpPost("$base/api/v1/reports/batch", payload.toString(), pins)
                 } catch (e: Exception) {
                     // 回退 v0
                     val v0Payload = JSONObject()
                     v0Payload.put("pkg", pkg)
                     v0Payload.put("label", label)
-                    httpPost("$base/api/skip", v0Payload.toString())
+                    httpPost("$base/api/skip", v0Payload.toString(), pins)
                 }
             } catch (e: Exception) {
                 // 静默失败
@@ -364,13 +363,16 @@ object SyncClient {
         return diff == 0
     }
 
-    private fun httpPost(url: String, body: String) {
+    private fun httpPost(url: String, body: String, pins: List<String>) {
         require(ServerEndpoint.isValid(url)) { "Only valid HTTPS URLs are allowed" }
+        // S1：上报走证书锁定（与 httpGetWithETagBlocking 同构）；测试注入 testClient 时绕过 pin
+        val host = hostOf(url)
+        val httpClient = testClient ?: clientForPins(host, pins)
         val request = Request.Builder()
             .url(url)
             .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
-        client().newCall(request).execute().use { response ->
+        httpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw Exception("HTTP " + response.code)
         }
     }
