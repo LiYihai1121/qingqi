@@ -20,16 +20,18 @@
 | 11 | `SkipAdService` 接收器注册/注销模板重复 | 提取 `ReceiverHandle` 内部类，收敛注册/注销公共路径，消除 4 个重复方法 | `SkipAdService.kt` |
 | 12 | 服务端无结构化日志 | 新增 `src/utils/logger.ts`（JSONL 格式，零运行时依赖），替换 `server.ts` 中的 `console.*` | `server.ts`, `logger.ts` |
 | 13 | 服务端无 TLS 配置 | 新增 `TLS_CERT`/`TLS_KEY` 环境变量支持，`Bun.serve` 条件启用 TLS | `config.ts`, `server.ts` |
-| 14 | 限流键默认信任可伪造的 `X-Forwarded-For`（换头即绕过全部限频）；鉴权失败不消耗令牌桶（token 可无限暴力猜测）；令牌桶无上限 | 限流默认只认 socket IP（对端 ∈ `TRUSTED_PROXIES` 才采信 XFF）、限流先于鉴权、令牌桶封顶 50000 淘汰最久未用 | `rateLimit.ts`, `rulesApi.ts`, `index.ts` |
-| 15 | `STATS_READ_AUTH` 是死配置，统计端点实际匿名可读 | 统计汇总真正消费该开关（`STATS_READ_AUTH=1` 即挡匿名读） | `statsApi.ts`, `config.ts` |
-| 16 | 未认证上报可伪造任意包名，无限扩张当日 byApp 结构 | 当日条目封顶 2000（超限聚合 `_other`）+ label 去控制字符后入库 | `store.ts`, `validate.ts` |
-| 17 | 错误响应回显内部细节；缺安全响应头；CORS 默认全开 | 5xx 归一化 `internal error`（细节只进日志）+ 统一安全头/HTML CSP/HSTS + CORS 未配置默认拒绝跨域 | `httpUtil.ts`, `server.ts` |
-| 18 | TLS 半配置静默回退明文 | 半配置启动即抛错；明文 + 非回环监听输出告警 | `server.ts` |
-| 19 | Android 8–12 动态注册接收器默认可被任意应用投递（远程关停服务 / 诱导导出前台界面文本） | signature 级 `INTERNAL` 权限收口全部 API 级别 + 快照导出补 `FLAG_ACTIVITY_NEW_TASK` + 契约测试 | `AndroidManifest.xml`, `SkipAdService.kt`, `ManifestContractTest.kt` |
-| 20 | `SafetyGuard` 可绕过：中文-only 黑名单、只看目标自身文案、不过滤敏感系统界面 | 补英文/中文敏感词、敏感系统包整包拒绝、父链 3 层文案检查 | `SafetyGuard.kt` |
-| 21 | 云端规则载荷无条目上限 + 响应体整包读内存 | 响应体 2MB 封顶 + 载荷条目/长度封顶 + 包名键合法性校验 | `SyncClient.kt` |
-| 22 | release 未配签名时静默回退 debug 签名（公开密钥可伪造升级） | fail-closed：未配签名且未显式 `adskip.unsignedRelease=true` 时 release 任务直接失败并禁用 release 变体，绝不回退 debug 签名 | `app/build.gradle.kts` |
-| 23 | `LanguagePreferences` 实际仍在明文 SP（#9 未落地），且与 Prefs 旧存储同名，迁移删源文件会丢语言设置 | 偏好统一走 `core/SecureStore` 加密存储（含明文历史全量迁移） | `LanguagePreferences.kt`, `SecureStore.kt`, `Prefs.kt` |
+| 14 | v1 批量上报事件缺 `label`（服务端已接受但客户端从未发送） | 服务端 `cleanReportEvent` 接受可选 label（`2532046`）；客户端 v1 事件补 `label` 字段（`30d73d1`）；API 文档同步更新（`a5c8b63`） | `rulesApi.ts`, `SyncClient.kt`, `API.md` |
+| 15 | `reportSkip` 上报通道无证书锁定（`httpPost` 用 `plainClient`，与同步通道 `clientForPins` 不一致） | `httpPost` 增 pins 参数改用 `clientForPins`；未配 pins 时 fail-closed 拒发；移除死代码 `plainClient`/`client()`（`30d73d1`）；单测验证（`749a4d0`） | `SyncClient.kt`, `SkipAdService.kt`, `SyncClientTest.kt` |
+| 16 | 限流键默认信任可伪造的 `X-Forwarded-For`（换头即绕过全部限频）；鉴权失败不消耗令牌桶（token 可无限暴力猜测）；令牌桶无上限 | 限流默认只认 socket IP（对端 ∈ `TRUSTED_PROXIES` 才采信 XFF）、限流先于鉴权、令牌桶封顶 50000 淘汰最久未用 | `rateLimit.ts`, `rulesApi.ts`, `index.ts` |
+| 17 | `STATS_READ_AUTH` 是死配置，统计端点实际匿名可读 | 统计汇总真正消费该开关（`STATS_READ_AUTH=1` 即挡匿名读） | `statsApi.ts`, `config.ts` |
+| 18 | 未认证上报可伪造任意包名，无限扩张当日 byApp 结构 | 当日条目封顶 2000（超限聚合 `_other`）+ label 去控制字符后入库 | `store.ts`, `validate.ts` |
+| 19 | 错误响应回显内部细节；缺安全响应头；CORS 默认全开 | 5xx 归一化 `internal error`（细节只进日志）+ 统一安全头/HTML CSP/HSTS + CORS 未配置默认拒绝跨域 | `httpUtil.ts`, `server.ts` |
+| 20 | TLS 半配置静默回退明文 | 半配置启动即抛错；明文 + 非回环监听输出告警 | `server.ts` |
+| 21 | Android 8–12 动态注册接收器默认可被任意应用投递（远程关停服务 / 诱导导出前台界面文本） | signature 级 `INTERNAL` 权限收口全部 API 级别 + 快照导出补 `FLAG_ACTIVITY_NEW_TASK` + 契约测试 | `AndroidManifest.xml`, `SkipAdService.kt`, `ManifestContractTest.kt` |
+| 22 | `SafetyGuard` 可绕过：中文-only 黑名单、只看目标自身文案、不过滤敏感系统界面 | 补英文/中文敏感词、敏感系统包整包拒绝、父链 3 层文案检查 | `SafetyGuard.kt` |
+| 23 | 云端规则载荷无条目上限 + 响应体整包读内存 | 响应体 2MB 封顶 + 载荷条目/长度封顶 + 包名键合法性校验 | `SyncClient.kt` |
+| 24 | release 未配签名时静默回退 debug 签名（公开密钥可伪造升级） | fail-closed：未配签名且未显式 `adskip.unsignedRelease=true` 时 release 任务直接失败并禁用 release 变体，绝不回退 debug 签名 | `app/build.gradle.kts` |
+| 25 | `LanguagePreferences` 实际仍在明文 SP（#9 未落地），且与 Prefs 旧存储同名，迁移删源文件会丢语言设置 | 偏好统一走 `core/SecureStore` 加密存储（含明文历史全量迁移） | `LanguagePreferences.kt`, `SecureStore.kt`, `Prefs.kt` |
 
 ---
 
@@ -40,10 +42,12 @@
 | 优先级 | 问题 | 建议修复方案 | 预计工作量 |
 |--------|------|--------------|------------|
 | P0 | 服务端 HTTPS 支持（TLS 配置已就绪，待部署证书） | 设置 `TLS_CERT`/`TLS_KEY` 环境变量即可启用 HTTPS；客户端 release 强制 HTTPS | 部署时配置 |
-| P0 | `SyncClient` HTTP 无证书锁定 | ✅ 已修复（v3.4.0 批次）：迁移 OkHttp 后接入 `CertificatePinner`，指纹经设置下发（必须配置） | — |
+| P0 | `SyncClient` HTTP 无证书锁定 | ✅ 已修复（v3.4.0 批次）：迁移 OkHttp 后接入 `CertificatePinner`，指纹经设置下发（必须配置）；S1 补全：上报通道 `httpPost` 同步接入证书锁定 + fail-closed（`30d73d1`） | — |
 | P1 | `Prefs` 迁移逻辑幂等性不足 | ✅ 已修复：改用 `deleteSharedPreferences` 删除明文源文件 | — |
 | P1 | `LanguagePreferences` 未使用加密存储 | ✅ 已修复：同步迁移至 `EncryptedSharedPreferences` | — |
 | P2 | `StatsRepository` 合批写 SP 无错误处理 | ✅ 已修复：`flush()` 添加 `try-catch` + `LogRing.w` | — |
+| P1 | **发布版自检必然超时**（2026-10-11 模拟器矩阵实测，见 STABILITY-TEST-PLAN §9）：`SafetyGuard.SELF_PKG="com.qingqi.adskip"` 与发布包名相同，`canClick` 对自身包一律拒绝点击（防自触发死循环），自检浮层「跳过」永远点不了；#145 复测因使用 `.debug` 后缀并行包（包名不同）绕过护栏而误判「已修复」 | `AppEvents.testActive == true` 时放行自身包（测试态不存在死循环回路）；补 JVM 单测用发布包名断言 `canClick` 结果 | 0.5 天 |
+| P1 | **跳过计数双重累加**（2026-10-11 实测：单次跳过首页显示 2、5 秒后 3，记录恒为 1）：`Prefs.recordSkip` 立即写 SP total+1，`StatsRepository.recordSkip` 又 `pendingTotal++`，`total()=SP+pending` 双算；且 `flush()` 落盘后不重置 `pendingTotal`/`pendingByPkg`，计数无界膨胀（结构自 v3.4.0 #78 引入） | `Prefs.recordSkip` 不再写 total/by-pkg 计数（日志照写），落盘统一由 `flush()` 负责；`flush()` 末尾重置 pending；补 JVM 单测断言「N 次 `recordSkip` → `total()==N` 且落盘后仍为 N」 | 0.5 天 |
 
 ### 🟡 中危（架构/设计）
 
@@ -53,6 +57,7 @@
 | P1 | `store.ts` 规则备份仅全量拷贝，无增量/压缩 | 长期运行可改用 WAL 或按天快照；当前 JSON 全量备份对小项目可接受 | 待评估 |
 | P2 | `Prefs.DEFAULT_SERVER` 硬编码本地 IP | ✅ 已修复：清空默认地址（`DEFAULT_SERVER=""`），未配置时不预填任何值，强制用户显式输入有效 HTTPS 地址 | — |
 | P2 | `rateLimit.ts` / `store.ts` 使用 `setInterval` 做 GC/清理 | Bun 优雅停机可能截断；改用 `setTimeout` 递归或显式清理钩子 | 0.5 天 |
+| P2 | **引擎误跳系统界面文本**（2026-10-11 模拟器矩阵实测）：`SafetyGuard.canClick` 不校验节点 `clickable`，任何含关键词的可见文本都会被点击——API 33 设置页中本应用服务行「轻启 · Skip Splash Ads」被点并落库 `com.android.settings` 跳过；API 35 出现 2 条系统包误跳计数 | `canClick` 增加 clickable / 可聚焦校验（广告跳过按钮均为可点击节点）；或对 `com.android.settings`/`com.android.systemui`/launcher 类系统包加包级豁免；补真实窗口回归用例 | 1 天 |
 | P3 | `SyncClient` 无连接池/Keep-Alive/重试 | ✅ 已修复（v3.3.0）：迁移 OkHttp 4.12，连接池/超时/重试齐备 | — |
 
 ### 🟢 低危（测试/可观测/文档）

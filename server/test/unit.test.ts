@@ -153,6 +153,33 @@ describe("validate", () => {
     });
     expect(r!.events.length).toBe(1);
   });
+
+  it("label 透传至事件", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", label: "微信", channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label).toBe("微信");
+  });
+
+  it("label 缺失回退包名", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label).toBe("com.example.app");
+  });
+
+  it("label 超长截断至 256", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", label: "x".repeat(300), channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label.length).toBe(256);
+  });
 });
 
 describe("auth", () => {

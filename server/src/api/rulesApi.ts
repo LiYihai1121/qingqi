@@ -129,8 +129,9 @@ export const v0_skip: Handler = async (req, _url, ctx) => {
   }
   const ev = cleanReportEvent(parsed);
   if (!ev) return errorJson(400, "invalid skip payload");
-  // label 会持久化并经统计接口下发到所有端：先做数据卫生（去控制字符/截断）再入库
-  recordSkip(ev.pkg, cleanLabel(parsed.label ?? ev.pkg), ev.channel);
+  // label 会持久化并经统计接口下发到所有端：cleanReportEvent 已做截断/回退，
+  // 再过 cleanLabel 剥控制字符（跨端 UI/日志 注入防护）后入库
+  recordSkip(ev.pkg, cleanLabel(ev.label), ev.channel);
   return jsonResponse({ ok: true });
 };
 
@@ -155,7 +156,7 @@ export const v1_batchReport: Handler = async (req, _url, ctx) => {
     return errorJson(429, "rate limited");
   }
   for (const ev of cleaned.events) {
-    recordSkip(ev.pkg, ev.pkg, ev.channel);
+    recordSkip(ev.pkg, ev.label, ev.channel);
   }
   return jsonResponse({ ok: true, accepted: cleaned.events.length });
 };

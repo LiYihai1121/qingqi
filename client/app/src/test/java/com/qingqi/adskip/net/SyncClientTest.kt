@@ -234,7 +234,7 @@ class SyncClientTest {
     }
 
     @Test
-    fun `reportSkip sends v1 batch with deviceId`() {
+    fun `reportSkip sends v1 batch with deviceId and label`() {
         server.enqueue(MockResponse().setResponseCode(200))
 
         SyncClient.reportSkip(
@@ -242,13 +242,17 @@ class SyncClientTest {
             "com.test.app",
             "skip",
             "device-123",
+            emptyList(),
         )
 
         val request = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/v1/reports/batch", request.path)
         val body = JSONObject(request.body.readUtf8())
         assertEquals("device-123", body.getString("deviceId"))
-        assertEquals(1, body.getJSONArray("events").length())
+        val event = body.getJSONArray("events").getJSONObject(0)
+        assertEquals("com.test.app", event.getString("pkg"))
+        // F1：v1 事件必须携带 label，与服务端 cleanReportEvent 对齐
+        assertEquals("skip", event.getString("label"))
     }
 
     @Test
@@ -261,6 +265,7 @@ class SyncClientTest {
             "com.test.app",
             "skip",
             "device-123",
+            emptyList(),
         )
 
         val req1 = server.takeRequest(2, TimeUnit.SECONDS)!!
@@ -277,12 +282,32 @@ class SyncClientTest {
     fun `deprecated reportSkip sends v0 directly`() {
         server.enqueue(MockResponse().setResponseCode(200))
 
-        SyncClient.reportSkip(server.url("/").toString(), "com.test.app", "skip")
+        SyncClient.reportSkip(server.url("/").toString(), "com.test.app", "skip", emptyList())
 
         val request = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/skip", request.path)
         val body = JSONObject(request.body.readUtf8())
         assertEquals("com.test.app", body.getString("pkg"))
+    }
+
+    @Test
+    fun `reportSkip is fail-closed without pins when testClient is null`() {
+        // S1：生产模式（无 testClient 注入）下，未配 pins 时拒发，防 MITM 窃取用户行为
+        val savedClient = SyncClient.testClient
+        SyncClient.testClient = null
+        try {
+            SyncClient.reportSkip(
+                server.url("/").toString(),
+                "com.test.app",
+                "skip",
+                "device-123",
+                emptyList(),
+            )
+            // fail-closed 在入队前同步 return，不应产生任何请求
+            assertEquals(0, server.requestCount)
+        } finally {
+            SyncClient.testClient = savedClient
+        }
     }
 
     // ---------- 连接复用 ----------
