@@ -6,6 +6,7 @@
 
 ## 目录
 
+- [3.4.2](#342---2026-10-11)
 - [3.4.0](#340---2026-10-10)
 - [3.3.0](#330---2026-10-10)
 - [3.2.0](#320---2026-10-06)
@@ -19,6 +20,27 @@
 - [2.2.0](#220---2026-08-24)
 - [2.1.0](#210---2026-08-24)
 - [2.0.0](#200---2026-08-24)
+
+## [3.4.2] - 2026-10-11
+
+真机启动崩溃修复版，并首次携带 v3.4.0 之后合入的首页重设计等 UI 变更。`security-crypto 1.1.0-alpha07` 的 `MasterKey.Builder` 在未显式设置 key scheme 时 `build()` 抛 `IllegalArgumentException`——真机（API 23+ AndroidKeyStore）首启即崩（小米 Mi 9 / Android 11 实测 logcat：`FATAL EXCEPTION at Prefs.sp`），Robolectric 单测无法暴露。显式设置 `AES256_GCM`（与 1.0.0 `MasterKeys` 默认方案一致，既有密文兼容）。
+
+> **号段说明**：`3.4.1` 版本发布时 bump 漏更 `server/package.json`，被发布门禁拦截、未产出任何制品，tag `v3.4.1` 按不可移动规约保留为死标签，版本号让位给 `3.4.2`（详见 [RELEASE-HISTORY.md](docs/planning/RELEASE-HISTORY.md)）。
+
+### Fixed (3.4.2)
+
+- **真机启动崩溃（安装成功 → 启动即崩）**：`Prefs.sp()` 的 `MasterKey.Builder` 显式 `setKeyScheme(AES256_GCM)`（[PR #124](https://github.com/LiYihai1121/ui-app/pull/124)）。
+- **节点快照分享落入旧会话**：分享 Intent 补 `FLAG_ACTIVITY_NEW_TASK`，从无界面服务上下文分享到聊天工具后不再粘连旧任务栈（[PR #125](https://github.com/LiYihai1121/ui-app/pull/125)）。
+
+### Changed (3.4.2)
+
+- 首页布局重设计（[PR #100](https://github.com/LiYihai1121/ui-app/pull/100)）。
+- 底部导航标签改为 2 字短名词「应用 / 记录」（[PR #99](https://github.com/LiYihai1121/ui-app/pull/99)）。
+- 品牌标识统一 AdSkip 大小写命名（[PR #106](https://github.com/LiYihai1121/ui-app/pull/106)）。
+
+`versionCode` 为 `15`，`versionName` 为 `3.4`。
+
+> **验证范围**：`ktlintCheck` + `testDebugUnitTest`（248 用例）+ `assembleDebug` 全绿；崩溃修复 APK 已回装 Mi 9（Android 11）复验启动（v3.4.1 演练期间验证）。厂商 ROM 保活/磁贴与 Top 30 规则真机矩阵仍按 [ROADMAP.md](docs/planning/ROADMAP.md) 所述欠账执行（见 M1d / 步骤 F）。
 
 ## [3.4.0] - 2026-10-10
 

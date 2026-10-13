@@ -60,8 +60,8 @@ android {
         // BREAKING（v3.4.0，PR #74）：applicationId 与源码 namespace 一并迁移到 qingqi。
         // 已装用户需卸载重装，旧 EncryptedSharedPreferences 数据无法跨包名迁移；re-install 分级在 CHANGELOG 3.4.0 说明。
         applicationId = "com.qingqi.adskip"
-        // 单调递增，禁止复用已发布编号（v3.1.0 = 10，v3.2.0 = 12，v3.3.0 = 13）
-        versionCode = 14
+        // 单调递增，禁止复用已发布编号（v3.1.0 = 10，v3.2.0 = 12，v3.3.0 = 13，v3.4.0 = 14）
+        versionCode = 15
         // 展示值用 X.Y（与 CONTRIBUTING「版本策略」一致；server 侧用完整 X.Y.Z）
         versionName = "3.4"
     }
@@ -102,8 +102,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    // compose 1.9+ 起图标库不再由 material3 传递提供；仍只用 core 图标集（理由见 catalog 注释）
-    implementation(libs.androidx.compose.material.icons.core)
+    // 图标全部来自自绘 AdSkipIcons（ui/theme/icons），不再依赖 Material 图标集
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // MVVM：Activity Compose + ViewModel + 生命周期感知收集

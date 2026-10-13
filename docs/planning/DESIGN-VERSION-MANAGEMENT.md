@@ -92,7 +92,7 @@ git tag -a vX.Y.Z -m "release: vX.Y.Z" && git push origin vX.Y.Z
 ```
 
 - tag 由 release 分支的最终提交产生；CI（release.yml）按 tag 构建、签名、上传 GitHub Release + `SHA256SUMS`；
-- Release 描述启用 GitHub 自动生成说明（「Generate release notes」按 PR 标题聚合）作为草稿，人工按 Keep a Changelog 分节（Added/Changed/Fixed/BREAKING）定稿。
+- Release 描述启用 GitHub 自动生成说明（「Generate release notes」按 PR 标题聚合）作为草稿，人工按 Keep a Changelog 分节（Added/Changed/Fixed/BREAKING）定稿。**双轨已落地**：`generate_release_notes: true`（轨一）+ release.yml 自动运行 `scripts/generate-changelog.mjs` 生成 `notes-draft.md` 草稿资产（轨二输入物），核对项见 [CONTRIBUTING.md](../../CONTRIBUTING.md) 发布核对清单。
 
 ### 4.3 Changelog 自动生成机制
 
@@ -113,7 +113,7 @@ git tag -a vX.Y.Z -m "release: vX.Y.Z" && git push origin vX.Y.Z
 | 阶段 | 时间 | 动作 | 状态 |
 | --- | --- | --- | --- |
 | P0 已完成 | 2026-10-11 | 存量清理（43 分支）、保护规则（strict + 3 检查）、主检出/提交钩子、历史审计与豁免线、PR 治理（6 过时 PR 关闭、6 新 PR 合并） | ✅ |
-| P1 本周 | v3.4.1 发布前 | ① 按 4.1 门禁走一次**新流程演练**：v3.4.1 从 `release/v3.4.1`（已就绪，versionCode 15）经 bump PR → tag → 签名发布；② 启用 GitHub Release 自动说明 + 人工定稿双轨；③ ~~`scripts/generate-changelog.mjs` 落地并登记白名单~~ **✅ 已落地（实测 v3.2.0→v3.4.0 两区间通过）** | ③ 完成；①② 待 v3.4.1 发版执行 |
+| P1 本周 | v3.4.1 发布前 | ① 按 4.1 门禁走一次**新流程演练**：v3.4.1 从 `release/v3.4.1`（已就绪，versionCode 15）经 bump PR → tag → 签名发布；② 启用 GitHub Release 自动说明 + 人工定稿双轨；③ ~~`scripts/generate-changelog.mjs` 落地并登记白名单~~ **✅ 已落地（实测 v3.2.0→v3.4.0 两区间通过）** | ① ✅ 已演练（v3.4.1/v3.4.2 已按新流程发布）；② ✅ 已落地（release.yml 自动生成 `notes-draft.md` 草稿资产 + CONTRIBUTING 双轨核对清单）；③ ✅；P1 全部完成 |
 | P2 下一 minor（v3.5.0 冻结前） | 随 L2 | ① 开放 PR 逐个裁决完毕；② signed tags（SLSA 演进第一步）；③ 季度分支清理首次例行执行 | 待执行 |
 | P3 随 R3（架构演进） | M4 前 | SBOM（CycloneDX）+ provenance attestation；`/metrics` 与监控告警接入发布门禁 | 待执行 |
 | 例行 | 每季度 | 流程审计复跑（同 FOLLOW-UP-PROCESS-AUDIT 口径）+ 分支/worktree 清理 + 本设计符合性抽查 | 周期任务 |

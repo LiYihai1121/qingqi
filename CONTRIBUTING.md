@@ -317,7 +317,7 @@ git rebase -i --autosquash origin/main
 - 至少 1 名维护者批准；安全、协议或数据变更至少 2 名审批者，其中包含领域负责人；
 - 所有评论解决，旧审批在新增提交后失效；
 - 分支必须基于最新目标分支，合并使用 Squash（`hotfix/*` 例外，见 [§5](#5-合并前的提交压缩)）；合并后自动删除源分支；
-- CI 使用固定 Action 主版本，依赖和权限按最小权限配置。
+- CI Actions 一律 pin 到完整 commit SHA（行尾注释保留可读版本，形如 `actions/checkout@11d5960… # v4`）；禁止只写可变的主版本 tag——第三方 Action 是可执行代码，`@vN` 指向的内容可被单方面改写。新增或升级 Action 走同一规则，由 Dependabot（github-actions ecosystem）自动提交升级 PR；权限按最小权限配置。
 
 > **单维护者例外（2026-10-11 核验生效）**：`CODEOWNERS` 当前只有一名 owner，GitHub 不允许自审批，因此 `main` 保护实配 `required_approving_review_count = 0`、`require_code_owner_reviews = false`——上面「至少 1 名维护者批准」在例外期间由**机器门禁与自审清单**替代：三项必需状态检查（`Structure Contract` / `Android Build & Test` / `Server Tests`）+ `strict`（分支须与 `main` 同步才可合并）+ 评论全部解决 + 旧审批失效 + 禁管理员绕过 + `githooks/pre-commit`、`githooks/commit-msg`。**补齐条件**：出现第二名可审批协作者时，审批人数改为 ≥1、启用 CODEOWNERS 强制，并恢复安全/协议/数据变更 2 人审批；基线随季度流程审计复核（口径见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md)）。
 
@@ -471,6 +471,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - [ ] [Release list](docs/planning/RELEASE-HISTORY.md#release-list) 已记录版本、tag、合并提交和 Release 状态；
 - [ ] tag 为 annotated tag，且指向合并后的 `main` 提交；
 - [ ] GitHub Release 已创建并上传制品与 `SHA256SUMS`；
+- [ ] **Release 说明双轨收尾**：GitHub 自动说明（轨一草稿）已人工复核措辞；发布工作流生成的 `notes-draft.md`（轨二草稿，`scripts/generate-changelog.mjs` 产出）已随 Release 上传并与 `CHANGELOG.md` 的人工定稿条目核对一致；
 - [ ] **制品已用 `apksigner verify` 校验签名并确认可安装**——未签名包在手机上必然报「解析软件包时出现问题」（Issue #23）；命令见 [DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md#apk-安装排障)；
 - [ ] 触及系统集成范围（无障碍/磁贴/跳转/调度/权限）时，真机验收已完成并记录机型与 ROM 版本；
 - [ ] 已确认没有复用或移动历史 tag；
@@ -490,8 +491,8 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - 配置 `main`、`release/*` 分支保护和 CODEOWNERS；
 - 配置必需状态检查、审批人数、旧审批失效和合并后删分支；将 `ktlintCheck` 纳入必需状态检查；
 - 禁止管理员绕过（bypass）——留后门等于没有门禁；
-- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 未配置而 [SECURITY.md](SECURITY.md) 有声明，属待对齐项）；
-- 开启 Dependabot/Renovate，依赖升级走 PR 并保留 lockfile；
+- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 已配置（GitHub Actions、Gradle、Bun 与 pre-commit）；仍需定期确认自动 PR 正常运行并审计升级结果）；
+- `.github/dependabot.yml` 已配置 GitHub Actions、Gradle、Bun 与 pre-commit 的每周更新；维护者需定期检查 Dependabot PR、锁文件变更、兼容性与安全公告，不得把「配置存在」等同于「升级治理已完成」；
 - 发布凭据使用 CI Secret/OIDC，禁止写入仓库和日志；
 - 版本 tag 目标为带签名（GPG / sigstore），CI 制品目标生成 SBOM 与 provenance attestation（见[供应链与可追溯](#供应链与可追溯slsa-对齐)）；
 - 制品保留周期与回滚窗口明确：至少保留最近两个 stable 与全部 rc，便于回到最近 green tag；

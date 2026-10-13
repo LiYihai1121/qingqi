@@ -21,8 +21,21 @@ class AdSkipApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this, this)
-        // 兜底：持久化 Job 因厂商 ROM 清理丢失时重新注册
-        if (Prefs.isAutoSyncEnabled(this)) SyncJobService.schedule(this)
+        // 启动容错（P0-1，架构审查项）：存储层故障不得炸掉应用。
+        // 真机事故（Mi 9 / Android 11，#124 修复前的 MasterKey 异常）证明
+        // Application.onCreate 裸调 Prefs 会把任何 AndroidKeyStore/SP 异常
+        // 升级为「应用完全无法启动」。降级策略：同步 Job 跳过本次注册
+        // （下次启动或 SyncJobService 自身触发时自然重试），功能降级但
+        // 不阻断启动；错误经 LogRing 留痕，用户可在「记录」页导出可见。
+        val autoSync = runCatching { Prefs.isAutoSyncEnabled(this) }
+            .onFailure {
+                LogRing.e(
+                    "App",
+                    "Prefs unreadable at startup; auto-sync scheduling skipped: ${it.message}",
+                )
+            }
+            .getOrDefault(false)
+        if (autoSync) SyncJobService.schedule(this)
         LogRing.d("App", "AdSkipApp initialized")
     }
 

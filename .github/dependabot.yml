@@ -1,6 +1,15 @@
 version: 2
 updates:
-  # GitHub Actions 版本更新（含后续 SHA pin 迁移的自动升级入口）
+  # pre-commit 钩子 rev 升级（与 GitHub Actions pin 同一供应链策略）
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+
+  # GitHub Actions 版本更新（含 SHA pin 的自动升级入口）
   - package-ecosystem: github-actions
     directory: /
     schedule:
