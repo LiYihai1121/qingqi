@@ -102,6 +102,7 @@ Release list 的维护要求：版本变更、tag、合并提交和 GitHub Relea
 | v3.3.0 | `1c296c0` | OkHttp 网络层迁移 + 服务端请求体限制/限流/结构化日志；安全能力如实声明（无规则 HMAC、未启用证书 pin 与强制 HTTPS） | [`v3.3.0`](https://github.com/LiYihai1121/ui-app/releases/tag/v3.3.0) |
 | v3.4.0 | `825c5eb` | Monorepo 解耦收官：applicationId/namespace 迁移 `com.qingqi.adskip`（BREAKING）+ 服务端解耦 client 包名 + M1 非导出/包级黑名单 + M2 签名禁回退 | [`v3.4.0`](https://github.com/LiYihai1121/ui-app/releases/tag/v3.4.0) |
 | v3.4.2 | `ed135e8` | 真机启动崩溃修复（MasterKey keyScheme）+ 快照分享 NEW_TASK + 首页重设计/底栏命名/品牌统一落版；`v3.4.1` 号段废弃（见「发布基线说明」） | [`v3.4.2`](https://github.com/LiYihai1121/ui-app/releases/tag/v3.4.2) |
+| 待发布 | 待发布 | 上报通道证书锁定（fail-closed）+ v1 批量上报事件补 label（PR #141；原计划随 `v3.4.2` 落版，号段已由崩溃修复版占用并发布，版本号随下一次发布定版） | 待创建 |
 
 ## 验证命令
 
