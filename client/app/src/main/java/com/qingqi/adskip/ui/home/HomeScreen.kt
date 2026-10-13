@@ -254,7 +254,7 @@ private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: ()
             // 让用户打开首页后无需阅读多段说明即可判断服务是否生效。
             StatusOrb(
                 running = running,
-                diameter = 124.dp,
+                diameter = UiSizes.statusOrbHero,
             )
             Spacer(Modifier.height(Spacing.md))
             Text(
