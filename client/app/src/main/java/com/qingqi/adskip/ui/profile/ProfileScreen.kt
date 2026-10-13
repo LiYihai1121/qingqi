@@ -1,5 +1,8 @@
 package com.qingqi.adskip.ui.profile
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,17 +13,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -41,6 +49,8 @@ import com.qingqi.adskip.ui.components.SectionTitle
 import com.qingqi.adskip.ui.components.StatTile
 import com.qingqi.adskip.ui.settings.SettingsContent
 import com.qingqi.adskip.ui.theme.Spacing
+import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 
 /**
  * 「我的」页：本机使用概览 + 无障碍入口 + 设置 + 应用与设备信息。
@@ -234,8 +244,60 @@ private fun AboutCard(state: ProfileViewModel.UiState, vendorName: (Vendor) -> S
             label = stringResource(R.string.profile_vendor_label),
             value = vendorName(state.vendor),
         )
+        InfoDivider()
+        LinkRow(
+            icon = AdSkipIcons.Globe,
+            label = stringResource(R.string.profile_link_project),
+            url = PROJECT_URL,
+        )
+        InfoDivider()
+        LinkRow(
+            icon = AdSkipIcons.Feedback,
+            label = stringResource(R.string.profile_link_feedback),
+            url = FEEDBACK_URL,
+        )
 
         Spacer(Modifier.height(Spacing.md))
         SectionHint(stringResource(R.string.profile_privacy_hint))
+    }
+}
+
+/** 开源项目主页与问题反馈入口（应用商店若上架，可在此同步补充）。 */
+private const val PROJECT_URL = "https://github.com/LiYihai1121/ui-app"
+private const val FEEDBACK_URL = "https://github.com/LiYihai1121/ui-app/issues"
+
+/**
+ * 链接行：图标 + 标题，整行可点，跳系统浏览器。
+ *
+ * 为什么直接用 `ACTION_VIEW` 而不经 KeepAliveNavigator：那收口的是「系统设置页」
+ * 跳转（厂商差异大、需要按 ROM 分发），网页链接没有厂商差异。`runCatching`
+ * 兜住无浏览器应用极端情况下的 ActivityNotFoundException，避免崩溃。
+ */
+@Composable
+private fun LinkRow(icon: ImageVector, label: String, url: String) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button) {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+            }
+            .padding(vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(UiSizes.rowIcon),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(Spacing.md))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
