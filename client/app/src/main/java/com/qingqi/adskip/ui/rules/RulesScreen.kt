@@ -15,10 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +45,7 @@ import com.qingqi.adskip.ui.components.PageHeader
 import com.qingqi.adskip.ui.home.HomeViewModel
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 
 /** Dedicated keyword rules page. Add/remove operations use the same repository as HomeScreen. */
 @Composable
@@ -88,7 +85,7 @@ fun RulesScreen(messenger: Messenger, viewModel: HomeViewModel = viewModel(facto
             singleLine = true,
             shape = MaterialTheme.shapes.small,
             placeholder = { Text(stringResource(R.string.rules_search_hint)) },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            leadingIcon = { Icon(AdSkipIcons.Search, contentDescription = null) },
         )
         Row(
             modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -122,20 +119,20 @@ fun RulesScreen(messenger: Messenger, viewModel: HomeViewModel = viewModel(facto
                 modifier = Modifier.size(width = UiSizes.ruleAddButtonWidth, height = UiSizes.touchTarget),
                 contentPadding = PaddingValues(horizontal = Spacing.sm),
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(AdSkipIcons.Plus, contentDescription = null)
                 Text(stringResource(R.string.btn_add))
             }
         }
         if (visible.isEmpty()) {
             EmptyState(
-                icon = Icons.Default.Search,
+                icon = AdSkipIcons.Search,
                 title = stringResource(if (state.keywords.isEmpty()) R.string.rules_empty else R.string.rules_no_match),
                 subtitle = stringResource(R.string.rules_empty_hint),
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(horizontal = Spacing.lg, bottom = Spacing.xl),
+                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 items(visible, key = { it.value }) { indexed ->
@@ -165,7 +162,7 @@ fun RulesScreen(messenger: Messenger, viewModel: HomeViewModel = viewModel(facto
                             }
                             IconButton(onClick = { viewModel.removeKeyword(indexed.index) }) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    AdSkipIcons.Delete,
                                     contentDescription = stringResource(R.string.keyword_remove_cd, indexed.value),
                                     tint = MaterialTheme.colorScheme.error,
                                 )

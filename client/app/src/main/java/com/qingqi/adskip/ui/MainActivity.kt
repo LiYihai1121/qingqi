@@ -13,11 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -32,8 +27,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -46,10 +41,11 @@ import com.qingqi.adskip.device.LocaleApplier
 import com.qingqi.adskip.ui.apps.AppsScreen
 import com.qingqi.adskip.ui.home.HomeScreen
 import com.qingqi.adskip.ui.logs.LogsScreen
+import com.qingqi.adskip.ui.onboarding.OnboardingScreen
 import com.qingqi.adskip.ui.profile.ProfileScreen
 import com.qingqi.adskip.ui.rules.RulesScreen
-import com.qingqi.adskip.ui.onboarding.OnboardingScreen
 import com.qingqi.adskip.ui.theme.AdSkipTheme
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import com.qingqi.adskip.ui.theme.screenContentWidth
 
 /**
@@ -102,15 +98,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** 一级目的地：底部导航栏的唯一数据源。 */
-private data class TopLevelDestination(val route: String, val labelRes: Int, val icon: ImageVector)
+/**
+ * 一级目的地：底部导航栏的唯一数据源。
+ *
+ * 图标成对携带（描边 + 实心）：未选中用描边、选中用实心，再叠加
+ * `NavigationBarItemDefaults` 的指示器底色——形状与颜色双重编码，
+ * 色觉障碍用户也能分辨当前页。
+ */
+private data class TopLevelDestination(
+    val route: String,
+    val labelRes: Int,
+    val icon: ImageVector,
+    val iconSelected: ImageVector,
+)
 
 private val TopLevelDestinations = listOf(
-    TopLevelDestination(Routes.HOME, R.string.nav_home, Icons.Filled.Home),
-    TopLevelDestination(Routes.LOGS, R.string.nav_logs, Icons.Filled.DateRange),
-    TopLevelDestination(Routes.RULES, R.string.nav_rules, Icons.AutoMirrored.Filled.List),
-    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person),
+    TopLevelDestination(Routes.HOME, R.string.nav_home, AdSkipIcons.Home, AdSkipIcons.HomeFilled),
+    TopLevelDestination(Routes.LOGS, R.string.nav_logs, AdSkipIcons.Logs, AdSkipIcons.LogsFilled),
+    TopLevelDestination(Routes.RULES, R.string.nav_rules, AdSkipIcons.Rules, AdSkipIcons.RulesFilled),
+    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, AdSkipIcons.Profile, AdSkipIcons.ProfileFilled),
 )
+
+// 二级目的地路由：应用列表（首页统计卡进入）与首次引导。
+//
+// 不登记进 [Routes]：[Routes] 只承载「一级路由 ↔ 底部导航 ↔ NavHost」三方对齐的
+// 契约（ProjectStructureTest「every route is reachable from the bottom navigation」
+// 要求 Routes 恰好 4 个且全部出现在底部导航）。这两个页面没有底部入口，
+// 路由常量就近声明在接线处，避免把二级页面混进一级路由登记表。
+private const val APPS_ROUTE = "apps"
+private const val ONBOARDING_ROUTE = "onboarding"
 
 /**
  * 应用外壳：底部导航栏 + 导航容器。
@@ -126,7 +142,10 @@ private val TopLevelDestinations = listOf(
 private fun AdSkipShell() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val onboardingComplete = remember { context.getSharedPreferences("adskip_ui", Context.MODE_PRIVATE).getBoolean("onboarding_complete", false) }
+    val onboardingComplete = remember {
+        context.getSharedPreferences("adskip_ui", Context.MODE_PRIVATE)
+            .getBoolean("onboarding_complete", false)
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     val currentRoute = currentDestination?.route
@@ -136,7 +155,7 @@ private fun AdSkipShell() {
     // 系统返回键：在非首页时回到首页，而不是逐级退出应用。
     // 用 popBackStack 而非 popUpTo(inclusive) + 重新 navigate：后者会销毁并重建首页，
     // 用户按返回后滚动位置、输入的关键词草稿全部丢失——「回首页」不该等价于「重开首页」。
-    BackHandler(enabled = currentRoute != null && currentRoute != Routes.HOME && currentRoute != Routes.ONBOARDING) {
+    BackHandler(enabled = currentRoute != null && currentRoute != Routes.HOME && currentRoute != ONBOARDING_ROUTE) {
         if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
             navController.navigate(Routes.HOME) {
                 popUpTo(Routes.HOME) { inclusive = true }
@@ -152,7 +171,7 @@ private fun AdSkipShell() {
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
-            if (currentRoute != Routes.ONBOARDING) {
+            if (currentRoute != ONBOARDING_ROUTE) {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     tonalElevation = 0.dp,
@@ -173,7 +192,7 @@ private fun AdSkipShell() {
                             },
                             icon = {
                                 Icon(
-                                    imageVector = destination.icon,
+                                    imageVector = if (selected) destination.iconSelected else destination.icon,
                                     // null 而非 labelRes：下方 label 已渲染同一文案，
                                     // 给图标再挂一次会让读屏把每个 tab 名念两遍。
                                     contentDescription = null,
@@ -214,19 +233,19 @@ private fun AdSkipShell() {
             Box(modifier = Modifier.screenContentWidth()) {
                 NavHost(
                     navController = navController,
-                    startDestination = if (onboardingComplete) Routes.HOME else Routes.ONBOARDING,
+                    startDestination = if (onboardingComplete) Routes.HOME else ONBOARDING_ROUTE,
                     modifier = Modifier.fillMaxSize(),
                     enterTransition = { fadeIn(tween(160)) },
                     exitTransition = { fadeOut(tween(120)) },
                     popEnterTransition = { fadeIn(tween(160)) },
                     popExitTransition = { fadeOut(tween(120)) },
                 ) {
-                    composable(Routes.ONBOARDING) {
+                    composable(ONBOARDING_ROUTE) {
                         OnboardingScreen(onStart = {
                             context.getSharedPreferences("adskip_ui", Context.MODE_PRIVATE)
                                 .edit().putBoolean("onboarding_complete", true).apply()
                             navController.navigate(Routes.HOME) {
-                                popUpTo(Routes.ONBOARDING) { inclusive = true }
+                                popUpTo(ONBOARDING_ROUTE) { inclusive = true }
                                 launchSingleTop = true
                             }
                         })
@@ -238,11 +257,11 @@ private fun AdSkipShell() {
                                 navController.navigate(Routes.LOGS) { launchSingleTop = true }
                             },
                             onOpenApps = {
-                                navController.navigate(Routes.APPS) { launchSingleTop = true }
+                                navController.navigate(APPS_ROUTE) { launchSingleTop = true }
                             },
                         )
                     }
-                    composable(Routes.APPS) { AppsScreen() }
+                    composable(APPS_ROUTE) { AppsScreen() }
                     composable(Routes.LOGS) { LogsScreen(messenger) }
                     composable(Routes.RULES) { RulesScreen(messenger) }
                     composable(Routes.PROFILE) { ProfileScreen(messenger) }

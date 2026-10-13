@@ -59,6 +59,9 @@ object UiSizes {
     /** 行内次要图标边长（日志行状态点等） */
     val inlineIcon = 18.dp
 
+    /** 设置行/链接行的主图标边长（M3 列表行图标的标准尺寸） */
+    val rowIcon = 24.dp
+
     /** 首次引导页品牌标记边长 */
     val onboardingLogo = 88.dp
 
@@ -74,7 +77,7 @@ object UiSizes {
     /** 关键词管理页添加按钮宽度 */
     val ruleAddButtonWidth = 88.dp
 
-    /** 首页紧凑状态环直径 */
+    /** 首页状态环直径 */
     val statusOrb = 56.dp
 
     /** 首页主视觉状态环直径 */

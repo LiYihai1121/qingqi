@@ -79,7 +79,13 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
      * 由页面在离开时调用（见 [com.qingqi.adskip.ui.apps.AppsScreen] 的 DisposableEffect）。
      */
     fun clearTransientFilters() {
-        _uiState.update { if (it.query.isEmpty() && !it.onlyEnabled && !it.onlyDisabled) it else it.copy(query = "", onlyEnabled = false, onlyDisabled = false) }
+        _uiState.update {
+            if (it.query.isEmpty() && !it.onlyEnabled && !it.onlyDisabled) {
+                it
+            } else {
+                it.copy(query = "", onlyEnabled = false, onlyDisabled = false)
+            }
+        }
     }
 
     init {
