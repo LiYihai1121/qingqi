@@ -8,9 +8,10 @@ import {
   statusResponse,
   readBody,
   safeJsonParse,
+  errorResponseFrom,
   type Handler,
 } from "../utils/httpUtil";
-import { cleanRules, cleanBatchReport, cleanReportEvent, isValidPackage } from "../utils/validate";
+import { cleanRules, cleanBatchReport, cleanReportEvent, cleanLabel, isValidPackage } from "../utils/validate";
 import { RULES_SIGNATURE_HEADER, signRulesBody } from "../utils/sign";
 
 /**
@@ -76,13 +77,13 @@ export const v0_publish: Handler = async (req, _url, ctx) => {
   try {
     body = await readBody(req);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   let parsed: any;
   try {
     parsed = safeJsonParse(body);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   const cleaned = cleanRules(parsed);
   if (!cleaned) return errorJson(400, "invalid rules payload");
@@ -98,13 +99,13 @@ export const v1_publish: Handler = async (req, _url, ctx) => {
   try {
     body = await readBody(req);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   let parsed: any;
   try {
     parsed = safeJsonParse(body);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   const cleaned = cleanRules(parsed);
   if (!cleaned) return errorJson(400, "invalid rules payload");
@@ -118,17 +119,19 @@ export const v0_skip: Handler = async (req, _url, ctx) => {
   try {
     body = await readBody(req);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   let parsed: any;
   try {
     parsed = safeJsonParse(body);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   const ev = cleanReportEvent(parsed);
   if (!ev) return errorJson(400, "invalid skip payload");
-  recordSkip(ev.pkg, String(parsed.label ?? ev.pkg).slice(0, 256), ev.channel);
+  // label 会持久化并经统计接口下发到所有端：cleanReportEvent 已做截断/回退，
+  // 再过 cleanLabel 剥控制字符（跨端 UI/日志 注入防护）后入库
+  recordSkip(ev.pkg, cleanLabel(ev.label), ev.channel);
   return jsonResponse({ ok: true });
 };
 
@@ -139,13 +142,13 @@ export const v1_batchReport: Handler = async (req, _url, ctx) => {
   try {
     body = await readBody(req);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   let parsed: any;
   try {
     parsed = safeJsonParse(body);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   const cleaned = cleanBatchReport(parsed);
   if (!cleaned) return errorJson(400, "invalid batch report");
@@ -153,7 +156,7 @@ export const v1_batchReport: Handler = async (req, _url, ctx) => {
     return errorJson(429, "rate limited");
   }
   for (const ev of cleaned.events) {
-    recordSkip(ev.pkg, ev.pkg, ev.channel);
+    recordSkip(ev.pkg, ev.label, ev.channel);
   }
   return jsonResponse({ ok: true, accepted: cleaned.events.length });
 };
@@ -235,13 +238,13 @@ export const v1_testRule: Handler = async (req, _url, ctx) => {
   try {
     body = await readBody(req);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   let parsed: any;
   try {
     parsed = safeJsonParse(body);
   } catch (e: any) {
-    return errorJson(e.statusCode ?? 400, e.message);
+    return errorResponseFrom(e);
   }
   // 与客户端 RulesRepository.ruleSetFor(pkg) 同源：全局 + 应用专属 + 禁用开关
   const pkgRaw = typeof parsed.pkg === "string" ? parsed.pkg.trim() : "";

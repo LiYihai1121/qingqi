@@ -57,18 +57,20 @@ export function probe(key: string, capacity: number): boolean {
  * 安全约束：X-Forwarded-For 仅在「对端 IP ∈ TRUSTED_PROXIES」时采信。
  * 直接对外监听时（默认）任意客户端都能伪造 XFF，无限流就等于没限流；
  * 反代部署时把反代内网 IP 填进 TRUSTED_PROXIES 即可恢复按真实客户端限流。
+ * 返回值截断到 64 字符：桶键进 Map 无界键长会被超长头放大成内存问题。
  */
 export function clientIp(req: Request, remoteIp: string): string {
+  const clamp = (s: string) => s.slice(0, 64);
   const isTrustedProxy =
     !!remoteIp && config.TRUSTED_PROXIES.includes(remoteIp);
   if (isTrustedProxy) {
     const xff = req.headers.get("x-forwarded-for");
     if (xff) {
       const first = xff.split(",")[0].trim();
-      if (first) return first;
+      if (first) return clamp(first);
     }
   }
-  return remoteIp || "unknown";
+  return clamp(remoteIp || "unknown");
 }
 
 export function limitRead(req: Request, remoteIp: string): boolean {

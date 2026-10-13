@@ -69,10 +69,10 @@
 批量补报（读体前先按 IP 预检限流）。`deviceId` 由客户端首次运行时生成并持久化，至少 8 个字符；`ts` 使用 Unix 毫秒时间戳。
 
 ```json
-{ "deviceId": "≥8字符", "events": [ { "pkg": "com.x", "channel": "text|viewId", "ts": 123 } ] }
+{ "deviceId": "≥8字符", "events": [ { "pkg": "com.x", "label": "应用友好名（可选，缺失回退 pkg）", "channel": "text|viewId", "ts": 123 } ] }
 ```
 
-最多 50 条，非法包名事件被静默跳过。响应 `{"ok":true,"accepted":N}`
+每个事件可带可选 `label`（应用友好名，≤256 字符）；缺失或为空时服务端回退 `pkg`，保证旧客户端不传 label 也能在统计页显示包名。最多 50 条，非法包名事件被静默跳过。响应 `{"ok":true,"accepted":N}`
 
 ### GET /api/v1/stats/summary
 

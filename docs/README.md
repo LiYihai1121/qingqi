@@ -25,6 +25,7 @@ docs/
 │   ├── DESIGN-ADS-FILTERING.md    L2/L3/L4 分层边界与 Phase 0 决策提案
 │   ├── DESIGN-BUILD-FRAMEWORK.md  构建框架工程化（version catalog / build-logic / 模块拆分）
 │   ├── DESIGN-ARCH-EVOLUTION.md   架构演进计划（R1 多模块化 / R2 SQLite 存储 / R3 部署）
+│   ├── ROADMAP-ADS-VERIFY.md      能力边界「不做限制」：外部证据 / 风险评估 / 门禁验证记录
 │   ├── FOLLOW-UP.md               安全加固与技术补充计划（已修复清单 / 待修复 / 里程碑）
 │   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
@@ -45,6 +46,7 @@ docs/
 | 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
 | 审查广告治理分层、L2/L3/L4 决策提案与放行条件 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md)（提案未获批准） |
+| 查「不做限制」边界变更的证据、风险评估与验证数字 | [planning/ROADMAP-ADS-VERIFY.md](planning/ROADMAP-ADS-VERIFY.md) |
 | 了解构建框架演进方案（version catalog / 约定插件 / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) |
 | 了解前后端架构演进方向与技术选型（R1–R3） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) |
 | 配置本机开发环境 | [development/DEV-ENVIRONMENT.md](development/DEV-ENVIRONMENT.md) |

@@ -1,8 +1,8 @@
 # 移动端稳定性测试方案与首次执行记录（STABILITY-TEST-PLAN）
 
 > 状态：已生效；最后更新：2026-10-11。
-> 适用范围：客户端（无障碍服务、跳过引擎、同步）在真机上的运行稳定性；与 [TOP30-REAL-DEVICE-ACCEPTANCE.md](TOP30-REAL-DEVICE-ACCEPTANCE.md) 的分工——后者管「Top 30 App 逐个跳过有效性验收」，本文管「时间/压力/网络/中断维度下的运行稳定性」。
-> 首次执行记录见第 8 节（2026-10-11，Mi 9 / Android 11 / MIUI V125 / v3.4.0）。
+> 适用范围：客户端（无障碍服务、跳过引擎、同步）在真机与 Android Emulator 上的运行稳定性；与 [TOP30-REAL-DEVICE-ACCEPTANCE.md](TOP30-REAL-DEVICE-ACCEPTANCE.md) 的分工——后者管「Top 30 App 逐个跳过有效性验收」，本文管「时间/压力/网络/中断维度下的运行稳定性」。
+> 首次执行记录见第 8 节（2026-10-11，Mi 9 / Android 11 / MIUI V125 / v3.4.0）；模拟器矩阵记录见第 9 节（2026-10-11，API 33 / 35）。
 
 ## 1. 目标
 
@@ -70,6 +70,8 @@ adb shell uiautomator dump /sdcard/ui.xml + screencap   # 效用证据（必须�
 2. **PowerShell `$PID` 陷阱**：`$pid` 为只读自动变量，赋值失败后插值打印的是 shell 自身 PID，勿当作设备进程 ID（本次曾造成「进程重启」假象）。
 3. **monkey 启动 ≠ 广告呈现**：自动化打开应用多数窗口不出现可跳过广告，S6 必须用内置自检或人工沉浸兜底。
 4. **复测新构建用并行安装**：给 debug 变体临时加 `applicationIdSuffix .debug` 本地构建（**不提交**），与设备上的 release 正式版共存安装、分别授权无障碍服务——避免「卸载正式版丢失本机 100+ 条记录」；验证后卸载并行包，`enabled_accessibility_services` 恢复为单一组件。
+5. **模拟器直写 `enabled_accessibility_services` 不触发绑定（API 33/35 实测）**：`settings put` 后 `dumpsys accessibility` 仍无 Bound 服务、应用侧 `AccessibilityManager.getEnabledAccessibilityServiceList` 查不到（首页显示「服务已关闭」）。必须走系统设置 UI：无障碍 → Downloaded apps → 服务详情 → 打开开关 → ALLOW；另外 `pm clear` 会重置该注册，清数据后需重新授权。双包并行时两套服务会互相把对方窗口当第三方处理（见第 9 节发现 4），**干净测试环境一次只装一个包**。
+6. **双包并行安装互伤**：并行包与正式包同时启用无障碍服务时，彼此的窗口会被对方引擎当作第三方应用扫描点击（关键词 chip「点击即删除」会被对方引擎点掉）。只做「装一个、测一个」。
 
 ## 8. 首次执行记录（2026-10-11，Mi 9 / Android 11 / MIUI V125 / v3.4.0 正式版）
 
@@ -91,3 +93,26 @@ adb shell uiautomator dump /sdcard/ui.xml + screencap   # 效用证据（必须�
 3. monkey 驱动的自动浏览不产生可跳过广告（目标应用登录态、无开屏广告窗口）——S6 的自动化部分按第 7 节纪律改走内置自检 + 人工沉浸。
 
 **证据**：`F:\All_Data\Temp\kilo\stab\`（首杀：logcat-soak.txt、mem-baseline.txt、5 张截图；复测：ui-dbg-overlay3.xml、screen-dbg-records.png 等 8 个文件）。
+
+## 9. 第二次执行记录（2026-10-11，Android Emulator / API 33 & 35 / v3.4 本地并行构建）
+
+> 补齐第 5 节设备矩阵的「Android 版本 ≥3」维度：真机 Mi 9 / Android 11 之外，用桌面模拟器覆盖 Android 13（API 33）与 Android 15（API 35），均为 x86_64 default 镜像、WHPX 加速、medium_phone 规格。构建为本地临时 `applicationIdSuffix .debug` 并行 debug 包（v3.4 / versionCode 15，基于 main `81b953f`，按 §7.4 不提交）。模拟器环境（SDK emulator + AVD `adskip_api33` / `adskip_api35`）由 android-emulator 插件流程装妥；**本轮结束后已按用户要求卸载**（含引擎与系统镜像），复测时按 §7.5 纪律重装即可。
+
+| KPI | 阈值 | API 33（Android 13）实测 | API 35（Android 15）实测 | 判定 |
+|---|---|---|---|---|
+| 崩溃（FATAL） | 0 | 0 | 0 | ✅ |
+| ANR | 0 | 0 | 0 | ✅ |
+| 进程稳定性 | 无重启 | pid 4172 全程不变 | pid 2759 全程不变 | ✅ |
+| 压力（S2 子集） | 存活 | `RUNNING_LOW` + `am kill` 后 pid 不变、服务持续绑定 | 同左 | ✅（与真机一致：无障碍进程受保护） |
+| 网络（S3 子集） | 无崩溃 | 飞行模式往返 ×2，服务存活 | 同左 | ✅ |
+| 跳过效用（S6） | 计数增长、误跳 0 | 自检通过：引擎自动点击浮层「跳过」，记录 `09:28:28 \| com.qingqi.adskip.debug` 落库 | 自检通过：同样自动跳过 | ⚠️ 附缺陷（计数失真 + 误跳，见下） |
+
+**本次发现（缺陷已登记 [FOLLOW-UP.md](../planning/FOLLOW-UP.md)）**：
+
+1. **🔴 发布版包名下自检必然超时（P1，新缺陷）**：`SafetyGuard.canClick` 对 `pkg == "com.qingqi.adskip"`（SELF_PKG，防自触发死循环）一律拒绝点击。无后缀构建（与发布版同包名）在 API 33 上自检 3/3 超时；换 `.debug` 后缀并行包（包名不同）后自检立即通过。推论：**发布版的「模拟开屏广告」按钮在真机上也会永远超时**——首跑 §8 的 #145 复测用的恰是 `.debug` 并行包，绕过了护栏，形成「已修复」假阳性。修复方向：`testActive` 时放行自身包 + 补单测。
+2. **🔴 跳过计数双重累加（P1，新缺陷）**：单次自检跳过后，API 33 首页 Total skips 先显示 2、5 秒 flush 后变 3，而记录页恒为 1 条。根因在 `Prefs.recordSkip`（立即写 SP total+1）与 `StatsRepository.recordSkip`（又 `pendingTotal++`，`total()=SP+pending` 双算）；且 `flush()` 落盘后不重置 pending，计数持续膨胀。该结构自 v3.4.0（#78）引入。
+3. **🟡 引擎误跳系统界面文本（P2，新缺陷）**：引擎不要求节点 `clickable`，任何含关键词的可见文本都会被点。API 33 设置页中本应用服务行「轻启 · Skip Splash Ads」（含 "skip"）被引擎点击并落库 `com.android.settings` 跳过 1 条（首页 Recent app=Settings 实证）；API 35 设置导航期间同样出现 2 条系统包跳过计数。
+4. **🟡 双包并行互伤（测试方法学，已进 §7 纪律）**：两包同时启用服务时互相当对方是第三方应用：正式包引擎把 `.debug` 应用的关键词 chip（文本含关键词、点击即删除）逐个点掉（6→1）。单包环境不复现。
+5. **观察项**：API 35 全新安装首启即缺 "no ads" 关键词（5/6），疑引擎在 `testActive` 窗口误点自身 chip，归因待查（与发现 3/4 同根因方向）。
+
+**证据**：`F:\All_Data\Temp\kilo\emu\evidence\`（API 33：home、selfcheck 超时帧 ×2、settings 行、debug-home、debug-selfcheck-result、clean-logs、api33-logcat-full3.txt 等 11 项；API 35：settings、allow-dialog、home、selfcheck、selfcheck-result 5 张）。

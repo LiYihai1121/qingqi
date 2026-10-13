@@ -8,9 +8,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Path
 import android.graphics.Rect
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import com.qingqi.adskip.AdSkipApp
 import com.qingqi.adskip.R
 import com.qingqi.adskip.core.AppEvents
@@ -45,6 +45,13 @@ class SkipAdService : AccessibilityService() {
         const val ACTION_SKIPPED = "com.qingqi.adskip.SKIPPED"
         const val ACTION_REQUEST_SHUTDOWN = "com.qingqi.adskip.REQUEST_SHUTDOWN"
         const val ACTION_EXPORT_SNAPSHOT = "com.qingqi.adskip.EXPORT_SNAPSHOT"
+
+        /**
+         * 内部广播权限（signature 级，manifest 声明）：
+         * 动态接收器只接受本应用投递的关停/快照导出指令，
+         * 补齐 Android 8–12 动态注册默认可被任意应用投递的口子。
+         */
+        const val INTERNAL_PERMISSION = "com.qingqi.adskip.permission.INTERNAL"
         const val EXTRA_RUNNING = "running"
         const val EXTRA_PKG = "pkg"
 
@@ -132,18 +139,20 @@ class SkipAdService : AccessibilityService() {
             if (registered) return
             val filter = IntentFilter(action)
             try {
-                // M1 修复：全 API 级别显式声明非导出。
-                // API < 33 的 flagless registerReceiver 在 AOSP 里默认 **exported**
-                // （BroadcastController: "Dynamic receivers are exported by default
-                // for versions prior to T"），第三方应用可向这两个进程内 action
-                // 投递触发（关机 DoS / 快照导出社工）。ContextCompat 在低 API 上
-                // 自动退化为等价的原生 flag，行为一致。
-                ContextCompat.registerReceiver(
-                    service,
-                    receiver,
-                    filter,
-                    ContextCompat.RECEIVER_NOT_EXPORTED,
-                )
+                // broadcastPermission=INTERNAL_PERMISSION：所有 API 级别都只接受
+                // 同签名应用投递；API 33+ 再叠加 RECEIVER_NOT_EXPORTED。
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    service.registerReceiver(
+                        receiver,
+                        filter,
+                        INTERNAL_PERMISSION,
+                        null,
+                        Context.RECEIVER_NOT_EXPORTED,
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    service.registerReceiver(receiver, filter, INTERNAL_PERMISSION, null)
+                }
                 registered = true
             } catch (e: Exception) {
                 LogRing.w("Service", "register $action receiver failed: ${e.message}")
@@ -282,7 +291,8 @@ class SkipAdService : AccessibilityService() {
         if (!AppEvents.testActive) {
             Toast.makeText(this, getString(R.string.toast_skipped, label), Toast.LENGTH_SHORT).show()
         }
-        syncClient.reportSkip(Prefs.getServerUrl(this), pkg, label, Prefs.getDeviceId(this))
+        // S1：上报经证书锁定通道——取已配 pins 传入，未配时 reportSkip 内部 fail-closed 拒发
+        syncClient.reportSkip(Prefs.getServerUrl(this), pkg, label, Prefs.getDeviceId(this), Prefs.getCertPins(this))
         AppEvents.emitSkipped(label)
         // 广播一律 setPackage 收窄到本应用：ACTION_SKIPPED 携带用户正在使用的应用名，
         // 不加限制会让任意第三方应用注册同名 action 即可监听（隐私泄露）。
