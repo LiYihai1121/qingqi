@@ -2,29 +2,18 @@ package com.qingqi.adskip.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.qingqi.adskip.R
+import com.qingqi.adskip.core.SecureStore
 import org.json.JSONArray
 import org.json.JSONObject
 
 /**
  * 关键词/规则/日志/统计的本地存储。
- * 存储经 AndroidX security-crypto 的 EncryptedSharedPreferences 加密；
- * 历史明文数据在首次访问时一次性迁移到加密存储。
+ * 存储经 [SecureStore]（EncryptedSharedPreferences）加密；
+ * 历史明文数据在首次访问时一次性迁移到加密存储（迁移逻辑在 SecureStore）。
  */
 object Prefs {
 
-    /** 旧明文存储文件名（迁移源）。 */
-    private const val LEGACY_SP_NAME = "adskip_prefs"
-
-    /** 新加密存储文件名。 */
-    private const val SP_NAME = "adskip_prefs_enc"
-
-    private var spInstance: SharedPreferences? = null
-
-    /** 进程内迁移仅执行一次；迁移幂等（源为空即跳过）。 */
-    private var migrated = false
     private const val KEY_KEYWORDS = "keywords"
     private const val KEY_KEYWORDS_JSON = "keywords_json"
     private const val KEY_VIEW_IDS = "view_ids"
@@ -62,53 +51,8 @@ object Prefs {
      */
     const val DEFAULT_SERVER = ""
 
-    fun sp(context: Context): SharedPreferences {
-        spInstance?.let { return it }
-        synchronized(this) {
-            spInstance?.let { return it }
-            // setKeyScheme 必须显式声明：security-crypto 1.1.0-alpha07 的 MasterKey.Builder
-            // 在未设置 scheme/spec 时 build() 直接抛 IllegalArgumentException——真机
-            // （API 23+ 的 AndroidKeyStore）首次启动即崩，Robolectric 环境测不出。
-            // AES256_GCM 与 1.0.0 MasterKeys 默认方案一致，既有密文兼容。
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-            val encrypted = EncryptedSharedPreferences.create(
-                context,
-                SP_NAME,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
-            spInstance = encrypted
-            migrateLegacy(context, encrypted)
-            return encrypted
-        }
-    }
-
-    private fun migrateLegacy(context: Context, target: SharedPreferences) {
-        val legacy = context.getSharedPreferences(LEGACY_SP_NAME, Context.MODE_PRIVATE)
-        if (legacy.all.isEmpty()) return
-        val editor = target.edit()
-        for ((key, value) in legacy.all) {
-            when (value) {
-                is String -> editor.putString(key, value)
-
-                is Int -> editor.putInt(key, value)
-
-                is Long -> editor.putLong(key, value)
-
-                is Boolean -> editor.putBoolean(key, value)
-
-                else -> {
-                    @Suppress("UNCHECKED_CAST")
-                    editor.putStringSet(key, value as Set<String>)
-                }
-            }
-        }
-        editor.apply()
-        runCatching { context.deleteSharedPreferences(LEGACY_SP_NAME) }
-    }
+    /** 加密偏好存储；创建与明文历史迁移统一收口在 [SecureStore]（core 层唯一入口）。 */
+    fun sp(context: Context): SharedPreferences = SecureStore.prefs(context)
 
     // ---------- 全局规则 ----------
     fun getKeywords(context: Context): MutableList<String> {

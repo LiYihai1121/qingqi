@@ -22,9 +22,6 @@ import android.content.Context
  */
 object ThemePreferences {
 
-    /** 独立文件名：不得与 [com.qingqi.adskip.data.Prefs] 的迁移源重名。 */
-    internal const val SP_NAME = "adskip_theme_prefs"
-
     private const val KEY_THEME_MODE = "theme_mode"
 
     /** 已保存的主题 tag；`null` 表示跟随系统。 */
@@ -37,5 +34,10 @@ object ThemePreferences {
             .apply()
     }
 
-    private fun prefs(context: Context) = context.getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
+    /**
+     * 走 [SecureStore] 加密存储——与 [LanguagePreferences] 同一结论（FOLLOW-UP #25
+     * 「偏好统一走 core/SecureStore 加密存储」）：不再持有独立明文文件名，也就
+     * 不可能与 `data/Prefs` 的迁移源 `adskip_prefs` 重名被整文件删除。
+     */
+    private fun prefs(context: Context) = SecureStore.prefs(context)
 }

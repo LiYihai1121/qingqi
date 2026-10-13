@@ -8,17 +8,18 @@ import org.junit.Test
  *
  * `data/Prefs` 的加密存储初始化时会执行「遗留明文迁移」：打开旧文件名
  * `adskip_prefs`，把键搬进加密文件，然后 **deleteSharedPreferences 删除整个
- * 明文文件**。`core` 层的语言/主题偏好若与该文件重名，写入的值会在下次
- * 进程重启时被迁移逻辑静默清掉（真机实测：切深色 → 重启回落跟随系统）。
+ * 明文文件**。`core` 层偏好若与该文件重名，写入的值会在下次进程重启时被
+ * 迁移逻辑静默清掉（真机实测：切深色 → 重启回落跟随系统）。
  *
- * 这三个文件名都是编译期常量，无法在 Robolectric 之外的 JVM 测试里用真实
- * SharedPreferences 验证，故以常量断言守住：谁把文件名改回去，这里就红。
+ * 语言/主题偏好现已统一走 [SecureStore] 加密存储（FOLLOW-UP #25），本身不再
+ * 持有明文文件名；本契约守住 SecureStore 侧的三个文件名常量——谁把加密文件
+ * 或迁移源改名回冲突值，这里就红。
  */
 class PreferencesFileNameTest {
 
     @Test
-    fun `core preferences must not collide with the legacy migration source`() {
-        assertNotEquals("adskip_prefs", LanguagePreferences.SP_NAME)
-        assertNotEquals("adskip_prefs", ThemePreferences.SP_NAME)
+    fun `secure store file names must not collide with the legacy migration source`() {
+        assertNotEquals("adskip_prefs", SecureStore.SP_NAME)
+        assertNotEquals(SecureStore.LEGACY_SP_NAME, SecureStore.SP_NAME)
     }
 }

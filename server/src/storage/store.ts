@@ -208,6 +208,7 @@ function rotateBackup(): void {
   }
 }
 
+/** 备份文件名的进程内单调序号：同毫秒连续备份若只靠时间戳会撞名互相覆盖 */
 function rotateStatsBackup(day: string): void {
   try {
     const src = path.join(config.STATS_DIR, `${day}.json`);
@@ -260,6 +261,9 @@ function scheduleFlush(day: string): void {
   c.timer.unref?.();
 }
 
+/** 当日 byApp 条目数到顶后，超限上报聚合到该保留键（不是合法包名，不会与真实条目冲突） */
+const OVERFLOW_APP_KEY = "_other";
+
 export function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string): void {
   const day = getDayKey();
   const c = getCachedDay(day);
@@ -267,8 +271,14 @@ export function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string)
   const label = String(labelRaw ?? "").slice(0, 256);
   let channel = String(channelRaw ?? "text").slice(0, 32) || "text";
 
-  if (!c.data.byApp[pkg]) c.data.byApp[pkg] = { label, count: 0, byChannel: {} };
-  const entry = c.data.byApp[pkg];
+  // 安全契约：上报端点未认证，包名可被伪造出无限种合法形状；byApp 条目数
+  // 必须封顶（超限聚合进 "_other"），否则内存 + 当日分片 + 备份会被持续放大。
+  const appKey =
+    c.data.byApp[pkg] || Object.keys(c.data.byApp).length < config.MAX_STATS_APPS_PER_DAY
+      ? pkg
+      : OVERFLOW_APP_KEY;
+  if (!c.data.byApp[appKey]) c.data.byApp[appKey] = { label, count: 0, byChannel: {} };
+  const entry = c.data.byApp[appKey];
   entry.label = label;
   entry.count += 1;
   entry.byChannel[channel] = (entry.byChannel[channel] ?? 0) + 1;
