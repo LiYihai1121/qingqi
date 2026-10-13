@@ -4,6 +4,26 @@ plugins {
     id("adskip.android.application")
 }
 
+// Compose 映射产物版本对齐（PR #123 CI 红灯根因）：
+//
+// Compose 编译器插件 2.3+ 会向 AGP 的 `composeMappingProducerClasspath` 追加
+// `org.jetbrains.kotlin:compose-group-mapping:<KGP 版本>`（ComposeAgpMappingFile.kt，
+// 版本取自 KotlinPluginWrapper.getKotlinPluginVersion() = AGP 9 内置 Kotlin 2.2.10），
+// 但 compose-group-mapping 自 2.3.0 起才发布，按 2.2.10 请求必然 404。
+// 该映射数据描述的是 Compose 编译器插件生成的 group 元数据，版本必须与
+// Compose 编译器插件（version catalog `kotlin`）一致，故在此显式对齐，
+// 使 produce*ComposeMapping（assembleRelease / R8 链路）可解析。
+configurations.configureEach {
+    if (name == "composeMappingProducerClasspath") {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "org.jetbrains.kotlin" && requested.name == "compose-group-mapping") {
+                useVersion(libs.versions.kotlin.get())
+                because("compose-group-mapping 未发布 AGP 内置 Kotlin 版本（2.2.10），需与 Compose 编译器插件版本一致")
+            }
+        }
+    }
+}
+
 /**
  * 签名信息从 local.properties（gitignored）读取：adskip.storeFile / storePassword / keyAlias / keyPassword。
  * local.properties 属于「本机/CI 秘密」，版本号事实源不包含签名——签名永远留在 :app，不进入约定插件。
