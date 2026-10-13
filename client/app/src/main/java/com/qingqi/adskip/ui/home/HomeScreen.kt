@@ -27,11 +27,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -86,6 +81,7 @@ import com.qingqi.adskip.ui.components.rememberAppLabel
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.StatusColors
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import kotlinx.coroutines.launch
 
 /**
@@ -151,7 +147,14 @@ fun HomeScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding(),
+                .imePadding()
+                // 浮层盖住首页时，把底层内容从语义树移除：浮层只吃触摸事件，被遮住的
+                // 按钮仍会被 TalkBack 聚焦并激活，视障用户会点到一个看不见的东西。
+                // 清除必须挂在**这层**而不能挂在浮层上——挂在浮层会连带清掉「跳过」
+                // 按钮自身，引擎扫不到节点、自检必超时（2026-10-11 Mi 9 真机实测）。
+                .then(
+                    if (state.fakeAdVisible) Modifier.clearAndSetSemantics {} else Modifier,
+                ),
             contentPadding = PaddingValues(
                 start = Spacing.lg,
                 end = Spacing.lg,
@@ -164,7 +167,10 @@ fun HomeScreen(
             item {
                 // 一级页面都要有位置锚点（见 ScreenHeaderContractTest）。
                 // 首页此前是四屏里唯一没有标题的：用户切过来后整屏像浮在空中的仪表盘。
-                PageHeader(title = stringResource(R.string.home_title))
+                PageHeader(
+                    title = stringResource(R.string.home_title),
+                    subtitle = stringResource(R.string.home_subtitle),
+                )
             }
 
             item {
@@ -271,14 +277,14 @@ private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: ()
                 onClick = onPrimaryAction,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.btn_open_settings))
+                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
             }
         } else {
             Button(
                 onClick = onPrimaryAction,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.btn_open_settings))
+                Text(stringResource(if (running) R.string.btn_manage_settings else R.string.btn_open_settings))
             }
         }
 
@@ -316,19 +322,19 @@ private fun StatusHero(running: Boolean, onPrimaryAction: () -> Unit, onTest: ()
 private fun QuickActionsRow(onOpenLogs: () -> Unit, onOpenApps: () -> Unit, onScrollToKeywords: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         QuickAction(
-            icon = Icons.Filled.DateRange,
+            icon = AdSkipIcons.Logs,
             label = stringResource(R.string.quick_open_logs),
             onClick = onOpenLogs,
             modifier = Modifier.weight(1f),
         )
         QuickAction(
-            icon = Icons.Filled.Add,
+            icon = AdSkipIcons.Plus,
             label = stringResource(R.string.quick_add_keyword),
             onClick = onScrollToKeywords,
             modifier = Modifier.weight(1f),
         )
         QuickAction(
-            icon = Icons.AutoMirrored.Filled.List,
+            icon = AdSkipIcons.Apps,
             label = stringResource(R.string.quick_open_apps),
             onClick = onOpenApps,
             modifier = Modifier.weight(1f),
@@ -341,8 +347,9 @@ private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit, m
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.sm),
+            .padding(vertical = Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -379,23 +386,26 @@ private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit, m
  */
 @Composable
 private fun UsageTiles(state: HomeViewModel.UiState, lastAppLabel: String) {
-    SectionCard(contentPadding = PaddingValues(horizontal = Spacing.xl, vertical = Spacing.lg)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            StatTile(
-                value = state.totalSkips.toString(),
-                label = stringResource(R.string.stats_total_label),
-                modifier = Modifier.weight(1f),
-            )
-            StatTile(
-                value = state.keywords.size.toString(),
-                label = stringResource(R.string.stats_keywords_label),
-                modifier = Modifier.weight(1f),
-            )
-            StatTile(
-                value = lastAppLabel.ifBlank { "—" },
-                label = stringResource(R.string.stats_recent_label),
-                modifier = Modifier.weight(1f),
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionTitle(stringResource(R.string.stats_overview_title))
+        SectionCard(contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                StatTile(
+                    value = state.totalSkips.toString(),
+                    label = stringResource(R.string.stats_total_label),
+                    modifier = Modifier.weight(1f),
+                )
+                StatTile(
+                    value = state.keywords.size.toString(),
+                    label = stringResource(R.string.stats_keywords_label),
+                    modifier = Modifier.weight(1f),
+                )
+                StatTile(
+                    value = lastAppLabel.ifBlank { "—" },
+                    label = stringResource(R.string.stats_recent_label),
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
@@ -437,7 +447,7 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
             keyboardActions = KeyboardActions(onDone = { submit() }),
             trailingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = AdSkipIcons.Plus,
                     contentDescription = stringResource(R.string.btn_add),
                     tint = MaterialTheme.colorScheme.primary,
                 )
@@ -474,7 +484,7 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
                         },
                         trailingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = AdSkipIcons.Close,
                                 // 动作语义已挂在 chip 上，图标本身不再重复声明。
                                 contentDescription = null,
                                 modifier = Modifier.size(InputChipDefaults.AvatarSize),
@@ -491,15 +501,16 @@ private fun KeywordsCard(keywords: List<String>, onAdd: (String) -> Unit, onRemo
  * 模拟开屏广告浮层：服务生效时应被自动点击「跳过」。
  *
  * 覆盖在首页之上并吃掉触摸事件，防止误触穿透到底层界面。
+ *
+ * 语义树注意：本浮层**不能**自己挂 `clearAndSetSemantics`——那会把「跳过」按钮
+ * 一起从语义树清掉，无障碍引擎与读屏都找不到它，自检必然超时（2026-10-11 真机
+ * 实测复现）。隐藏底层首页内容的职责在 [HomeScreen] 调用处：浮层可见时对
+ * LazyColumn 施清除，只藏下层、不伤本层。
  */
 @Composable
 private fun FakeAdOverlay(countdown: Int, onSkipClicked: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            // 浮层盖住首页时必须同时**从语义树上移除底层内容**：它只吃掉了触摸事件，
-            // 被遮住的按钮仍可被 TalkBack 聚焦并激活，视障用户会点到一个看不见的东西。
-            .clearAndSetSemantics {},
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(

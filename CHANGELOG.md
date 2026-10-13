@@ -6,8 +6,8 @@
 
 ## 目录
 
+- [未发布](#未发布)
 - [3.4.2](#342---2026-10-11)
-- [3.4.1](#341---2026-10-11)
 - [3.4.0](#340---2026-10-10)
 - [3.3.0](#330---2026-10-10)
 - [3.2.0](#320---2026-10-06)
@@ -22,35 +22,46 @@
 - [2.1.0](#210---2026-08-24)
 - [2.0.0](#200---2026-08-24)
 
-## [3.4.2] - 2026-10-11
+## [未发布]
 
-上报通道加固与协议补全：`reportSkip` 接入证书锁定（fail-closed）+ v1 批量上报事件补 `label` 字段。
+上报通道加固与协议补全：`reportSkip` 接入证书锁定（fail-closed）+ v1 批量上报事件补 `label` 字段。（本批变更原计划随 `3.4.2` 落版；`3.4.2` 号段已由真机崩溃修复版占用并发布，版本号随下一次发布定版，详见 [RELEASE-HISTORY.md](docs/planning/RELEASE-HISTORY.md)。）
 
-### Added (3.4.2)
+### Added (未发布)
 
 - **v1 批量上报事件 `label` 字段**：服务端 `cleanReportEvent` 接受可选 `label`（向后兼容，旧客户端不发送不影响）；客户端 v1 事件补 `event.put("label", label)`。API 文档同步更新。
 - **上报通道证书锁定**：`reportSkip` 的 `httpPost` 改用 `clientForPins`（`CertificatePinner`），与规则同步通道一致。指纹经设置页下发，未配置 pins 时 fail-closed 同步拒发（不降级明文通道）。
 
-### Changed (3.4.2)
+### Changed (未发布)
 
-- 版本号同步：`versionCode` 递增至 `16`（v3.4.1 = 15），`versionName` 为 `3.4`，服务端 `server/package.json` 为 `3.4.2`。
+- 版本号同步：`versionCode` 递增至 `16`（已发布 `v3.4.2` = 15），`versionName` 为 `3.4`；服务端 `server/package.json` 待下一次发布号段确定后同步（当前与已发布 `v3.4.2` 同为 `3.4.2`，发布门禁要求二者一致）。
 - 安全模型新增「传输层锁定」行（`CertificatePinner` 覆盖 v0/v1 全路径 + fail-closed）。
 - FOLLOW-UP 已修复表新增 #14（F1: v1 事件缺 label）、#15（S1: 上报通道无证书锁定）。
 
-### Fixed (3.4.2)
+### Fixed (未发布)
 
 - v1 批量上报事件缺 `label`：服务端已接受但客户端从未发送——现已双端对齐。
 - `reportSkip` 上报通道无证书锁定：`httpPost` 原用 `plainClient`（与同步通道 `clientForPins` 不一致），现已统一接入。移除死代码 `plainClient`/`client()`。
 
-## [3.4.1] - 2026-10-11
+## [3.4.2] - 2026-10-11
 
-真机启动崩溃修复版。`security-crypto 1.1.0-alpha07` 的 `MasterKey.Builder` 在未显式设置 key scheme 时 `build()` 抛 `IllegalArgumentException`——真机（API 23+ AndroidKeyStore）首启即崩（小米 Mi 9 / Android 11 实测 logcat：`FATAL EXCEPTION at Prefs.sp`），Robolectric 单测无法暴露。显式设置 `AES256_GCM`（与 1.0.0 `MasterKeys` 默认方案一致，既有密文兼容）。
+真机启动崩溃修复版，并首次携带 v3.4.0 之后合入的首页重设计等 UI 变更。`security-crypto 1.1.0-alpha07` 的 `MasterKey.Builder` 在未显式设置 key scheme 时 `build()` 抛 `IllegalArgumentException`——真机（API 23+ AndroidKeyStore）首启即崩（小米 Mi 9 / Android 11 实测 logcat：`FATAL EXCEPTION at Prefs.sp`），Robolectric 单测无法暴露。显式设置 `AES256_GCM`（与 1.0.0 `MasterKeys` 默认方案一致，既有密文兼容）。
 
-### Fixed (3.4.1)
+> **号段说明**：`3.4.1` 版本发布时 bump 漏更 `server/package.json`，被发布门禁拦截、未产出任何制品，tag `v3.4.1` 按不可移动规约保留为死标签，版本号让位给 `3.4.2`（详见 [RELEASE-HISTORY.md](docs/planning/RELEASE-HISTORY.md)）。
 
-- **真机启动崩溃（安装成功 → 启动即崩）**：`Prefs.sp()` 的 `MasterKey.Builder` 显式 `setKeyScheme(AES256_GCM)`（[PR #124](https://github.com/LiYihai1121/ui-app/pull/124)）。`versionCode` 递增至 `15`，`versionName` 为 `3.4`。
+### Fixed (3.4.2)
 
-> **验证范围**：`ktlintCheck` + `testDebugUnitTest`（248 用例）+ `assembleDebug` 全绿；修复后 APK 已回装 Mi 9（Android 11）复验启动。厂商 ROM 保活/磁贴与 Top 30 规则真机矩阵仍按 [ROADMAP.md](docs/planning/ROADMAP.md) 所述欠账执行（见 M1d / 步骤 F）。
+- **真机启动崩溃（安装成功 → 启动即崩）**：`Prefs.sp()` 的 `MasterKey.Builder` 显式 `setKeyScheme(AES256_GCM)`（[PR #124](https://github.com/LiYihai1121/ui-app/pull/124)）。
+- **节点快照分享落入旧会话**：分享 Intent 补 `FLAG_ACTIVITY_NEW_TASK`，从无界面服务上下文分享到聊天工具后不再粘连旧任务栈（[PR #125](https://github.com/LiYihai1121/ui-app/pull/125)）。
+
+### Changed (3.4.2)
+
+- 首页布局重设计（[PR #100](https://github.com/LiYihai1121/ui-app/pull/100)）。
+- 底部导航标签改为 2 字短名词「应用 / 记录」（[PR #99](https://github.com/LiYihai1121/ui-app/pull/99)）。
+- 品牌标识统一 AdSkip 大小写命名（[PR #106](https://github.com/LiYihai1121/ui-app/pull/106)）。
+
+`versionCode` 为 `15`，`versionName` 为 `3.4`。
+
+> **验证范围**：`ktlintCheck` + `testDebugUnitTest`（248 用例）+ `assembleDebug` 全绿；崩溃修复 APK 已回装 Mi 9（Android 11）复验启动（v3.4.1 演练期间验证）。厂商 ROM 保活/磁贴与 Top 30 规则真机矩阵仍按 [ROADMAP.md](docs/planning/ROADMAP.md) 所述欠账执行（见 M1d / 步骤 F）。
 
 ## [3.4.0] - 2026-10-10
 

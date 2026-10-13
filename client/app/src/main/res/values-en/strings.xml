@@ -6,13 +6,16 @@
 
     <!-- Main page -->
     <string name="home_title">Home</string>
+    <string name="home_subtitle">Your service status and skip activity at a glance</string>
     <string name="status_off">Service is off</string>
     <string name="status_on">Service is running</string>
     <string name="status_off_hint">Please enable "轻启" in system Accessibility settings</string>
-    <string name="status_on_hint">Auto-skip is active. Tap below to test</string>
-    <string name="btn_open_settings">Open Accessibility Settings</string>
+    <string name="status_on_hint">Service is enabled. Run a simulation to verify the skip flow</string>
+    <string name="btn_open_settings">Enable Accessibility Service</string>
+    <string name="btn_manage_settings">Manage Accessibility Settings</string>
     <string name="btn_test">Test: Simulate Splash Ad</string>
     <string name="settings_open_failed">Cannot open accessibility settings. Go to Settings → Accessibility manually</string>
+    <string name="stats_overview_title">Usage overview</string>
     <string name="stats_total_label">Total skips</string>
     <string name="nav_home">Home</string>
     <string name="nav_apps">Apps</string>
@@ -207,4 +210,9 @@
     <string name="settings_snapshot_hint">Exports the current screen\'s accessibility node tree as JSON, for writing and validating selector rules. Current screen only; never uploaded.</string>
     <string name="settings_snapshot_empty">Accessibility service is not running; cannot capture the current screen</string>
     <string name="settings_snapshot_exported">Snapshot exported; save it from the share sheet</string>
+
+    <!-- P0-2 accessibility service watchdog -->
+    <string name="watchdog_channel_name">Service keeper</string>
+    <string name="watchdog_notify_title">Ad-skip service stopped</string>
+    <string name="watchdog_notify_text">Tap to re-enable the accessibility service</string>
 </resources>

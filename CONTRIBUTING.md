@@ -471,6 +471,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - [ ] [Release list](docs/planning/RELEASE-HISTORY.md#release-list) 已记录版本、tag、合并提交和 Release 状态；
 - [ ] tag 为 annotated tag，且指向合并后的 `main` 提交；
 - [ ] GitHub Release 已创建并上传制品与 `SHA256SUMS`；
+- [ ] **Release 说明双轨收尾**：GitHub 自动说明（轨一草稿）已人工复核措辞；发布工作流生成的 `notes-draft.md`（轨二草稿，`scripts/generate-changelog.mjs` 产出）已随 Release 上传并与 `CHANGELOG.md` 的人工定稿条目核对一致；
 - [ ] **制品已用 `apksigner verify` 校验签名并确认可安装**——未签名包在手机上必然报「解析软件包时出现问题」（Issue #23）；命令见 [DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md#apk-安装排障)；
 - [ ] 触及系统集成范围（无障碍/磁贴/跳转/调度/权限）时，真机验收已完成并记录机型与 ROM 版本；
 - [ ] 已确认没有复用或移动历史 tag；
@@ -490,8 +491,8 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - 配置 `main`、`release/*` 分支保护和 CODEOWNERS；
 - 配置必需状态检查、审批人数、旧审批失效和合并后删分支；将 `ktlintCheck` 纳入必需状态检查；
 - 禁止管理员绕过（bypass）——留后门等于没有门禁；
-- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 未配置而 [SECURITY.md](SECURITY.md) 有声明，属待对齐项）；
-- 开启 Dependabot/Renovate，依赖升级走 PR 并保留 lockfile；
+- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 已配置（GitHub Actions、Gradle、Bun 与 pre-commit）；仍需定期确认自动 PR 正常运行并审计升级结果）；
+- `.github/dependabot.yml` 已配置 GitHub Actions、Gradle、Bun 与 pre-commit 的每周更新；维护者需定期检查 Dependabot PR、锁文件变更、兼容性与安全公告，不得把「配置存在」等同于「升级治理已完成」；
 - 发布凭据使用 CI Secret/OIDC，禁止写入仓库和日志；
 - 版本 tag 目标为带签名（GPG / sigstore），CI 制品目标生成 SBOM 与 provenance attestation（见[供应链与可追溯](#供应链与可追溯slsa-对齐)）；
 - 制品保留周期与回滚窗口明确：至少保留最近两个 stable 与全部 rc，便于回到最近 green tag；

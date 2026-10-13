@@ -23,7 +23,7 @@ If you discover a security vulnerability in this project, please report it respo
 
 - **Client**: All sensitive data (accessibility service state, rules, stats) stored locally; no credentials transmitted.
 - **Server**: Bearer token authentication for write endpoints; input validation and rate limiting enabled.
-- **Dependencies**: Version catalog locked; GitHub Dependabot enabled for dependency updates; Gitleaks secret scanning runs on every PR (advisory until baseline triage completes).
+- **Dependencies**: Version catalog locked; GitHub Dependabot enabled for dependency updates; Gitleaks secret scanning enforced on every PR (baseline triaged 2026-10-11; only the public RFC 4226/6238 test vector is allowlisted).
 - **CI/CD**: All changes require passing CI checks (ktlint, unit tests, type checking, DCO sign-off) before merge.
 
 ## Best Practices
