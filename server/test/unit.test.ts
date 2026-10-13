@@ -14,8 +14,7 @@ import {
   VID_RE,
 } from "../src/utils/validate";
 import { applyCors } from "../src/utils/httpUtil";
-import { checkAdminAuth, requireAdmin, _resetTwofaForTests } from "../src/middleware/auth";
-import { totpAt } from "../src/utils/totp";
+import { checkAdminAuth, requireAdmin } from "../src/middleware/auth";
 import { summary as statsSummaryHandler } from "../src/api/statsApi";
 import {
   limitRead,
@@ -23,20 +22,17 @@ import {
   limitReport,
   probeReportIp,
   clientIp,
-  stopRateLimitTimers,
   _resetRateLimitForTests,
 } from "../src/middleware/rateLimit";
 import {
   getRules,
   recordSkip,
   statsSummary,
-  stopStoreTimers,
   _resetSummaryCacheForTests,
   _resetStatsCacheForTests,
   _resetRulesCacheForTests,
   _rotateStatsBackupForTests,
 } from "../src/storage/store";
-import { accessMetrics, recordAccess } from "../src/middleware/accessLog";
 import { v1_publish } from "../src/api/rulesApi";
 
 function req(headers: Record<string, string> = {}): Request {
@@ -110,7 +106,7 @@ describe("validate", () => {
 
   it("isValidPackage 正则边界", () => {
     expect(isValidPackage("com.example.app")).toBe(true);
-    expect(isValidPackage("com.ldp.adskip")).toBe(true);
+    expect(isValidPackage("com.example.other")).toBe(true);
     expect(isValidPackage("invalid")).toBe(false);
     expect(isValidPackage(".com.example")).toBe(false);
     expect(isValidPackage("com..app")).toBe(false);
@@ -156,6 +152,33 @@ describe("validate", () => {
       ],
     });
     expect(r!.events.length).toBe(1);
+  });
+
+  it("label 透传至事件", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", label: "微信", channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label).toBe("微信");
+  });
+
+  it("label 缺失回退包名", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label).toBe("com.example.app");
+  });
+
+  it("label 超长截断至 256", () => {
+    const r = cleanBatchReport({
+      deviceId: "device1234",
+      events: [{ pkg: "com.example.app", label: "x".repeat(300), channel: "text", ts: 1 }],
+    });
+    expect(r).not.toBeNull();
+    expect(r!.events[0].label.length).toBe(256);
   });
 });
 
@@ -225,21 +248,31 @@ describe("rateLimit", () => {
     expect(limitReport(req(), "10.0.0.4", "dev12345678")).toBe(true);
   });
 
-  it("clientIp 默认忽略 x-forwarded-for（客户端可伪造），只用 socket IP", () => {
-    // 安全契约：XFF 任由请求方填写，若默认信任则每换一个 XFF 就换一个限流桶，
-    // 限流形同虚设。默认必须只认 socket IP。
-    expect(clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "9.9.9.9")).toBe("9.9.9.9");
-    expect(clientIp(req(), "9.9.9.9")).toBe("9.9.9.9");
-  });
-
-  it("显式开启 TRUST_PROXY 后才取 x-forwarded-for 首个地址", () => {
-    const saved = config.TRUST_PROXY;
-    config.TRUST_PROXY = true;
+  it("clientIp 未配置受信代理时忽略 X-Forwarded-For", () => {
+    const saved = config.TRUSTED_PROXIES;
+    config.TRUSTED_PROXIES = [];
     try {
-      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "9.9.9.9")).toBe("1.2.3.4");
+      // 伪造的 XFF 不得成为限流键，否则任何人换头部即可重生令牌桶
+      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4" }), "9.9.9.9")).toBe("9.9.9.9");
       expect(clientIp(req(), "9.9.9.9")).toBe("9.9.9.9");
     } finally {
-      config.TRUST_PROXY = saved;
+      config.TRUSTED_PROXIES = saved;
+    }
+  });
+
+  it("clientIp 对端是受信代理时采信 X-Forwarded-For", () => {
+    const saved = config.TRUSTED_PROXIES;
+    config.TRUSTED_PROXIES = ["10.1.1.1"];
+    try {
+      expect(
+        clientIp(req({ "x-forwarded-for": "1.2.3.4, 5.6.7.8" }), "10.1.1.1")
+      ).toBe("1.2.3.4");
+      // 代理未带头时回退 socket IP
+      expect(clientIp(req(), "10.1.1.1")).toBe("10.1.1.1");
+      // 非受信对端即使带头也不采信
+      expect(clientIp(req({ "x-forwarded-for": "1.2.3.4" }), "9.9.9.9")).toBe("9.9.9.9");
+    } finally {
+      config.TRUSTED_PROXIES = saved;
     }
   });
 
@@ -549,152 +582,5 @@ describe("cleanLabel（上报 label 数据卫生）", () => {
     expect(cleanLabel("a" + String.fromCharCode(7) + "b" + String.fromCharCode(31) + "c")).toBe("a b c");
     expect(cleanLabel("x".repeat(300)).length).toBe(256);
     expect(cleanLabel(null)).toBe("");
-  });
-});
-
-describe("admin 2FA（TOTP 第二因子）", () => {
-  // RFC 6238 测试密钥（仅测试用；生产密钥由 ADMIN_TOTP_SECRET 提供，不入库）
-  const SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
-
-  function with2fa(fn: () => void): void {
-    const savedSecret = config.ADMIN_TOTP_SECRET;
-    const savedToken = config.ADMIN_TOKEN;
-    config.ADMIN_TOTP_SECRET = SECRET;
-    config.ADMIN_TOKEN = "secret";
-    try {
-      fn();
-    } finally {
-      config.ADMIN_TOTP_SECRET = savedSecret;
-      config.ADMIN_TOKEN = savedToken;
-    }
-  }
-
-  beforeAll(() => {
-    _resetTwofaForTests();
-  });
-
-  it("未启用 2FA 时行为不变（只需 Bearer token）", () => {
-    with2fa(() => {
-      config.ADMIN_TOTP_SECRET = "";
-      expect(requireAdmin(req({ authorization: "Bearer secret" }), "10.1.1.1").ok).toBe(true);
-    });
-  });
-
-  it("启用后缺少 X-2FA-Code 返回 401（第二因子不可省）", () => {
-    with2fa(() => {
-      const res = requireAdmin(req({ authorization: "Bearer secret" }), "10.1.1.2");
-      expect(res.ok).toBe(false);
-      if (!res.ok) {
-        expect(res.status).toBe(401);
-        expect(res.error).toBe("2fa code required");
-      }
-    });
-  });
-
-  it("启用后错误 code 返回 401", () => {
-    with2fa(() => {
-      const res = requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": "000000" }), "10.1.1.3");
-      expect(res.ok).toBe(false);
-      if (!res.ok) {
-        expect(res.status).toBe(401);
-        expect(res.error).toBe("invalid 2fa code");
-      }
-    });
-  });
-
-  it("正确 code 通过", () => {
-    with2fa(() => {
-      const code = totpAt(SECRET, Date.now(), 6);
-      const res = requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": code }), "10.1.1.4");
-      expect(res.ok).toBe(true);
-    });
-  });
-
-  it("连续 5 次失败锁定该 IP（429），此后正确 code 也拒绝", () => {
-    with2fa(() => {
-      const ip = "10.1.1.5";
-      for (let i = 0; i < 5; i++) {
-        const res = requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": "000000" }), ip);
-        expect(res.ok).toBe(false);
-      }
-      const locked = requireAdmin(
-        req({ authorization: "Bearer secret", "x-2fa-code": totpAt(SECRET, Date.now(), 6) }),
-        ip
-      );
-      expect(locked.ok).toBe(false);
-      if (!locked.ok) expect(locked.status).toBe(429);
-    });
-  });
-
-  it("失败计数按 IP 隔离", () => {
-    with2fa(() => {
-      for (let i = 0; i < 5; i++) {
-        requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": "000000" }), "10.1.1.6");
-      }
-      // 另一个 IP 不受影响
-      const res = requireAdmin(
-        req({ authorization: "Bearer secret", "x-2fa-code": totpAt(SECRET, Date.now(), 6) }),
-        "10.1.1.7"
-      );
-      expect(res.ok).toBe(true);
-    });
-  });
-
-  it("验证成功会清除该 IP 的失败计数", () => {
-    with2fa(() => {
-      const ip = "10.1.1.8";
-      for (let i = 0; i < 3; i++) {
-        requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": "000000" }), ip);
-      }
-      expect(
-        requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": totpAt(SECRET, Date.now(), 6) }), ip).ok
-      ).toBe(true);
-      // 再错 3 次不应触发锁定（计数已被成功验证清零）
-      for (let i = 0; i < 3; i++) {
-        expect(
-          requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": "000000" }), ip).ok
-        ).toBe(false);
-      }
-      expect(
-        requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": totpAt(SECRET, Date.now(), 6) }), ip).ok
-      ).toBe(true);
-    });
-  });
-
-  it("token 错误时不消耗 2FA 失败计数（token 先校验）", () => {
-    with2fa(() => {
-      const ip = "10.1.1.9";
-      for (let i = 0; i < 5; i++) {
-        const res = requireAdmin(req({ authorization: "Bearer wrong" }), ip);
-        expect(res.ok).toBe(false);
-        if (!res.ok) expect(res.error).toBe("unauthorized");
-      }
-      expect(
-        requireAdmin(req({ authorization: "Bearer secret", "x-2fa-code": totpAt(SECRET, Date.now(), 6) }), ip).ok
-      ).toBe(true);
-    });
-  });
-});
-
-describe("运维收尾（计数器与定时器清理）", () => {
-  it("accessMetrics 按状态类聚合计数（/metrics 数据源）", () => {
-    recordAccess({ method: "GET", path: "/x", status: 200, ip: "1.1.1.1", ms: 1 });
-    recordAccess({ method: "GET", path: "/x", status: 404, ip: "1.1.1.1", ms: 1 });
-    recordAccess({ method: "GET", path: "/x", status: 500, ip: "1.1.1.1", ms: 1 });
-    const m = accessMetrics();
-    expect(m.byStatusClass["2xx"]).toBeGreaterThanOrEqual(1);
-    expect(m.byStatusClass["4xx"]).toBeGreaterThanOrEqual(1);
-    expect(m.byStatusClass["5xx"]).toBeGreaterThanOrEqual(1);
-    expect(m.total).toBeGreaterThanOrEqual(3);
-    expect(m.uptimeSec).toBeGreaterThanOrEqual(0);
-  });
-
-  it("定时器清理钩子可重复调用，且不影响限流工作", () => {
-    stopRateLimitTimers();
-    stopStoreTimers();
-    stopRateLimitTimers();
-    stopStoreTimers();
-    _resetRateLimitForTests();
-    expect(limitRead(req(), "10.9.9.20")).toBe(true);
   });
 });

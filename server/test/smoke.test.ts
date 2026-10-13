@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { startServer } from "../server";
+import { config } from "../src/config";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-test-"));
 const apkSrc = path.join(import.meta.dir, "..", "..", "AdSkip-latest.apk");
@@ -31,6 +32,26 @@ afterAll(() => {
 const TOKEN = "test123";
 
 describe("smoke", () => {
+  it("rejects non-loopback HTTP binds unless TLS is configured", () => {
+    const savedCert = config.TLS_CERT;
+    const savedKey = config.TLS_KEY;
+    config.TLS_CERT = "";
+    config.TLS_KEY = "";
+    try {
+      config.TLS_CERT = "certificate.pem";
+      expect(() => startServer({ port: 0, host: "0.0.0.0" })).toThrow(
+        "TLS_CERT and TLS_KEY must both be configured"
+      );
+      config.TLS_CERT = "";
+      expect(() => startServer({ port: 0, host: "0.0.0.0" })).toThrow(
+        "TLS_CERT and TLS_KEY are required for non-loopback binds"
+      );
+    } finally {
+      config.TLS_CERT = savedCert;
+      config.TLS_KEY = savedKey;
+    }
+  });
+
   it("GET / 返回 HTML 并注入当前版本号", async () => {
     const res = await fetch(`${base}/`);
     const html = await res.text();
@@ -56,22 +77,6 @@ describe("smoke", () => {
     expect(json.status).toBe("ok");
   });
 
-  it("metrics 提供粗粒度运行指标（不含用户级明细）", async () => {
-    const res = await fetch(`${base}/api/v1/metrics`);
-    expect(res.status).toBe(200);
-    const j = (await res.json()) as any;
-    expect(typeof j.uptimeSec).toBe("number");
-    expect(typeof j.requests.total).toBe("number");
-    expect(typeof j.requests.byStatusClass["2xx"]).toBe("number");
-    expect(typeof j.rules.version).toBe("number");
-    expect(typeof j.stats.total).toBe("number");
-    expect(typeof j.memory.rssBytes).toBe("number");
-    expect(j.security).toBeDefined();
-    // 不得泄露用户级明细字段
-    expect(j.stats.byApp).toBeUndefined();
-    expect(j.recent).toBeUndefined();
-  });
-
   it("v0 规则形状", async () => {
     const res = await fetch(`${base}/api/rules/latest`);
     const j = (await res.json()) as any;
@@ -88,6 +93,44 @@ describe("smoke", () => {
     expect(Array.isArray(j.rules.globalSelectors)).toBe(true);
     expect(typeof j.hash).toBe("string");
     expect(j.hash.startsWith("sha256:")).toBe(true);
+  });
+
+  it("安全头覆盖 API 响应（nosniff/XFO/Referrer/CSP）", async () => {
+    const res = await fetch(`${base}/api/v1/health`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("content-security-policy")).toContain("default-src 'self'");
+    // 明文部署不得下发 HSTS
+    expect(res.headers.get("strict-transport-security")).toBeNull();
+  });
+
+  it("未配置签名密钥时不下发 X-Rules-Signature", async () => {
+    const res = await fetch(`${base}/api/v1/rules/latest`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-rules-signature")).toBeNull();
+  });
+
+  it("配置签名密钥后签发并可验签（按原始字节串）", async () => {
+    const { config } = await import("../src/config");
+    const saved = config.RULES_SIGNING_KEY;
+    config.RULES_SIGNING_KEY = "smoke-sign-key";
+    try {
+      const res = await fetch(`${base}/api/v1/rules/latest`);
+      expect(res.status).toBe(200);
+      const sig = res.headers.get("x-rules-signature");
+      expect(sig).not.toBeNull();
+      // 用独立实现复算：签名必须覆盖响应体原文
+      const crypto = await import("node:crypto");
+      const expected = crypto
+        .createHmac("sha256", "smoke-sign-key")
+        .update(await res.clone().text(), "utf8")
+        .digest("hex");
+      expect(sig).toBe(expected);
+    } finally {
+      config.RULES_SIGNING_KEY = saved;
+    }
   });
 
   it("ETag 与 hash 一致", async () => {

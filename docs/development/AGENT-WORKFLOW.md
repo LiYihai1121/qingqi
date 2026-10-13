@@ -62,6 +62,8 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 三项都符合预期再开始写代码；发现「第二份源码」先清理再开工。
 
+并行开发期追加两步：`git worktree list` 与认领板（[3.2](#32-认领板)）确认没有他人正在使用同一目录或同一路径，登记后再写第一个文件。
+
 
 ## 3. 所有权：唯一写入者
 
@@ -69,7 +71,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 - **同一时刻，一个文件只有一个写入者**。开工前在认领板登记「我负责哪些路径」；
 - 需要改别人认领的文件时，**先在认领板发起交接请求**，由对方确认或改由自己接手，不得直接改；
-- 认领粒度建议到目录：例如 `client/app/src/main/java/com/ldp/adskip/device/`、`server/src/api/`、`docs/planning/`；
+- 认领粒度建议到目录：例如 `client/app/src/main/java/com/qingqi/adskip/device/`、`server/src/api/`、`docs/planning/`；
 - **不允许两个 Agent 在同一分支上工作**（分支与 Agent 一一对应，见第 4 节）。
 
 ### 3.2 认领板
@@ -78,11 +80,24 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| `agent-a` | `.worktrees/agent-a-tile` | `feature/29-quick-tile` | `client/.../device/**`、`client/.../AndroidManifest.xml` | 进行中 |
-| `agent-b` | `.worktrees/agent-b-protocol` | `feature/30-protocol-v2` | `server/src/**`、`client/.../net/**` | 进行中 |
+| `gzdx` | `.worktrees/gzdx-gitleaks` | `ci/gitleaks-enforce` | `.gitleaks.toml`、`.github/workflows/ci.yml`、`SECURITY.md`、`client/app/src/test/.../arch/ProjectStructureTest.kt`、`AGENT-WORKFLOW.md`（认领板自身） | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
+| `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
+
+> **⚠️ 协作事件记录与硬性要求（2026-10-11）**
+>
+> 两个会话同时写入**主检出**（`F:/LocaRepository/ui-app`），造成一次实际冲突：一方的未提交改动
+> 被另一方 stash（`stashed unrelated feature changes`），且 `a6f8150`（移除 code-simplifier）
+> 被提交进了他人分支。所幸改动经 `git stash pop` 全量恢复，未丢失工作。
+>
+> **硬性要求**：主检出只用于分支整合与查看，**禁止任何会话在主检出直接开发**。
+> 每个会话必须先执行 `git worktree add .worktrees/<agent>-<slug> <branch>` 并在其中工作
+> （AGENTS.md「多 Agent 协作」一票否决项）。`release/v3.4.1` 的进行中改动（versionCode 15）
+> 应迁入 `.worktrees/<agent>-v341/` 后继续，并在此表登记认领。
+>
+> 逃生口 `ADSKIP_ALLOW_MAIN_COMMIT=1` **仅限紧急修复**，且必须在对应 PR 说明中登记原因与时间——逃生口是审计债，不是常规通道。
 
 ### 3.3 文档单写者
 
@@ -162,7 +177,7 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 
 ## 9. 卫生检查（已落到 CI）
 
-以下规则由 `client/app/src/test/java/com/ldp/adskip/arch/RepoHygieneTest.kt` 随 `testDebugUnitTest` 强制执行，违反即测试失败：
+以下规则由 `client/app/src/test/java/com/qingqi/adskip/arch/RepoHygieneTest.kt` 随 `testDebugUnitTest` 强制执行，违反即测试失败：
 
 | 检查 | 拦截的混乱 |
 | --- | --- |
@@ -170,6 +185,8 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 | 仓库内不得存在「像仓库但没有 `.git`」的目录（无元数据整仓副本） | 检索结果翻倍、Agent 改错副本、成果丢失 |
 | `docs/README.md` 必须登记 `AGENT-WORKFLOW.md` | 新增文档未进文档地图（AGENTS 规则 CI 化） |
 | 当前分支名必须符合 `type/<id>-<slug>`（detached HEAD 放行） | 分支不可追踪、多人混用同一分支 |
+
+> **服务端钩子边界（2026-10-11 核验）**：GitHub.com 不提供自定义 pre-receive 钩子，主检出防线的「远端」层由分支保护规则承载（强制 PR、禁管理员绕过、禁 force-push/删除、`strict` 必需检查），「本地」层是 `githooks/pre-commit` 与 `githooks/commit-msg`。**不要再尝试为 GitHub.com 配置 pre-receive**；若迁移到自建 Git 服务，再在该层补齐。
 
 ## 10. 与既有规范的关系
 
