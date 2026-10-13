@@ -10,7 +10,8 @@ docs/
 ├── api/               对外接口与协议契约
 │   └── API.md
 ├── architecture/      系统架构与模块职责
-│   └── ARCHITECTURE.md
+│   ├── ARCHITECTURE.md
+│   └── ARCHITECTURE-DIRECTORY-STRUCTURE.md  完整目录树与各目录 SDLC 职责映射（目录设计单点事实源）
 ├── development/       开发环境与工具链
 │   ├── DEV-ENVIRONMENT.md
 │   └── AGENT-WORKFLOW.md         多 Agent 协作：隔离 / 所有权 / 契约 / 交接
@@ -18,7 +19,13 @@ docs/
 │   ├── ROADMAP.md                 版本序列（唯一事实源）
 │   ├── ROADMAP-ADS.md             里程碑 / 周次 / 出口条件
 │   ├── DESIGN-PHASE1-SELECTOR.md  L1 技术设计与步骤 A–F
+│   ├── testing/                  真机验收计划与证据模板
+│   │   ├── TOP30-REAL-DEVICE-ACCEPTANCE.md
+│   │   └── STABILITY-TEST-PLAN.md      稳定性测试方案（S1–S6 场景/KPI/环境清单）与执行记录
+│   ├── DESIGN-ADS-FILTERING.md    L2/L3/L4 分层边界与 Phase 0 决策提案
 │   ├── DESIGN-BUILD-FRAMEWORK.md  构建框架工程化（version catalog / build-logic / 模块拆分）
+│   ├── DESIGN-ARCH-EVOLUTION.md   架构演进计划（R1 多模块化 / R2 SQLite 存储 / R3 部署）
+│   ├── ROADMAP-ADS-VERIFY.md      能力边界「不做限制」：外部证据 / 风险评估 / 门禁验证记录
 │   ├── FOLLOW-UP.md               安全加固与技术补充计划（已修复清单 / 待修复 / 里程碑）
 │   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
@@ -32,13 +39,21 @@ docs/
 | --- | --- |
 | 了解这是什么、怎么用 | [../README.md](../README.md) |
 | 了解架构、模块职责、协议与安全模型 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
+| 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
 | 知道接下来做什么、按什么顺序做 | [planning/ROADMAP.md](planning/ROADMAP.md) → [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
+| 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
+| 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
+| 审查广告治理分层、L2/L3/L4 决策提案与放行条件 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md)（提案未获批准） |
+| 查「不做限制」边界变更的证据、风险评估与验证数字 | [planning/ROADMAP-ADS-VERIFY.md](planning/ROADMAP-ADS-VERIFY.md) |
 | 了解构建框架演进方案（version catalog / 约定插件 / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) |
+| 了解前后端架构演进方向与技术选型（R1–R3） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) |
 | 配置本机开发环境 | [development/DEV-ENVIRONMENT.md](development/DEV-ENVIRONMENT.md) |
 | 查某版本发布到哪个提交、哪个 tag | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
 | 查安全加固/技术短板跟进计划（已修复清单 / 待修复 / 里程碑） | [planning/FOLLOW-UP.md](planning/FOLLOW-UP.md) |
+| 查开发流程合规审计结论与历史豁免线（2026-10） | [planning/FOLLOW-UP-PROCESS-AUDIT.md](planning/FOLLOW-UP-PROCESS-AUDIT.md) |
+| 查版本控制与发布管理体系（分支模型/版本号/发布工作流/路线图） | [planning/DESIGN-VERSION-MANAGEMENT.md](planning/DESIGN-VERSION-MANAGEMENT.md) |
 | 了解提交/分支/发布/回滚规范 | [CONTRIBUTING.md](../CONTRIBUTING.md)（执行摘要见 [AGENTS.md](../AGENTS.md)） |
 | 多个 Agent / 多分支并行开发时的隔离与协作 | [development/AGENT-WORKFLOW.md](development/AGENT-WORKFLOW.md) |
 | 开发或维护 Agent 技能（SKILL.md 格式 / 校验 / 登记） | [../skills/README.md](../skills/README.md) |
@@ -51,7 +66,10 @@ docs/
 | 版本序列与能力意图（`3.0.3` → `3.1.0` → …） | [planning/ROADMAP.md](planning/ROADMAP.md) | 只引用版本号，不另立序列 |
 | 专项里程碑、周次、出口条件 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md)（第 5~6 节） | 引用 ROADMAP 的版本号 |
 | L1 选择器技术方案与步骤 A–F | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) | 引用版本号与里程碑编号 |
-| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单；目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
+| Top 30 真机验收口径、试次记录与放行证据 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md) | 只记录实际设备结果，不将模拟器/单测标为真机通过 |
+| L2 DNS、L3 Root、L4 通知治理边界与 Phase 0 决策提案 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md) | 提案不代表正式合规批准；L2/L3 仍禁用 |
+| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单；
+| 架构演进（客户端多模块化 / 服务端存储 / 部署） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) | 引用 ROADMAP 版本号；与 L1–L5 能力里程碑的合并点见其第 7 节 |目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
 | 已发布版本链路（tag / 提交 / Release / 制品） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) | CHANGELOG 只记用户可见变更，不复述链路 |
 | 协议与接口 | [api/API.md](api/API.md) + [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)（第 7 节） | DESIGN 只描述增量字段 |
 | 客户端/服务端分层与模块职责 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | README 只给目录树摘要 |
@@ -61,7 +79,7 @@ docs/
 
 > **改规划的顺序**：先改 `docs/planning/ROADMAP.md`（版本意图）→ 再改同目录的 `ROADMAP-ADS.md` 与 `DESIGN-PHASE1-SELECTOR.md` 的版本归属 → 最后同步 `CHANGELOG.md` 与 `RELEASE-HISTORY.md` 的对应行。`docs/api/API.md`、`docs/architecture/ARCHITECTURE.md` 涉及协议字段时一并更新。
 
-## 当前规划全景（更新于 2026-10-07）
+## 当前规划全景（更新于 2026-10-10）
 
 | 版本 | 状态 | 内容 | 详见 |
 | --- | --- | --- | --- |
@@ -70,8 +88,11 @@ docs/
 | `3.0.4` | 已发布（tag 已建，制品已签名可直接安装） | 安装可用性修复：release 签名回退 + 发布强制签名校验 + Secrets 注入正式密钥（Issue #23） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
 | `3.1.0` | 已发布（tag `v3.1.0` @ `main` `ad188b0`；制品 `CN=AdSkip Release` 签名，`apksigner verify` 通过） | 协议 v2（`selectors` 字段）+ 点击结果校验 + 品牌更名「轻启」+ 图标/UI 重设计 + 快捷磁贴 + 厂商保活 + ktlint 门禁（用户可见变更见 [CHANGELOG.md](../CHANGELOG.md) 3.1.0） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
 | `3.2.0` | 已发布（tag `v3.2.0` @ `main` `f5127dd`；Release 资产 `AdSkip-v3.2.0.apk` 1,923,024 bytes + `SHA256SUMS`） | 节点快照工具 + 设置页入口（步骤 E）+ UI 重设计与权限体系重构落版 | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
-| `3.3.0` | **进行中**（步骤 F） | Top 30 规则入库 + 真机回归 + 规则审核通道 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 6 节 |
-| `3.4.0` / `3.5.0` / `4.0.0` | 规划 | L2 DNS 过滤 / L3 防摇一摇 / L4 通知与系统层 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 5~6 节 |
+| `3.3.0` | 已发布（tag `v3.3.0` @ `1c296c0`；Release 资产 `AdSkip-v3.3.0.apk` 2,047,331 bytes + `SHA256SUMS`） | OkHttp 网络层迁移 + 服务端请求体限制/结构化日志 + 统计备份唯一名；**无**规则 HMAC、证书 pin 与强制 HTTPS | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
+| M1d / 步骤 F | **未发布**（版本号待定，`3.3.0` 与 `3.4.0` 已被占用） | Top 30 规则入库 + 真机回归 + 规则审核通道 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 6 节 |
+| `3.4.0` | 已发布（2026-10-10，tag `v3.4.0` @ `main` `825c5eb`） | monorepo 解耦收官：`applicationId` 迁移 `com.qingqi.adskip`（BREAKING，需卸载重装）+ M1 非导出/包级黑名单 + M2 签名禁回退（用户可见变更见 [CHANGELOG.md](../CHANGELOG.md) 3.4.0） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
+| `3.5.0` / `3.6.0` / `4.0.0` | 规划（**待 Phase 0 合规评审获批**） | L2 DNS 过滤 / L3 防摇一摇 / L4 通知与系统层 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 5~6 节 |
+| `3.7.0` / `3.8.0` | 规划（边界解除扩展） | M5 激励视频代跳 / M6 内容型素材拦截与商店/搜索评估 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 10 节 |
 
 未排期能力见 [planning/ROADMAP.md](planning/ROADMAP.md) 的「候选池」；L2/L3 启动前必须先完成 Phase 0 合规评审（见 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 3 节）。
 
@@ -81,23 +102,31 @@ docs/
 
 | 文档 | 归属版本 | 说明 |
 | --- | --- | --- |
-| `docs/guide/RULE-AUTHORING.md` | `3.3.0` | 规则编写指南：选择器语法、快照 → 规则流程、审核提交流程（届时新建 `guide/` 目录） |
-| 覆盖度矩阵公示页 | `3.3.0` | 对用户公示各广告类型的覆盖口径（当前为 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 4/9 节的内部口径） |
+| `docs/guide/RULE-AUTHORING.md` | M1d（版本号待定） | 规则编写指南：选择器语法、快照 → 规则流程、审核提交流程（届时新建 `guide/` 目录） |
+| 覆盖度矩阵公示页 | M1d（版本号待定） | 对用户公示各广告类型的覆盖口径（当前为 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 4/9 节的内部口径） |
 
 ## 文档命名规范
 
 文档命名是**机器可读的约定**：新文件名必须能被规则解释，改名必须走同步流程。规则解释以本页为准。
 
-| 对象 | 规则 | 示例 |
-| --- | --- | --- |
-| 子目录名 | 小写、单数、无连字符 | `api/` `architecture/` `development/` `planning/` `diagrams/`（新模块如 `guide/` 同样小写） |
-| `.md` 文档文件名 | `UPPER-KEBAB-CASE.md`：全大写 + 短横线，结构 `<DOMAIN>[-<PHASE>]-<TOPIC>` | `DESIGN-PHASE1-SELECTOR.md`（类型=方案、阶段=PHASE1、主题=选择器） |
-| 目录主文档 | 用目录名本身作 `DOMAIN` | `api/API.md`、`architecture/ARCHITECTURE.md`、`planning/ROADMAP.md` |
-| 入口文档 | `README.md` 为固定例外（目录入口不参与 KEBAB 规则） | `docs/README.md` |
-| 非文档资产 | `lower-kebab-case`，与可阅读文档区分 | `diagrams/adskip-architecture.json` / `.html` |
-| 标题（H1） | `<中文主题>（<文件基名>）`，便于搜索与引用溯源 | `# 多 Agent 协作规范（AGENT-WORKFLOW）` |
+| 文档模块 | 目录用途 | 文件名格式 | 示例 |
+| --- | --- | --- | --- |
+| `api/` | 对外接口、数据格式与协议契约 | `API[-<TOPIC>].md` | `API.md` |
+| `architecture/` | 系统架构、模块职责与边界 | `ARCHITECTURE[-<TOPIC>].md` | `ARCHITECTURE.md` |
+| `development/` | 开发环境和协作流程；环境类用 `DEV`，协作类用 `AGENT` | `<DEV\|AGENT>-<TOPIC>.md` | `DEV-ENVIRONMENT.md`、`AGENT-WORKFLOW.md` |
+| `planning/` | 路线图、技术设计、跟进事项和发布记录 | `ROADMAP[-<TOPIC>].md`、`DESIGN-<TOPIC>.md`、`FOLLOW-UP[-<TOPIC>].md`、`RELEASE[-<TOPIC>].md` | `ROADMAP-ADS.md`、`DESIGN-PHASE1-SELECTOR.md`、`FOLLOW-UP.md`、`RELEASE-HISTORY.md` |
+| `guide/`（按需创建） | 面向用户或贡献者的操作指南 | `GUIDE-<TOPIC>.md` | `GUIDE-RULE-AUTHORING.md` |
+| `testing/`（已创建） | 真机验收计划与测试记录 | `[A-Z0-9][-A-Z0-9]*.md` | `TOP30-REAL-DEVICE-ACCEPTANCE.md` |
 
-- `DOMAIN` 词汇表：`API` / `ARCHITECTURE` / `ROADMAP` / `DESIGN` / `DEV` / `AGENT` / `RELEASE`（`guide/` 目录用 `GUIDE`）；同目录多份同域文档用 `<DOMAIN>-<SUFFIX>` 区分（`ROADMAP-ADS`、`RELEASE-HISTORY`、`DEV-ENVIRONMENT`、`AGENT-WORKFLOW`）。
+通用规则：
+
+- 文档分类目录使用**小写 kebab-case**；按内容归类到上表模块，新增目录前先登记文档地图和结构守护测试。`diagrams/` 专门存放图表等非 Markdown 资产，不用作文档模块。
+- `.md` 文件名使用**全大写 ASCII 字母、数字与短横线**，扩展名固定为 `.md`。`<TOPIC>` 和可选部分用短横线分词；`PHASE1` 等阶段编号中的数字紧跟词干，不插入空格或下划线。
+- 模块前缀按上表固定，不得跨目录复用其他模块的前缀；一个模块内同一主题的多份文档用额外主题词区分，禁止用 `NEW`、`FINAL`、日期或版本号代替主题。
+- 目录入口 `README.md` 是固定例外，不参与模块前缀规则；当前 `docs/README.md` 是唯一的文档地图入口。
+- 非文档资产采用 `lower-kebab-case`，与可阅读文档区分，例如 `diagrams/adskip-architecture.json` / `.html`。
+- H1 使用 `<中文主题>（<文件基名>）`，基名不带 `.md`；入口文档可用其入口主题，不强制重复 `README`。例如 `# 多 Agent 协作规范（AGENT-WORKFLOW）`。
+
 - **改名流程**：`git mv` 改文件名 → `git grep` 全仓同步所有引用（含本文档地图）→ 守护测试若硬编码文档名（如 `RepoHygieneTest.WORKFLOW_DOC`）一并更新 → 跑相关门禁后提交。
 
 ## 维护规则

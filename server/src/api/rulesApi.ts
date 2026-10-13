@@ -4,7 +4,6 @@ import { requireAdmin } from "../middleware/auth";
 import { limitRead, limitWrite, limitReport, probeReportIp } from "../middleware/rateLimit";
 import {
   jsonResponse,
-  rawJsonResponse,
   errorJson,
   statusResponse,
   readBody,
@@ -12,59 +11,67 @@ import {
   errorResponseFrom,
   type Handler,
 } from "../utils/httpUtil";
-import { signRulesBody } from "../utils/rulesSigner";
 import { cleanRules, cleanBatchReport, cleanReportEvent, cleanLabel, isValidPackage } from "../utils/validate";
+import { RULES_SIGNATURE_HEADER, signRulesBody } from "../utils/sign";
 
 /**
- * 规则响应统一出口：对**原始 body 字节**做 ECDSA 签名（X-Rules-Signature），
- * 客户端验签通过才落地规则——防明文链路被 MITM 注入恶意规则驱动自动点击。
- * 未配置 RULES_SIGNING_KEY 时不带签名头（与旧部署/旧客户端共存）。
+ * 规则下发响应：对「即将发出的字节串原文」做 HMAC-SHA256 签名。
+ *
+ * 为什么先序列化再签发：签名必须覆盖客户端收到的那串字节。若签的是重新
+ * 序列化的对象，两端键序/数字格式一旦漂移就会出现假失配。密钥未配置
+ * （RULES_SIGNING_KEY 为空）时不下发签名头——客户端配了密钥会失败关闭
+ * 拒载；两端都没配则退回历史明文生态。
  */
-function signedRulesResponse(raw: string, extra: Record<string, string> = {}): Response {
-  const sig = signRulesBody(raw);
-  const headers = sig
-    ? { ...extra, "X-Rules-Signature": sig, "X-Rules-Signature-Alg": "ecdsa-p256-sha256" }
-    : extra;
-  return rawJsonResponse(raw, 200, headers);
+function signedRulesJson(
+  payload: unknown,
+  extra: Record<string, string> = {}
+): Response {
+  const body = JSON.stringify(payload);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json; charset=utf-8",
+    ...extra,
+  };
+  const sig = signRulesBody(body);
+  if (sig) headers[RULES_SIGNATURE_HEADER] = sig;
+  return new Response(body, { status: 200, headers });
 }
 
-export const v0_latest: Handler = () => {
+export const v0_latest: Handler = (req, _url, ctx) => {
+  if (!limitRead(req, ctx.ip)) return errorJson(429, "rate limited");
   const r = getRules();
-  return signedRulesResponse(
-    JSON.stringify({
-      version: r.version,
-      updatedAt: r.updatedAt,
-      keywords: r.keywords,
-      viewIds: r.viewIds,
-      // v0 平铺形状的选择器字段：管理后台按 legacy 形状编辑，缺失会导致已配的
-      // 选择器在编辑页「看不见」——保存一次就被清空。
-      selectors: r.selectors,
-      packages: r.packages,
-    })
-  );
+  return signedRulesJson({
+    version: r.version,
+    updatedAt: r.updatedAt,
+    keywords: r.keywords,
+    viewIds: r.viewIds,
+    // v0 平铺形状的选择器字段：管理后台按 legacy 形状编辑，缺失会导致已配的
+    // 选择器在编辑页「看不见」——保存一次就被清空。
+    selectors: r.selectors,
+    packages: r.packages,
+  });
 };
 
-export const v1_latest: Handler = (req) => {
+export const v1_latest: Handler = (req, _url, ctx) => {
+  if (!limitRead(req, ctx.ip)) return errorJson(429, "rate limited");
   const rules = getRules();
   const ifNoneMatch = req.headers.get("if-none-match");
   if (ifNoneMatch && ifNoneMatch === rules.hash) return statusResponse(304);
-  return signedRulesResponse(
-    JSON.stringify({
+  return signedRulesJson(
+    {
       schemaVersion: rules.schemaVersion,
       version: rules.version,
       hash: rules.hash,
       updatedAt: rules.updatedAt,
       rules: rules.rules,
-    }),
+    },
     { ETag: rules.hash }
   );
 };
 
 export const v0_publish: Handler = async (req, _url, ctx) => {
-  // 安全契约：限流必须先于鉴权——失败的鉴权尝试同样消耗令牌桶，
-  // 否则 admin token 可被无限次离线暴力猜测（限流是唯一的爆破防护）。
+  // 限流先于鉴权：401/503 不计入令牌桶的话，admin token 可被无限速暴力破解
   if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
-  const auth = requireAdmin(req, ctx.ip);
+  const auth = requireAdmin(req);
   if (!auth.ok) return errorJson(auth.status, auth.error);
   let body: string;
   try {
@@ -85,9 +92,8 @@ export const v0_publish: Handler = async (req, _url, ctx) => {
 };
 
 export const v1_publish: Handler = async (req, _url, ctx) => {
-  // 同 v0_publish：限流先于鉴权，失败尝试也消耗令牌桶
   if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
-  const auth = requireAdmin(req, ctx.ip);
+  const auth = requireAdmin(req);
   if (!auth.ok) return errorJson(auth.status, auth.error);
   let body: string;
   try {
@@ -123,8 +129,9 @@ export const v0_skip: Handler = async (req, _url, ctx) => {
   }
   const ev = cleanReportEvent(parsed);
   if (!ev) return errorJson(400, "invalid skip payload");
-  // label 会持久化并经统计接口下发到所有端：先做数据卫生（去控制字符/截断）再入库
-  recordSkip(ev.pkg, cleanLabel(parsed.label ?? ev.pkg), ev.channel);
+  // label 会持久化并经统计接口下发到所有端：cleanReportEvent 已做截断/回退，
+  // 再过 cleanLabel 剥控制字符（跨端 UI/日志 注入防护）后入库
+  recordSkip(ev.pkg, cleanLabel(ev.label), ev.channel);
   return jsonResponse({ ok: true });
 };
 
@@ -149,7 +156,7 @@ export const v1_batchReport: Handler = async (req, _url, ctx) => {
     return errorJson(429, "rate limited");
   }
   for (const ev of cleaned.events) {
-    recordSkip(ev.pkg, ev.pkg, ev.channel);
+    recordSkip(ev.pkg, ev.label, ev.channel);
   }
   return jsonResponse({ ok: true, accepted: cleaned.events.length });
 };
@@ -223,9 +230,9 @@ function evalSelector(expr: string, sample: string, viewId: string): SelectorVer
 }
 
 export const v1_testRule: Handler = async (req, _url, ctx) => {
-  // 同 v0_publish：限流先于鉴权，失败尝试也消耗令牌桶
+  // 同 v*_publish：限流先于鉴权，堵住未认证暴力尝试
   if (!limitRead(req, ctx.ip)) return errorJson(429, "rate limited");
-  const auth = requireAdmin(req, ctx.ip);
+  const auth = requireAdmin(req);
   if (!auth.ok) return errorJson(auth.status, auth.error);
   let body: string;
   try {
