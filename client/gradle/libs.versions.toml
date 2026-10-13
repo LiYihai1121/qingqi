@@ -24,7 +24,7 @@ orgjson = "20240303"                 # 单测用真实 org.json 实现（AGP and
 securityCrypto = "1.1.0"
 
 # HTTP 客户端
-okhttp = "4.12.0"
+okhttp = "5.5.0"
 
 # 静态检查
 ktlint = "14.2.0"
