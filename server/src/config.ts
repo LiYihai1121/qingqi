@@ -23,6 +23,8 @@ export interface Config {
   /** 统计分片保留的备份份数（rotateStatsBackup 轮转） */
   STATS_BACKUP_COUNT: number;
   ADMIN_TOKEN: string;
+  /** 统计汇总是否要求 admin 鉴权（STATS_READ_AUTH=1 开启；默认匿名可读，行为与旧版一致） */
+  STATS_READ_AUTH: boolean;
   /**
    * 规则签名密钥（HMAC-SHA256，env RULES_SIGNING_KEY）。
    *
@@ -50,6 +52,8 @@ export interface Config {
   MAX_SELECTORS_PER_LIST: number;
   MAX_RULES_PER_APP: number;
   MAX_APPS: number;
+  /** 当日统计 byApp 条目数上限（未认证上报可伪造任意包名，超限聚合进 "_other"） */
+  MAX_STATS_APPS_PER_DAY: number;
   MAX_BATCH_EVENTS: number;
   MAX_BODY_KEYS: number;
   MAX_BODY_DEPTH: number;
@@ -77,6 +81,9 @@ export const config: Config = {
   BACKUP_COUNT: 5,
   STATS_BACKUP_COUNT: 5,
   ADMIN_TOKEN: process.env.ADMIN_TOKEN ?? "",
+  STATS_READ_AUTH: ["1", "true", "yes"].includes(
+    (process.env.STATS_READ_AUTH ?? "").toLowerCase()
+  ),
   RULES_SIGNING_KEY: process.env.RULES_SIGNING_KEY ?? "",
   TRUSTED_PROXIES: process.env.TRUSTED_PROXIES
     ? process.env.TRUSTED_PROXIES.split(",").map((s) => s.trim()).filter(Boolean)
@@ -98,6 +105,7 @@ export const config: Config = {
   MAX_SELECTORS_PER_LIST: 128,
   MAX_RULES_PER_APP: 512,
   MAX_APPS: 2000,
+  MAX_STATS_APPS_PER_DAY: 2000,
   MAX_BATCH_EVENTS: 50,
   MAX_BODY_KEYS: 100,
   MAX_BODY_DEPTH: 5,
