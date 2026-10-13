@@ -71,6 +71,18 @@ class UiContractTest {
     }
 
     @Test
+    fun `in-app icons come from the custom library not material`() {
+        val offenders = uiSources().filter { codeOf(it).contains("androidx.compose.material.icons") }
+        assertTrue(
+            "界面图标必须来自自绘 AdSkipIcons（ui/theme/icons/AdSkipIcons.kt）：" +
+                "Material 图标（箭头系、纸飞机系）与品牌图形「HUD 取景框」不属于同一套设计语言，" +
+                "混用会让图标重新回到各写各的状态。以下文件仍在引用 Material 图标：\n" +
+                offenders.joinToString("\n") { "  $it" },
+            offenders.isEmpty(),
+        )
+    }
+
+    @Test
     fun `switch rows have exactly one implementation`() {
         val offenders = uiSources().filter { "fun SwitchRow" in codeOf(it).joinToString("\n") }
         assertTrue(
