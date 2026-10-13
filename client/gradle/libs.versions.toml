@@ -1,0 +1,79 @@
+# Version Catalog —— 本项目所有插件/依赖版本的唯一事实源。
+#
+# 修订方式：升级前先核对阿里云镜像 maven-metadata（docs/development/DEV-ENVIRONMENT.md），
+# 再改本文件；禁止在模块 build 脚本里硬编码任何版本号。
+# 设计依据见 docs/planning/DESIGN-BUILD-FRAMEWORK.md 阶段 B。
+
+[versions]
+# 构建工具链（版本互相有硬性兼容关系，升级前先对照官方兼容矩阵）
+agp = "9.4.1"                        # Android Gradle Plugin（Gradle 9.6+ 移除了 AGP 8.x 依赖的内部 API，必须 9.x；
+                                     # AGP 9 内置 Kotlin 2.2.10，kotlin.android 插件不得再单独应用；镜像已核对）
+kotlin = "2.4.21"                   # 仅用于 Compose 编译器插件（含 compose-group-mapping 映射数据）；
+                                    # AGP 9 内置 Kotlin 仍是 2.2.10，映射产物坐标在 :app 显式对齐（见 app/build.gradle.kts）
+
+# AndroidX（BOM 之外的坐标也统一收口）
+composeBom = "2026.09.00"           # Jetpack Compose BOM
+activityCompose = "1.9.3"
+lifecycle = "2.8.7"
+navigationCompose = "2.10.2"
+
+# 测试
+junit = "4.13.2"
+orgjson = "20260814"                 # 单测用真实 org.json 实现（AGP android.jar 桩在 returnDefaultValues 下全返回默认值）
+
+# 安全存储
+securityCrypto = "1.1.0"
+
+# HTTP 客户端
+okhttp = "5.5.0"
+
+# 静态检查
+ktlint = "14.2.0"
+ktlintCli = "1.8.0"
+
+# 约定插件
+adskipPlugins = "1.0.0"
+
+[libraries]
+# AndroidX Compose
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+
+# MVVM + 导航
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+# 测试
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+# AGP 本地单测的 android.jar 只含 org.json 桩（isReturnDefaultValues=true 时方法全返回默认值），
+# 需引入真实实现，否则 JSONObject 链式调用直接 NPE
+org-json = { group = "org.json", name = "json", version.ref = "orgjson" }
+
+# 安全存储
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+# HTTP 客户端
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+# 注意：别名只能用字母/数字/连字符/下划线，禁止含点号；点号会被当作访问器分组分隔符，
+# Gradle 9 对含非法点号的别名直接报 TOML syntax error（InvalidUserDataException）。
+# 另注意：okhttp 4.x 只有 mockwebserver 一个制品（内部用 JUnit4 的 @Before/@After 生命周期），
+# 没有 mockwebserver-junit4 / mockwebserver3-junit4（后者仅存在于 5.x 的 mockwebserver3 系列）。
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
+okhttp-tls = { group = "com.squareup.okhttp3", name = "okhttp-tls", version.ref = "okhttp" }
+
+# build-logic 约定插件运行时依赖
+android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-compose-compiler-plugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
+ktlint-gradle = { group = "org.jlleitschuh.gradle", name = "ktlint-gradle", version.ref = "ktlint" }
+ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref = "ktlintCli" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+adskip-android-application = { id = "adskip.android.application", version.ref = "adskipPlugins" }

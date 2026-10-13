@@ -1,0 +1,114 @@
+{
+  // 编辑器行为配置。**代码长什么样由 .editorconfig 决定**，本文件只管「VS Code 怎么用」——
+  // 两者刻意不重叠：缩进、缩进宽度、行尾、尾随空格、最大行宽全部只写在 .editorconfig，
+  // 在这里重复一遍就等于制造第二份真相（改了 .editorconfig 而忘了改这里，行为就会分叉）。
+  //
+  // 与 .gitignore 的关系：`.vscode/` 采取「选择性入库」——只入库本文件与
+  // extensions.json（团队共享的推荐配置），其余个人文件（launch.json、tasks.json、
+  // 私有工作区状态）一律忽略。该规则由 ProjectStructureTest 的
+  // `vscode directory only holds the shared config` 用例强制。
+
+  // 构建输出与工具目录：让文件树与全局搜索默认跳过，它们不是「源码找不到」，
+  // 而是「本来就不该搜」。路径需逐条列出——VS Code 的 files.exclude 不读 .gitignore
+  // 里的否定规则（`!.vscode/settings.json` 这类），而 search.exclude 读。
+  "files.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.kotlin": true,
+    "**/node_modules": true,
+    "**/server/data": true,
+    // 多 Agent 协作产物与工作区：与根 .gitignore 同步，避免文件树里出现
+    // 一堆 worktree 副本——它们也会被 Java 语言服务当作重复 gradle 项目导入。
+    "**/.kilo": true,
+    "**/.kilocode": true,
+    "**/.worktrees": true,
+    "**/.agents": true,
+    "**/.mimosa": true,
+    "**/.workbuddy": true,
+    "**/.cursor": true
+  },
+  "search.exclude": {
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.kotlin": true,
+    "**/node_modules": true,
+    "**/server/data": true,
+    "**/.kilo": true,
+    "**/.kilocode": true,
+    "**/.worktrees": true,
+    "**/.agents": true,
+    "**/.mimosa": true,
+    "**/.workbuddy": true,
+    "**/.cursor": true
+  },
+
+  // Java 语言服务（redhat.jdt.ls，由 vscode-java-pack 带入）默认会扫描并导入
+  // 工作区里所有 gradle 项目。本仓库的 git worktree 各自带一份 client/，
+  // 它们与根 client/ 同名（AdSkip-client），导入时报：
+  //   "A project with the name AdSkip-client already exists.
+  //    Duplicate root element AdSkip-client"
+  // 把这些 worktree / agent 产物目录排除掉，Java LS 就只剩根 client/ 一个项目，
+  // 重复即消失。本清单会整体覆盖默认值，故把常用默认项一并保留。
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.metadata/**",
+    "**/archetype-resources/**",
+    "**/META-INF/maven/**",
+    "**/build/**",
+    "**/.git/**",
+    "**/.gradle/**",
+    "**/.kotlin/**",
+    "**/.kilo/**",
+    "**/.kilocode/**",
+    "**/.worktrees/**",
+    "**/.agents/**",
+    "**/.mimosa/**",
+    "**/.workbuddy/**",
+    "**/.cursor/**"
+  ],
+
+  // 120 与 .editorconfig 的 max_line_length 对齐。**这是一处必须手工同步的耦合**：
+  // VS Code 不支持从 .editorconfig 读标尺显示，改 max_line_length 时这里要一起改。
+  "[kotlin]": {
+    "editor.rulers": [120]
+  },
+  "[kts]": {
+    "editor.rulers": [120]
+  },
+  "[ts]": {
+    "editor.rulers": [120]
+  },
+
+  // 缩进宽度交给 .editorconfig（Kotlin 4、服务端 2），此处不重复声明：
+  // 一旦在这里写死 "editor.tabSize": 4，服务端的 2 空格就会被覆盖成 4。
+
+  // 本仓库的服务端有类型检查门禁（bun run typecheck = tsc --noEmit），
+  // 但 tsc 自身的报错不经过 VS Code 的 Problems 面板；开启后由编辑器实时提示，
+  // 改错时不必等跑一次门禁才发现。
+  //
+  // 键名从已弃用的 `typescript.tsdk` 迁到新版 `js/ts.` 命名空间——这项迁移是
+  // VS Code 打开工作区时自动完成的，保留迁移后的写法，否则每次打开都会再被改一次。
+  "js/ts.tsserver.experimental.enableProjectDiagnostics": true,
+
+  // Java 空值分析交给语言服务自动判定。Kotlin 侧同样关心 NPE
+  // （`System.getProperty` 可能返回 null），由编辑器实时提示比等门禁快。
+  // 团队开关只写仓库根：client/.vscode 已忽略，写到那里不会入库，但会造成两份真相。
+  "java.compile.nullAnalysis.mode": "automatic",
+
+  // 若依赖自定义 GRADLE_USER_HOME（DEV-ENVIRONMENT「构建启动失败排障」记录过
+  // 未设置时回落到无缓存目录、导致发行版下载超时），在这里指明即可；
+  // 也可以直接导出环境变量，两者取其一，不要都设。
+  // 本机启用 F:\All_Data\gradle，保证 Java LS 与命令行、CI 使用同一份 Gradle 发行版，
+  // 避免 IDE 进程未继承环境变量时而回落到旧版/无缓存发行版，导致 :app 配置期
+  // 触发 build-logic 约定插件按错误边界编译（表现为无细节的 "Compilation error"）。
+  "java.import.gradle.user.home": "F:\\All_Data\\gradle",
+
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.eol": "\n",
+
+  // 构建文件（settings.gradle.kts / build.gradle.kts 等）变更时自动重载 Java 项目模型，
+  // 不再逐次弹「build file has been changed」询问。本仓库是单一 gradle 工程
+  // （worktree 副本已被 java.import.exclusions 排除），自动重载没有误伤风险。
+  "java.configuration.updateBuildConfiguration": "automatic"
+}

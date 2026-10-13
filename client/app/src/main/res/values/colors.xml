@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  仅保留被引用的资源色。UI 运行时配色（品牌蓝/状态色/文本色）的唯一事实源是
+  ui/theme/Theme.kt 的 Material3 ColorScheme；此处再存一份会形成第二份真相，
+  且 status_on/status_off 这类名字与 R.string.status_on/off 撞名，极易误用。
+-->
+<resources>
+    <!--
+      图标背景已改为矢量渐变（drawable/ic_launcher_background.xml），此处的
+      ic_launcher_background 颜色资源不再被任何文件引用，故删除以免留下第二份真相。
+      改配色请改矢量里的 gradient item，不要在此加回同名颜色。
+    -->
+    <color name="brand">#1565C0</color>
+</resources>

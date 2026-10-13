@@ -1,0 +1,274 @@
+# 净启动 AdSkip
+
+[![CI](https://github.com/LiYihai1121/ui-app/actions/workflows/ci.yml/badge.svg)](https://github.com/LiYihai1121/ui-app/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LiYihai1121/ui-app?sort=semver)](https://github.com/LiYihai1121/ui-app/releases)
+[![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+
+一个自动跳过 Android 应用开屏广告的**全栈**工具：Android 客户端（无障碍服务）+ 自建后端（规则中心 / 统计 / 管理后台）。
+
+> 与开源项目 GKD / 李跳跳 属同类技术方案。
+
+## 目录
+
+- [功能（v3.4）](#功能v34)
+- [快速开始](#快速开始)
+- [技术原理](#技术原理)
+- [工程结构](#工程结构)
+- [构建与下载](#构建与下载)
+- [分支与版本](#分支与版本)
+- [合规提示](#合规提示)
+- [许可证](#许可证)
+
+## 功能（v3.4）
+
+> **当前交付范围：** 已发布版本主要提供 L1 无障碍规则匹配与明确“跳过”控件点击。Top 30 国产 App 规则与真机验收仍未完成；L2 DNS/VpnService 过滤、L3 Root/LSPosed Hook、L4 通知推广治理均为规划项，**当前版本未实现、未启用**。不承诺全量去广告。详见 [广告治理路线图](docs/planning/ROADMAP-ADS.md)。
+
+### Android 客户端（Kotlin + Jetpack Compose，MVVM）
+
+- ✅ 自动点击开屏广告「跳过」按钮，**三通道识别**：**选择器**（类 CSS 子集，表达节点上下文关系，优先级最高）+ **文本关键词** + **控件 ViewID**（支持纯图片按钮）
+- ✅ **安全护栏 SafetyGuard**：硬编码黑名单防误触敏感按钮（支付/授权/登录等），云规则不可覆盖
+- ✅ 应用管理：逐项开启/关闭跳过，各应用跳过次数统计
+- ✅ 跳过日志：最近 200 条记录，可清空
+- ✅ 云端规则同步（`/api/v1`：ETag/304 省流量、deviceId 限频、批量补报）
+- ✅ 规则快照导出：设置页一键导出当前界面节点树 JSON（≤100 KB），用于编写选择器规则
+- ✅ **远程规则安全门禁**：客户端只接受 HTTPS 地址；Android 网络安全配置禁止明文流量。规则同步必须配置 HMAC-SHA256 共享密钥与证书 SHA-256 pin，缺少任一项或验签失败时拒绝载入云端规则。证书 pin 由用户配置，不是应用内置的固定主机 pin；必须通过可信渠道核对服务器证书指纹。
+- ✅ 内置模拟开屏广告测试
+- ✅ 跳过上报服务端（服务端不在线时静默跳过，纯本地照常工作）
+- ✅ 自动同步规则（JobScheduler 每 12 小时，跨重启持久化，无需 BootReceiver）
+- ✅ 免打扰时段与电池优化白名单引导
+- ✅ 下拉磁贴（Quick Tile）+ ROM 适配保活引导
+- ✅ 环形日志（内存 500 条，设置页可导出分享）
+- ✅ 中英双语资源（values / values-en）
+
+### 后端服务（`server/`，Bun + TypeScript，零运行时依赖）
+
+- ✅ 规则中心：全局关键词、ViewID 规则、选择器规则（全局 + 应用专属）、禁用列表
+- ✅ **鉴权**（ADMIN_TOKEN）、**载荷校验**（与客户端同源约束）、**限频**（令牌桶 per-IP/per-deviceId）
+- ✅ **规则响应 HMAC-SHA256 签名**：服务端配置 `RULES_SIGNING_KEY` 后才会签名 `/api/*/rules/latest` 响应；未配置时不会发送签名头，启用验签的客户端会拒绝载入。服务端 TLS 需配置 `TLS_CERT`/`TLS_KEY`，或由受信反向代理终止 TLS 并将明文服务限制在 loopback；不要将明文端口暴露到公网。
+- ✅ 统计 API：累计 / 今日 / 14 天趋势 / 按应用排行 / 最近记录（按天分片存储）
+- ✅ 管理后台网页：登录 + **diff 预览** + **规则模拟器** + 统计看板
+- ✅ `/api/v1`：ETag/304、批量上报、健康检查（旧 `/api/v0` 路由兼容保留）
+- ✅ 优雅停机（SIGTERM/SIGINT → 落盘再退出）、CORS 白名单、规则备份轮转
+- ✅ 访问日志（内存 200 条，`/api/v1/admin/logs` 管理令牌查看）；请求体 1MiB 协议层上限 + `application/json` 强制
+- ✅ API 参考文档：[docs/api/API.md](docs/api/API.md)
+
+## 快速开始
+
+### 获取安装包
+
+| 渠道 | 说明 |
+| --- | --- |
+| [GitHub Releases](https://github.com/LiYihai1121/ui-app/releases) | 下载最新 `AdSkip-vX.Y.Z.apk` 与 `SHA256SUMS`；安装前注意事项见 [分发与下载](#分发与下载) |
+| 本地构建 | 见 [构建与下载](#构建与下载)，签名配置就绪后 `assembleRelease` 直接产出可安装包 |
+
+### 安装与配置（Android 8.0+）
+
+1. 安装 APK 后打开应用
+2. 点「打开无障碍设置」→ 开启「净启动 AdSkip」服务
+3. （建议）将应用加入电池优化白名单，防止后台被清理
+4. 点「云端规则同步」→ 填写启用了 TLS 的服务器 HTTPS 地址，并配置签名密钥和证书指纹 → 「立即同步云端规则」
+5. 打开任意带开屏广告的 App 即可自动跳过；可先用「测试：模拟开屏广告」验证
+
+> 仅用本地内置规则时无需后端，跳过功能开箱即用；自建后端（规则下发 / 统计 / 管理后台）的启动步骤见 [DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md)。
+
+**远程同步配置要求：** 客户端强制 HTTPS、要求配置证书 SHA-256 pin 和规则 HMAC 密钥；这些值必须通过可信渠道配置，不能通过未受保护的连接传输。服务端只有配置 `RULES_SIGNING_KEY` 才会签名规则响应，且需配置 `TLS_CERT`/`TLS_KEY` 或由受信反向代理终止 TLS。若使用 TLS 终止代理，应将应用服务绑定到 `127.0.0.1`，不要把明文端口暴露到公网。
+
+## 技术原理
+
+```text
+应用启动 → 开屏广告出现
+   ↓ 无障碍事件（窗口状态/内容变化）
+遍历节点树 → ① 选择器命中（类 CSS 子集，表达上下文关系）
+            ② 文本/描述命中关键词（≤12字、可见、非输入框）
+            ③ 控件 ID 命中 ViewID 规则（如 com.x:id/skip_view）
+   ↓ 命中
+SafetyGuard 安全护栏复核（黑名单/可见性/面积）
+   ↓ 通过
+父链找可点击节点执行 ACTION_CLICK；否则按坐标模拟手势
+   ↓
+本地记录 + 上报服务端
+```
+
+防误触：同应用 1.2s 去抖、150ms 全局节流、单次遍历 ≤500 节点、忽略系统 UI、按应用禁用、SafetyGuard 硬编码黑名单。
+
+> 第三通道选择器（`engine/selector/`，类 CSS 子集：`[vid$=":id/skip_view"]`、`[text*="跳过"] > [vid$="id/iv_close"]`、`[desc^="跳过"] + [vid$="id/iv_close"]` 等）已随 `3.1.0` 以规则 `schemaVersion 2` 全链路上线（服务端下发 → 客户端编译求值），按优先级先于文本与 ViewID 通道求值；语法与硬限制（单条 ≤256 字符、每列表 ≤128 条、value ≤64、组合链 ≤4 段）见 [DESIGN-PHASE1-SELECTOR.md](docs/planning/DESIGN-PHASE1-SELECTOR.md)。Top 30 App 规则编写与真机验收（步骤 F）仍在进行，发版节奏见 [ROADMAP.md](docs/planning/ROADMAP.md)。
+
+## 工程结构
+
+```text
+AdSkip/            # 全栈 monorepo
+├── client/        # Android 客户端（Gradle 工程根：build.gradle.kts / settings.gradle.kts / gradle wrapper）
+├── server/        # 后端（Bun + TypeScript，零运行时依赖）
+├── docs/          # 文档地图 README.md（规划事实源入口）+ api/ architecture/ development/ planning/ diagrams/
+└── .github/       # CI 工作流
+
+client/app/src/main/java/com/qingqi/adskip/   # Android 客户端源码（Kotlin；engine/ 层零第三方依赖，见 ArchitectureBoundaryTest）
+├── AdSkipApp.kt                    # Application 入口
+├── AppContainer.kt                 # 手动 DI 容器（不引入 Hilt/Koin）
+├── core/                           # 基础设施（时钟/线程/日志/状态总线，可单测）
+│   ├── Clock.kt                    # 时钟注入（确定性判定）
+│   ├── SystemClockAdapter.kt       # 系统时钟适配
+│   ├── LanguagePreferences.kt      # 语言偏好
+│   ├── AppExecutors.kt             # 线程池
+│   ├── LogRing.kt                  # 环形日志（内存 500 条）
+│   └── AppEvents.kt                # 状态总线
+├── ui/                             # 界面层（Compose 单 Activity + Navigation + UiEffect 单向事件）
+│   ├── MainActivity.kt             #   唯一 Activity
+│   ├── Routes.kt                   #   导航路由
+│   ├── Messenger.kt                #   页面消息总线
+│   ├── UiEffect.kt                 #   一次性 UI 事件（sealed interface）
+│   ├── VendorLabels.kt             #   厂商显示名映射
+│   ├── theme/                      #   主题（Color/Spacing/Type）
+│   ├── components/                 #   通用组件（StatusOrb/Common/Feedback）
+│   ├── home/                       #   主页 Screen + ViewModel
+│   ├── apps/                       #   应用管理 Screen + ViewModel
+│   ├── logs/                       #   跳过日志 Screen + ViewModel
+│   ├── profile/                    #   设备与权限 Screen + ViewModel + PermissionCard
+│   └── settings/                   #   云同步设置 Screen + ViewModel
+├── device/                         # 系统集成（ROM 识别与保活、权限、下拉磁贴、语言）
+│   ├── VendorKeepAlive.kt          #   ROM 识别与厂商保活引导
+│   ├── BatteryExemption.kt         #   电池优化白名单判定
+│   ├── AccessibilityStatus.kt      #   无障碍权限状态判定
+│   ├── KeepAliveNavigator.kt       #   厂商设置页跳转
+│   ├── PermissionCenter.kt         #   权限引导中心
+│   ├── LanguageMode.kt             #   语言模式（enum）
+│   ├── LocaleApplier.kt            #   语言应用
+│   ├── QuickTileLogic.kt           #   下拉磁贴逻辑
+│   └── SkipTileService.kt          #   下拉磁贴 Service
+├── service/                        # Android 框架编排层（薄编排，保证 engine 纯 JVM）
+│   ├── SkipAdService.kt            # 服务层（薄编排：事件/节流/点击/SafetyGuard）
+│   ├── FrameworkAdNode.kt          # 框架适配（包装 AccessibilityNodeInfo；归 service 保 engine 纯 JVM）
+│   └── NodeSnapshot.kt             # 节点树快照导出（≤100 KB，设置页分享）
+├── engine/                         # 纯 JVM：接口/引擎/护栏/规则集（可跑无 Android 单测）
+│   ├── AdNode.kt                   # 节点抽象接口（引擎不依赖框架类）
+│   ├── SafetyGuard.kt              # 安全护栏（黑名单/可见性/面积）
+│   ├── SkipRuleEngine.kt           # 引擎层（纯匹配逻辑，选择器/文本/ViewID 三通道）
+│   ├── RuleSet.kt                  # 规则集模型（schemaVersion 2，含 keywords/viewIds/selectors）
+│   └── selector/                   # 选择器引擎（类 CSS 子集，纯 JVM）
+│       ├── SelectorAst.kt          #   AST（组合符/属性断言/CompoundSelector）
+│       ├── SelectorParser.kt       #   解析器（非法输入返回 null，fail-safe）
+│       └── SelectorMatcher.kt      #   右到左求值（祖先/子/前兄弟关系匹配）
+├── data/                           # 数据与持久化
+│   ├── Prefs.kt                    # 存储原语（SharedPreferences + deviceId + rulesHash + 证书指纹 + 签名密钥）
+│   ├── RulesRepository.kt          # 规则仓库（LruCache 缓存/版本失效/schemaVersion 校验）
+│   ├── ServerEndpoint.kt           # 服务端地址与环境配置
+│   ├── SettingsRepository.kt       # 设置项持久化
+│   └── StatsRepository.kt          # 统计仓库（合批落盘）
+├── net/                            # 网络
+│   └── SyncClient.kt               # 网络层（v1: ETag/304/deviceId/批量补报 + 证书固定 + 规则签名校验）
+└── sync/                           # 定时同步
+    └── SyncJobService.kt           # JobScheduler 定时同步（12 小时，跨重启持久化）
+
+client/app/src/test/java/com/qingqi/adskip/   # JVM 单测（引擎/护栏/选择器/边界与清单契约守护），随门禁运行
+
+server/                             # 后端（Bun + TypeScript，零运行时依赖）
+├── package.json                    # 零运行时依赖（无 dependencies 字段）
+├── server.ts                       # Bun.serve 入口、路由分发、优雅停机
+├── tsconfig.json                   # TypeScript 配置
+├── src/
+│   ├── api/                        # 路由拆分（v0+v1）
+│   │   ├── index.ts                #   路由分发
+│   │   ├── rulesApi.ts             #   规则下发/发布/模拟器
+│   │   ├── statsApi.ts             #   统计汇总
+│   │   └── healthApi.ts            #   健康检查
+│   ├── middleware/
+│   │   ├── auth.ts                 #   Bearer token 鉴权
+│   │   ├── rateLimit.ts            #   内存令牌桶限流
+│   │   └── accessLog.ts            #   访问日志（内存环形，200 条）
+│   ├── storage/
+│   │   └── store.ts                #   规则（缓存+备份轮转）/ 统计（分日分片+延迟刷盘）
+│   ├── types/
+│   │   └── rules.ts                #   规则集类型定义
+│   ├── utils/
+│   │   ├── httpUtil.ts             #   CORS 白名单 / 安全 JSON 解析 / Handler 类型
+│   │   ├── sign.ts                 #   规则签名（HMAC-SHA256，客户端本地校验）
+│   │   ├── validate.ts             #   载荷校验（与客户端同源约束）
+│   │   └── logger.ts               #   日志输出
+│   └── config.ts                   # 集中配置（env 覆盖）
+├── public/
+│   ├── index.html                  # 产品落地页
+│   └── admin.html                  # 管理后台（登录 + diff 预览 + 规则模拟器）
+├── test/
+│   ├── unit.test.ts                # 单元测试（validate/auth/rateLimit/种子兜底）
+│   ├── smoke.test.ts               # 冒烟测试（in-process，全部路由 v0+v1）
+│   ├── selectors.contract.test.ts  # 选择器双端契约向量（服务端轻量校验）
+│   └── selectorSimulator.test.ts   # 管理后台规则模拟器
+├── seed/rules.json                 # 初始规则种子（入库；运行时文件缺失时兜底）
+└── data/                           # 运行时数据（不入库）：rules.json / stats/ / backups/
+```
+
+详细设计见 [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)。
+
+## 构建与下载
+
+### Android 客户端
+
+```bash
+# Debug 构建
+cd client
+./gradlew assembleDebug
+# 产物: client/app/build/outputs/apk/debug/app-debug.apk
+
+# Release 封装（R8 混淆）
+# 正式签名参数写在 client/local.properties（不入库）：
+#   adskip.storeFile=<keystore 路径>  adskip.storePassword=***
+#   adskip.keyAlias=<别名>           adskip.keyPassword=***
+# M2 起三态策略（不再回退 debug 签名）：
+#   ① 已配置 adskip.* → release 正式签名，可直接安装
+#   ② 显式 adskip.unsignedRelease=true → 未签名包（交由受信任环境自行签名）
+#   ③ 两者皆无 → assembleRelease 直接失败，不产出任何 APK
+./gradlew assembleRelease
+# CI 同样跑 Release 变体，但显式 adskip.unsignedRelease=true，仅验证 R8/minify 可构建，
+# 产物（app-release-unsigned.apk）不用于分发；正式发布走 release.yml，由仓库 Secrets 签名
+
+# JVM 单测
+./gradlew testDebugUnitTest
+```
+
+### 服务端
+
+```bash
+cd server
+bun install
+bun test              # 单元 + 冒烟 + 选择器契约（87 项 / 4 文件）
+bun run typecheck     # tsc --noEmit
+```
+
+### 分发与下载
+
+| 渠道 | 说明 |
+| --- | --- |
+| 本地副本 | 服务端 `/download` 固定从 `server/` 上一级读取 `AdSkip-latest.apk`（`config.ts` 硬编码，无 env 覆盖），把 Release APK 放到**部署目录**的该位置，手机浏览器访问 `https://<服务器域名>:3210/download`。别放进开发用的仓库检出——`ProjectStructureTest` 的根目录白名单不含 `*.apk`，本地跑 `testDebugUnitTest` 会判红。 |
+| GitHub Release | 由版本 tag 自动创建，上传 Release APK 和 `SHA256SUMS`。`ADSKIP_KEYSTORE_BASE64` / `ADSKIP_STORE_PASSWORD` / `ADSKIP_KEY_ALIAS` / `ADSKIP_KEY_PASSWORD` 是发布**必需** Secrets（写入 `client/local.properties` 后按正式密钥签名）；**M2 起不再回退 debug 签名**——缺任一 Secrets 时 `assembleRelease` 按三态策略直接失败，不再产出可被冒签的制品。打包步骤强制 `apksigner verify`，未签名产物一律拒绝上传。 |
+
+> **手机安装报错排查**
+>
+> | 手机提示 | 原因 | 处理 |
+> | --- | --- | --- |
+> | 解析软件包时出现问题 | APK 未签名（历史上 CI 无签名密钥时上传的制品） | 改用当前链路产物：发布链路强制 `apksigner verify`，未签名产物一律拒绝上传；本地 `assembleRelease` 无签名配置会直接失败（M2 起不再回退 debug 签名）；校验命令见 [DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md) |
+> | 解析软件包时出现问题 | 手机 Android 版本低于 `minSdk`（26 = Android 8.0） | 换用 Android 8.0 及以上设备 |
+> | 解析软件包时出现问题 | 传输中断，或被聊天工具改名/压缩（大小与 `SHA256SUMS` 不一致） | 比对 SHA-256 后重传，或改用服务端 `/download` |
+> | 应用未安装 / 签名冲突 | 手机上已装 debug 签名版或其它密钥版本 | 卸载 `com.qingqi.adskip` 后重装 |
+
+要求：JDK 17+、Android SDK（compileSdk 37）、Bun 1.1+（服务端）。Android 部分也可直接用 Android Studio / IntelliJ 打开 `client/` 目录。
+
+## 分支与版本
+
+- 工作流：企业级 GitHub Flow——`main` 和 `release/*` 受保护，所有改动经 PR、CI 和审查后 Squash Merge；功能、修复和紧急变更使用短生命周期分支。
+- 版本规则：遵循 SemVer；Android `versionCode` 全局单调递增，`versionName` 与服务端 `server/package.json` 版本保持一致；正式版本使用不可移动的 `vX.Y.Z` 标签。
+- 发布流程：`release/vX.Y.Z` 冻结验收，CI 根据 tag 生成可追溯制品并记录校验和；事故优先回滚已验证制品，修复通过 `hotfix/*` 发布。
+- 团队协作：提交格式、Pull Request 门禁、分支保护、发布和回滚规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 功能路线以 [ROADMAP.md](docs/planning/ROADMAP.md) 为准，架构与模块职责以 [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) 为准，版本链路以 [RELEASE-HISTORY.md](docs/planning/RELEASE-HISTORY.md) 为准；**文档入口与规划事实源见 [docs/README.md](docs/README.md)**。
+
+## 合规提示
+
+本工具仅通过系统无障碍能力，**点击广告界面本身已展示的「跳过」按钮**，不拦截、修改或破解任何网络请求与广告内容。请仅用于个人设备，勿用于商业用途。
+
+> 1. 此类工具不符合 Google Play 对 AccessibilityService 的审核口径，分发以 APK 自建渠道为准，不上架应用商店。
+> 2. **隐私声明**：数据默认不出本机。上报为可选且仅含包名、时间戳和匹配通道（text/viewId），不含任何用户隐私数据。服务端无账号体系，统计仅存自建服务端。
+
+## 许可证
+
+本项目以 [GNU 通用公共许可证第三版（GPL-3.0）](LICENSE) 发布。在保留版权声明的前提下，你可以自由使用、修改与分发本项目；衍生作品须以 GPL-3.0 继续开源。
+
+选择 GPL-3.0 的理由：本项目定位为「自建服务端 + 个人设备使用」的非商业工具，强传染性许可证可防止闭源商用套壳，并与主流自建服务生态（AdGuard Home、AdAway 等同为 GPL-3.0）保持一致。如需其他授权安排，请联系作者。
