@@ -52,6 +52,7 @@ import com.qingqi.adskip.ui.components.SectionCard
 import com.qingqi.adskip.ui.components.SectionHint
 import com.qingqi.adskip.ui.components.SectionTitle
 import com.qingqi.adskip.ui.theme.Spacing
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import com.qingqi.adskip.ui.vendorLabelRes
 import java.util.Locale
 
@@ -121,6 +122,7 @@ fun SettingsContent(
                 subtitle = stringResource(R.string.settings_language_hint),
                 value = stringResource(state.language.labelRes()),
                 onClick = { pickingLanguage = true },
+                icon = AdSkipIcons.Globe,
             )
         }
 
@@ -221,12 +223,14 @@ fun SettingsContent(
                 title = stringResource(R.string.settings_auto_sync),
                 checked = state.autoSync,
                 onCheckedChange = viewModel::setAutoSync,
+                icon = AdSkipIcons.Clock,
             )
             HorizontalDivider(Modifier.padding(vertical = Spacing.sm))
             LabeledSwitch(
                 title = stringResource(R.string.settings_dnd),
                 checked = state.dndEnabled,
                 onCheckedChange = viewModel::setDndEnabled,
+                icon = AdSkipIcons.Moon,
             )
             Spacer(Modifier.height(Spacing.md))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

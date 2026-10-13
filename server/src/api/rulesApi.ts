@@ -128,7 +128,7 @@ export const v0_skip: Handler = async (req, _url, ctx) => {
   }
   const ev = cleanReportEvent(parsed);
   if (!ev) return errorJson(400, "invalid skip payload");
-  recordSkip(ev.pkg, String(parsed.label ?? ev.pkg).slice(0, 256), ev.channel);
+  recordSkip(ev.pkg, ev.label, ev.channel);
   return jsonResponse({ ok: true });
 };
 
@@ -153,7 +153,7 @@ export const v1_batchReport: Handler = async (req, _url, ctx) => {
     return errorJson(429, "rate limited");
   }
   for (const ev of cleaned.events) {
-    recordSkip(ev.pkg, ev.pkg, ev.channel);
+    recordSkip(ev.pkg, ev.label, ev.channel);
   }
   return jsonResponse({ ok: true, accepted: cleaned.events.length });
 };
