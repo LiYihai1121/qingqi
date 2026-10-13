@@ -18,7 +18,7 @@ navigationCompose = "2.10.2"
 
 # 测试
 junit = "4.13.2"
-orgjson = "20240303"                 # 单测用真实 org.json 实现（AGP android.jar 桩在 returnDefaultValues 下全返回默认值）
+orgjson = "20260814"                 # 单测用真实 org.json 实现（AGP android.jar 桩在 returnDefaultValues 下全返回默认值）
 
 # 安全存储
 securityCrypto = "1.1.0"
