@@ -13,11 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -50,10 +45,11 @@ import com.qingqi.adskip.ui.onboarding.OnboardingScreen
 import com.qingqi.adskip.ui.profile.ProfileScreen
 import com.qingqi.adskip.ui.rules.RulesScreen
 import com.qingqi.adskip.ui.theme.AdSkipTheme
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import com.qingqi.adskip.ui.theme.screenContentWidth
 
 /**
- * 唯一 Activity：承载 Navigation Compose 导航的四个页面。
+ * 唯一 Activity：承载 Navigation Compose 导航的全部页面。
  *
  * 旧架构的四个 View 页面（MainActivity / AppListActivity / LogsActivity /
  * SettingsActivity）合并为本单 Activity + Compose 架构。
@@ -102,23 +98,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** 一级目的地：底部导航栏的唯一数据源。 */
-private data class TopLevelDestination(val route: String, val labelRes: Int, val icon: ImageVector)
+/**
+ * 一级目的地：底部导航栏的唯一数据源。
+ *
+ * 图标成对携带（描边 + 实心）：未选中用描边、选中用实心，再叠加
+ * `NavigationBarItemDefaults` 的指示器底色——形状与颜色双重编码，
+ * 色觉障碍用户也能分辨当前页。
+ */
+private data class TopLevelDestination(
+    val route: String,
+    val labelRes: Int,
+    val icon: ImageVector,
+    val iconSelected: ImageVector,
+)
 
 private val TopLevelDestinations = listOf(
-    TopLevelDestination(Routes.HOME, R.string.nav_home, Icons.Filled.Home),
-    TopLevelDestination(Routes.LOGS, R.string.nav_logs, Icons.Filled.DateRange),
-    TopLevelDestination(Routes.RULES, R.string.nav_rules, Icons.AutoMirrored.Filled.List),
-    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, Icons.Filled.Person),
+    TopLevelDestination(Routes.HOME, R.string.nav_home, AdSkipIcons.Home, AdSkipIcons.HomeFilled),
+    TopLevelDestination(Routes.APPS, R.string.nav_apps, AdSkipIcons.Apps, AdSkipIcons.AppsFilled),
+    TopLevelDestination(Routes.LOGS, R.string.nav_logs, AdSkipIcons.Logs, AdSkipIcons.LogsFilled),
+    TopLevelDestination(Routes.RULES, R.string.nav_rules, AdSkipIcons.Rules, AdSkipIcons.RulesFilled),
+    TopLevelDestination(Routes.PROFILE, R.string.nav_profile, AdSkipIcons.Profile, AdSkipIcons.ProfileFilled),
 )
 
 /**
  * 应用外壳：底部导航栏 + 导航容器。
  *
- * 把 `Scaffold` 提到这里之后，四个页面都不再自带 `Scaffold`，
+ * 把 `Scaffold` 提到这里之后，各页面都不再自带 `Scaffold`，
  * inset（状态栏 / 导航栏 / 输入法）由本层一次性分发，页面只管内容。
  *
- * 转场只保留淡入淡出：四个目的地是**同级 tab**，不是层级导航。
+ * 转场只保留淡入淡出：底部导航各目的地是**同级 tab**，不是层级导航。
  * 水平滑动暗示「进入下一层」，在 tab 切换时会给出错误的深度感；
  * 只有将来真的出现「列表 → 详情」这类二级页面时，才应恢复方向性转场。
  */
@@ -148,7 +156,7 @@ private fun AdSkipShell() {
         }
     }
 
-    // Snackbar 宿主放在外壳：四个页面共用一个 host，消息按顺序排队，
+    // Snackbar 宿主放在外壳：各页面共用一个 host，消息按顺序排队，
     // 不再像 Toast 那样「后一条顶掉前一条」。Messenger 显式传参给需要它的页面，
     // 不用 CompositionLocal——依赖写在签名上，比隐式查找更容易发现遗漏。
     Scaffold(
@@ -176,7 +184,7 @@ private fun AdSkipShell() {
                             },
                             icon = {
                                 Icon(
-                                    imageVector = destination.icon,
+                                    imageVector = if (selected) destination.iconSelected else destination.icon,
                                     // null 而非 labelRes：下方 label 已渲染同一文案，
                                     // 给图标再挂一次会让读屏把每个 tab 名念两遍。
                                     contentDescription = null,

@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -44,6 +40,7 @@ import com.qingqi.adskip.ui.components.PageHeader
 import com.qingqi.adskip.ui.components.TwoLineRow
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -115,7 +112,7 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
                 enabled = state.logs.isNotEmpty(),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = AdSkipIcons.Delete,
                     contentDescription = null,
                     modifier = Modifier.size(UiSizes.inlineIcon),
                 )
@@ -146,7 +143,7 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
                 enabled = state.logs.isNotEmpty(),
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    imageVector = AdSkipIcons.Share,
                     contentDescription = null,
                     modifier = Modifier.size(UiSizes.inlineIcon),
                 )
@@ -184,15 +181,17 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
         if (state.logs.isEmpty()) {
             EmptyState(
                 // 此前用 Check（勾号）表示「暂无记录」：勾号在语义上是「已完成」，
-                // 与「还没有记录」正好相反，会让用户怀疑自己看错了。改用中性列表符号。
-                icon = Icons.AutoMirrored.Filled.List,
+                // 与「还没有记录」正好相反。EmptyLogs 用品牌 HUD 取景框承载「记录区为空」。
+                icon = AdSkipIcons.EmptyLogs,
                 title = stringResource(R.string.logs_empty),
                 subtitle = stringResource(R.string.logs_empty_hint),
                 modifier = Modifier.fillMaxSize(),
             )
         } else if (visibleLogs.isEmpty()) {
             EmptyState(
-                icon = Icons.AutoMirrored.Filled.List,
+                // 筛选空态是「该时间范围内没有记录」：时钟比列表符号更贴合成因
+                // （记录存在，只是不落在所选时间段里）。
+                icon = AdSkipIcons.Clock,
                 title = stringResource(R.string.logs_filter_empty),
                 subtitle = stringResource(R.string.logs_empty_hint),
                 modifier = Modifier.fillMaxSize(),

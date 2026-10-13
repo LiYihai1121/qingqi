@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.qingqi.adskip.R
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
+import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 
 /** First-run introduction. It explains capabilities but never enables permissions without consent. */
 @Composable
@@ -52,13 +50,13 @@ fun OnboardingScreen(onStart: () -> Unit) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = AdSkipIcons.Shield,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(UiSizes.onboardingShield),
                 )
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = AdSkipIcons.Bolt,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(UiSizes.onboardingBolt),
@@ -89,10 +87,10 @@ fun OnboardingScreen(onStart: () -> Unit) {
                 modifier = Modifier.padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_smart)
-                FeatureRow(Icons.Default.Lock, R.string.onboarding_feature_secure)
-                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_sync)
-                FeatureRow(Icons.Default.CheckCircle, R.string.onboarding_feature_local)
+                FeatureRow(AdSkipIcons.Search, R.string.onboarding_feature_smart)
+                FeatureRow(AdSkipIcons.Shield, R.string.onboarding_feature_secure)
+                FeatureRow(AdSkipIcons.Server, R.string.onboarding_feature_sync)
+                FeatureRow(AdSkipIcons.Logs, R.string.onboarding_feature_local)
             }
         }
 

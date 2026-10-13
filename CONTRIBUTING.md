@@ -491,8 +491,8 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 - 配置 `main`、`release/*` 分支保护和 CODEOWNERS；
 - 配置必需状态检查、审批人数、旧审批失效和合并后删分支；将 `ktlintCheck` 纳入必需状态检查；
 - 禁止管理员绕过（bypass）——留后门等于没有门禁；
-- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 未配置而 [SECURITY.md](SECURITY.md) 有声明，属待对齐项）；
-- 开启 Dependabot/Renovate，依赖升级走 PR 并保留 lockfile；
+- 保护规则实配基线以 `gh api repos/<owner>/<repo>/branches/main/protection` 回显为准，随季度流程审计复核并登记偏差（当前已知：审批与 CODEOWNERS 强制暂缺，见[Pull Request 门禁](#pull-request-门禁)的单维护者例外；`.github/dependabot.yml` 已配置（GitHub Actions、Gradle、Bun 与 pre-commit）；仍需定期确认自动 PR 正常运行并审计升级结果）；
+- `.github/dependabot.yml` 已配置 GitHub Actions、Gradle、Bun 与 pre-commit 的每周更新；维护者需定期检查 Dependabot PR、锁文件变更、兼容性与安全公告，不得把「配置存在」等同于「升级治理已完成」；
 - 发布凭据使用 CI Secret/OIDC，禁止写入仓库和日志；
 - 版本 tag 目标为带签名（GPG / sigstore），CI 制品目标生成 SBOM 与 provenance attestation（见[供应链与可追溯](#供应链与可追溯slsa-对齐)）；
 - 制品保留周期与回滚窗口明确：至少保留最近两个 stable 与全部 rc，便于回到最近 green tag；

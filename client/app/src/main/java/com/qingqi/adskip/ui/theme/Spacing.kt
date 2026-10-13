@@ -59,6 +59,9 @@ object UiSizes {
     /** 行内次要图标边长（日志行状态点等） */
     val inlineIcon = 18.dp
 
+    /** 设置行/链接行的主图标边长（M3 列表行图标的标准尺寸） */
+    val rowIcon = 24.dp
+
     /** 首次引导页品牌标记边长 */
     val onboardingLogo = 88.dp
 
