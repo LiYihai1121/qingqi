@@ -12,8 +12,8 @@
 
 ## 版本起点声明
 
-- **新仓版本起点是 `v1.0.0`**：2026-10-13 仓库历史重置（`推倒重来`），原 `.git` 备份至 `.git-backup-20261013-224952`（未推远端），新仓以单次初始提交重建。SemVer 自 `1.0.0` 起重新计数，新仓不继承旧版本号、不移动旧 tag。
-- **重置前的产品历史**（`v2.0.0`–`v3.4.2`，含 15 个 tag、GitHub Release 与已发布 APK 制品）完整保留在备份 `.git-backup-20261013-224952` 与远端 `LiYihai1121/ui-app` 旧仓；旧仓远端未受本次重置影响（force-push 是单独的不可逆动作，未执行）。
+- **新仓版本起点是 `v1.0.0`**：2026-10-13 仓库历史重置（`推倒重来`），原 `.git` 备份至**仓库同级目录** `F:\LocaRepository\ui-app.git-backup-20261013-224952`（未推远端；注意不是仓库内的 `.git-backup-*`，2026-10-16 核实），新仓以单次初始提交重建。SemVer 自 `1.0.0` 起重新计数，新仓不继承旧版本号、不移动旧 tag。
+- **重置前的产品历史**（`v2.0.0`–`v3.4.2`，含 15 个 tag、GitHub Release 与已发布 APK 制品）完整保留在备份 `ui-app.git-backup-20261013-224952` 与远端 `LiYihai1121/ui-app` 旧仓；旧仓远端未受本次重置影响（force-push 是单独的不可逆动作，未执行）。
 - **`versionCode` 连续性**：Android `versionCode` 不随 git 历史重置而回退——Play Store 要求单调递增，已装用户需能从旧版（末版 `v3.4.2` = 16）升级。故新仓 `v1.0.0` 的 `versionCode = 17`，承接重置前末版继续递增；`versionName` 则随 SemVer 重置为 `1.0`。
 - **本版本承载内容**：AdSkip 全部既有功能 + 重置前已合入但未随版发布的两项加固（v1 批量上报事件 `label` 字段、上报通道证书锁定 fail-closed），详见 [CHANGELOG.md](../../CHANGELOG.md) `[1.0.0]`。
 
@@ -22,6 +22,7 @@
 | 版本 | Git tag | 对应提交 | GitHub Release | 状态 |
 | --- | --- | --- | --- | --- |
 | `1.0.0` | `v1.0.0` | 切版提交（见 tag `v1.0.0`） | 未创建（本地切版，远端未挂） | 已切版（本地 annotated tag，`versionCode = 17`、`versionName = 1.0`、`server = 1.0.0`；`assembleDebug` 产出 `app-debug.apk` 约 14 MB，未签名 Release 制品待远端发布链路产出） |
+| `1.0.1` | 待创建 | 待填写 | 待创建 | **待发布**（切版提交 `versionCode = 18`、`versionName = 1.0`、`server = 1.0.1`；承载 v1.0.0 后实测的两处跳过链路缺陷修复，详见 [CHANGELOG.md](../../CHANGELOG.md) `[1.0.1]`。tag 创建后补填提交与制品信息） |
 
 Release list 的维护要求：版本变更、tag、合并提交和 GitHub Release 必须一一对应；tag 创建后补填实际提交，GitHub Release 创建后补填链接、制品和校验和。未完成任一项时，状态必须明确标记为“待发布”“未创建”或“制品待补传”，不得写成“已发布”。
 
