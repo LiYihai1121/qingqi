@@ -3,18 +3,26 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- 站点图标与 App 图标同源（薄荷绿圆角方 + 白色羽毛箭头）；服务端只路由 / 与 /admin，
+     不提供 public/ 静态文件，故用 data URI 内联（CSP img-src 已放行 data:）。 -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20width='24'%20height='24'%20rx='5'%20fill='%2357E08E'/%3E%3Cpath%20d='M18.00%2C6.13%20L14.20%2C7.24%20L13.85%2C7.59%20L14.02%2C7.85%20L16.45%2C7.95%20L16.41%2C8.09%20L15.33%2C8.64%20L12.00%2C9.45%20L10.88%2C9.91%20L9.77%2C10.88%20L9.23%2C11.98%20L9.45%2C10.64%20L8.67%2C11.09%20L7.90%2C11.86%20L7.43%2C12.66%20L7.17%2C14.27%20L6.73%2C13.17%20L6.26%2C14.62%20L6.49%2C16.31%20L5.23%2C18.33%20L5.30%2C18.81%20L5.53%2C18.77%20L6.61%2C17.66%20L7.69%2C17.13%20L10.22%2C16.99%20L12.05%2C16.57%20L13.69%2C15.73%20L15.07%2C14.39%20L15.91%2C12.89%20L16.22%2C11.14%20L14.91%2C12.12%20L9.84%2C14.51%20L6.54%2C17.02%20L7.88%2C15.45%20L9.47%2C14.23%20L15.38%2C11.13%20L16.34%2C10.12%20L17.02%2C8.81%20L17.38%2C11.11%20L17.53%2C11.32%20L17.77%2C11.27%20L18.45%2C9.66%20L18.77%2C6.84%20L18.63%2C6.33%20L18.05%2C6.12%20Z'%20fill='%23fff'/%3E%3C/svg%3E" />
 <title>轻启 · 自动跳过开屏广告</title>
 <style>
   :root {
-    --brand: #1565C0;
-    --brand-dark: #0D47A1;
-    --brand-light: #E8F0FE;
+    /* 品牌色 = 薄荷绿（来自 2026-10 设计稿「轻羽掠影」，与 App 图标 / App 主题同源）。
+       --brand 是界面主色：取薄荷绿压暗后的深绿 #1D7C43——#57E08E 本身太亮
+       （白字对比度仅 1.7:1），压暗后白字达 5.2:1，按钮与链接才可读；
+       --brand-mint 是标识色，只用于图标磁贴，保住与桌面图标一致的亮薄荷。 */
+    --brand: #1D7C43;
+    --brand-dark: #176336;
+    --brand-light: #EBF9F1;
+    --brand-mint: #57E08E;
     --bg: #FFFFFF;
-    --bg-soft: #F7F9FC;
+    --bg-soft: #F6F9F7;
     --text: #1F2937;
-    --text-2: #6B7280;
-    --text-3: #9CA3AF;
-    --border: #E8ECF1;
+    --text-2: #667069;
+    --text-3: #98A29B;
+    --border: #E6EDE8;
     --green: #2E7D32;
     --radius: 14px;
   }
@@ -39,7 +47,7 @@
   nav .wrap { display: flex; align-items: center; height: 60px; gap: 28px; }
   .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
   .logo .icon {
-    width: 30px; height: 30px; border-radius: 8px; background: var(--brand);
+    width: 30px; height: 30px; border-radius: 8px; background: var(--brand-mint);
     display: flex; align-items: center; justify-content: center;
   }
   .logo .icon svg { width: 18px; height: 18px; }
@@ -53,9 +61,9 @@
   }
   .btn:active { transform: scale(.97); }
   .btn-primary { background: var(--brand); color: #fff; }
-  .btn-primary:hover { background: var(--brand-dark); box-shadow: 0 6px 18px rgba(21,101,192,.28); }
+  .btn-primary:hover { background: var(--brand-dark); box-shadow: 0 6px 18px rgba(29,124,67,.28); }
   .btn-ghost { background: var(--brand-light); color: var(--brand); }
-  .btn-ghost:hover { background: #D8E6FA; }
+  .btn-ghost:hover { background: #DFF4EA; }
 
   /* ---------- Hero ---------- */
   .hero { padding: 88px 0 96px; }
@@ -220,7 +228,7 @@
   <div class="wrap">
     <div class="logo">
       <span class="icon">
-        <svg viewBox="0 0 24 24" fill="#fff"><path d="M5 6l8 6-8 6V6zm10 0h3v12h-3V6z"/></svg>
+        <svg viewBox="0 0 24 24" fill="#fff"><path d="M18.00,6.13 L14.20,7.24 L13.85,7.59 L14.02,7.85 L16.45,7.95 L16.41,8.09 L15.33,8.64 L12.00,9.45 L10.88,9.91 L9.77,10.88 L9.23,11.98 L9.45,10.64 L8.67,11.09 L7.90,11.86 L7.43,12.66 L7.17,14.27 L6.73,13.17 L6.26,14.62 L6.49,16.31 L5.23,18.33 L5.30,18.81 L5.53,18.77 L6.61,17.66 L7.69,17.13 L10.22,16.99 L12.05,16.57 L13.69,15.73 L15.07,14.39 L15.91,12.89 L16.22,11.14 L14.91,12.12 L9.84,14.51 L6.54,17.02 L7.88,15.45 L9.47,14.23 L15.38,11.13 L16.34,10.12 L17.02,8.81 L17.38,11.11 L17.53,11.32 L17.77,11.27 L18.45,9.66 L18.77,6.84 L18.63,6.33 L18.05,6.12 Z"/></svg>
       </span>
       轻启
     </div>

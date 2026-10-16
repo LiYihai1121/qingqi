@@ -231,7 +231,7 @@ fun HomeScreen(
  * 避免旧版把说明和操作混在一句长文本里。
  *
  * 渐变底只取主题角色色（primaryContainer → surfaceContainerLow）：
- * 蓝调中性延续品牌色相，且深浅两套主题各自成立；不引入色值字面量。
+ * 绿调中性延续品牌色相，且深浅两套主题各自成立；不引入色值字面量。
  * 环仍用 56dp（`UiSizes.statusOrb`）横排在左——v3.2 压缩首屏高度的结论继续成立。
  */
 @Composable

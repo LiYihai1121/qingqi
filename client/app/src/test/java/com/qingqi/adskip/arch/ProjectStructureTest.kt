@@ -661,6 +661,7 @@ class ProjectStructureTest {
             ".workbuddy", // 同族工具目录
             ".workbuddy-ai", // 同族工具目录（WorkBuddy AI 的落点，与 .workbuddy 不同名）
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
+            ".designkit-history-delivery", // 美图设计室 AI设计 CLI（designkit）按 cwd 落的房间历史缓存，不入库
             ".vscode", // 编辑器共享配置（选择性入库，规则见 VSCODE_SHARED_FILES）
         )
 
@@ -731,7 +732,7 @@ class ProjectStructureTest {
             ".git", "node_modules", "build", ".gradle", ".kotlin", ".idea", ".vscode",
             "captures", ".tools", "signing", "dist", "out", "target", "release", "bin",
             ".mimosa", ".workbuddy", ".workbuddy-ai", ".kilo", ".kilocode", ".worktrees", ".agents",
-            ".cursor",
+            ".cursor", ".designkit-history-delivery",
             ".cxx", ".externalNativeBuild", "data",
         )
 

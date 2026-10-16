@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  启动器图标背景层（Tech V4）：深空暗色 + 电路纹理 + 中心光晕。
+  启动器图标背景层（品牌版 · 薄荷绿渐变）。
 
-  设计语言（科技感）：
-  - 深空基底：#060A1A → #0D1228，营造「暗色科技」氛围；
-  - 电路网格：极细线条（12dp 间距，3% 不透明度），暗示数据流动与精密工程；
-  - 中心光晕：#1A3A8A 径向发光，为前景的霓虹符号提供「光源」暗示；
-  - 四角压暗：光线自然衰减，增加纵深感。
+  设计语言（与美图设计室 2026-10 交付的「方案2 · 轻羽掠影」一致）：
+  - 品牌主色 #57E08E：直接采样自设计源图，四角 32×32 patch 标准差 <1.2，
+    确认源图背景为纯色，故以此为品牌底色基准；
+  - 纵向两段渐变 #66E89C → #47D383：纯色在大尺寸桌面图标上显得平板，
+    加 4% 左右的明度跨度即可获得质感，又不破坏品牌色识别；
+  - 不再保留 Tech V4 的电路网格：新标识是扁平单色剪影，网格纹理会与它争夺注意力。
+
+  前景层为 drawable-nodpi/ic_launcher_foreground_logo.png（白色羽毛箭头），
+  由 2048px 设计源图按 108dp 画布的 60% 安全区提取，边缘带抗锯齿 alpha。
+  改品牌色请改本文件的 gradient item，不要回 values/colors.xml 加同名颜色
+  （该处只保留被引用的资源色，避免第二份真相）。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
@@ -15,42 +21,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 基底：深空径向渐变 -->
     <path android:pathData="M0,0 h108 v108 h-108 z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:type="radial"
-                android:centerX="54" android:centerY="48"
-                android:gradientRadius="80">
-                <item android:offset="0" android:color="#0D1228" />
-                <item android:offset="0.5" android:color="#080C1E" />
-                <item android:offset="1" android:color="#04060F" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- 电路网格：水平线 -->
-    <path android:pathData="M0,12 h108 M0,24 h108 M0,36 h108 M0,48 h108 M0,60 h108 M0,72 h108 M0,84 h108 M0,96 h108"
-        android:strokeColor="#1A3A8A" android:strokeWidth="0.3" android:fillColor="#00000000" />
-
-    <!-- 电路网格：垂直线 -->
-    <path android:pathData="M12,0 v108 M24,0 v108 M36,0 v108 M48,0 v108 M60,0 v108 M72,0 v108 M84,0 v108 M96,0 v108"
-        android:strokeColor="#1A3A8A" android:strokeWidth="0.3" android:fillColor="#00000000" />
-
-    <!-- 电路节点：十字交叉点高亮 -->
-    <path android:pathData="M24,24 l2,0 M24,24 l0,2 M60,36 l2,0 M60,36 l0,2 M36,60 l2,0 M36,60 l0,2 M72,72 l2,0 M72,72 l0,2 M48,48 l2,0 M48,48 l0,2 M84,24 l2,0 M84,24 l0,2"
-        android:strokeColor="#2955B0" android:strokeWidth="0.5" android:fillColor="#00000000" />
-
-    <!-- 中心光晕：为前景霓虹符号提供光源 -->
-    <path android:pathData="M54,48 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="54" android:centerY="48"
-                android:gradientRadius="28">
-                <item android:offset="0" android:color="#1A3A8A" />
-                <item android:offset="0.6" android:color="#0D1A40" />
-                <item android:offset="1" android:color="#00000000" />
+                android:type="linear"
+                android:startX="54" android:startY="0"
+                android:endX="54" android:endY="108">
+                <item android:offset="0" android:color="#66E89C" />
+                <item android:offset="1" android:color="#47D383" />
             </gradient>
         </aapt:attr>
     </path>
