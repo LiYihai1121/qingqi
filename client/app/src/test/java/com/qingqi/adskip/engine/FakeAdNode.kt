@@ -36,7 +36,18 @@ class FakeAdNode(
     }
 
     override fun children(): List<AdNode> = childList.toList()
-    override fun clickableParent(): AdNode? = null
+    override fun clickableParent(): AdNode? {
+        // 与 FrameworkAdNode 完全同构：从自身起沿父链找可点击节点，最多 4 次
+        // 判定（自身 + 3 层祖先）。返回 null 表示不存在可点击路径。
+        var current: FakeAdNode? = this
+        var depth = 0
+        while (current != null && depth < 4) {
+            if (current.isClickable) return current
+            current = current.parentNode
+            depth++
+        }
+        return null
+    }
     override fun centerX(): Float = cx
     override fun centerY(): Float = cy
     override fun boundsWidth(): Int = w

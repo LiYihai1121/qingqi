@@ -6,6 +6,7 @@ import com.qingqi.adskip.core.AppExecutors
 import com.qingqi.adskip.core.Clock
 import com.qingqi.adskip.core.SystemClockAdapter
 import com.qingqi.adskip.data.Prefs
+import com.qingqi.adskip.data.PrefsRulesStore
 import com.qingqi.adskip.data.PrefsStatsStore
 import com.qingqi.adskip.data.RulesRepository
 import com.qingqi.adskip.data.SettingsRepository
@@ -22,7 +23,10 @@ class AppContainer(val app: Application, context: Context) {
     val clock: Clock = SystemClockAdapter
     val executors = AppExecutors()
     val prefs = Prefs // object 单例，不需构造
-    val rulesRepo = RulesRepository(context.applicationContext)
+
+    // 规则的落盘端口显式注入：RulesRepository 只负责合并/校验/缓存失效，
+    // 存储实现可替换（单测用假实现）；云端落地经 replaceAllRules 单次原子提交
+    val rulesRepo = RulesRepository(PrefsRulesStore(context.applicationContext))
 
     // 统计的落盘端口显式注入：StatsRepository 只负责累加，存储实现可替换（单测用假实现）
     val statsRepo = StatsRepository(PrefsStatsStore(context.applicationContext), executors.io)

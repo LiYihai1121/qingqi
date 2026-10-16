@@ -17,6 +17,8 @@ package com.qingqi.adskip.engine
  *   在支付页面里点的场景——那一类场景的代价是资金损失）
  * - 敏感系统界面整包拒绝（授权/安装/设置类界面不参与自动点击）
  * - 合法性校验（必须可见、面积 > 0）
+ * - 可点击路径校验（自身可点击，或沿父链存在可点击祖先）——纯文本行不再被
+ *   坐标手势兜底误点（2026-10-11 实测：设置页服务行被点落库即此类）
  */
 object SafetyGuard {
 
@@ -108,6 +110,12 @@ object SafetyGuard {
         // 合法性校验：必须可见且面积 > 0
         if (!node.isVisible) return false
         if (node.boundsWidth() <= 0 || node.boundsHeight() <= 0) return false
+
+        // 可点击路径校验：与 clickNode 的点击链一致——节点自身可点击，或沿父链
+        // （最多 4 层）存在可点击祖先。纯文本行（自身不可点击且无任何可点击
+        // 祖先）此前会落入坐标手势兜底、把任意位置的 UI 点掉；广告跳过按钮
+        // 均为可点击节点或其容器可点击，正常跳过路径不受影响。
+        if (!node.isClickable && node.clickableParent() == null) return false
 
         // 黑名单检查：目标自身 + 父链文本，任一层命中即拦
         var current: AdNode? = node

@@ -109,37 +109,11 @@ object Prefs {
     fun getPkgKeywords(context: Context, pkg: String): List<String> =
         sp(context).getStringSet(PREFIX_PKG_KEYWORDS + pkg, null)?.toList() ?: emptyList()
 
-    fun savePkgKeywords(context: Context, pkg: String, list: List<String>) {
-        sp(context).edit().putStringSet(PREFIX_PKG_KEYWORDS + pkg, list.toSet()).apply()
-    }
-
     fun getPkgViewIds(context: Context, pkg: String): List<String> =
         sp(context).getStringSet(PREFIX_PKG_VIEW_IDS + pkg, null)?.toList() ?: emptyList()
 
-    fun savePkgViewIds(context: Context, pkg: String, list: List<String>) {
-        sp(context).edit().putStringSet(PREFIX_PKG_VIEW_IDS + pkg, list.toSet()).apply()
-    }
-
     fun getPkgSelectors(context: Context, pkg: String): List<String> =
         sp(context).getStringSet(PREFIX_PKG_SELECTORS + pkg, null)?.toList() ?: emptyList()
-
-    fun savePkgSelectors(context: Context, pkg: String, list: List<String>) {
-        sp(context).edit().putStringSet(PREFIX_PKG_SELECTORS + pkg, list.toSet()).apply()
-    }
-
-    /** 清空所有云端下发的应用专属规则，用于同步时先做完整覆盖。 */
-    fun clearAllPkgRules(context: Context) {
-        val prefs = sp(context)
-        val editor = prefs.edit()
-        for (key in prefs.all.keys) {
-            if (key.startsWith(PREFIX_PKG_KEYWORDS) || key.startsWith(PREFIX_PKG_VIEW_IDS) ||
-                key.startsWith(PREFIX_PKG_SELECTORS)
-            ) {
-                editor.remove(key)
-            }
-        }
-        editor.apply()
-    }
 
     fun isPackageDisabled(context: Context, pkg: String): Boolean =
         sp(context).getStringSet(KEY_DISABLED, emptySet())?.contains(pkg) == true
@@ -150,8 +124,43 @@ object Prefs {
         sp(context).edit().putStringSet(KEY_DISABLED, set).apply()
     }
 
-    fun replaceDisabledPackages(context: Context, list: List<String>) {
-        sp(context).edit().putStringSet(KEY_DISABLED, list.toSet()).apply()
+    /**
+     * 云端规则整体落地——**唯一的多键规则写入路径**（经 [RulesStore.replaceAllRules] 调用）。
+     *
+     * 单次 edit 原子提交全部键：此前 [RulesRepository.applyCloudRules] 拆成
+     * 关键词/viewIds/selectors/清旧包规则/逐包保存/禁用列表六次独立提交，进程在
+     * 任两次之间死亡就会留下「半新半旧」的混合规则（新关键词配旧禁用列表），
+     * 且无法自愈（下一次同步以 hash 相同为由跳过）。一次 edit 内完成所有键的
+     * 增删改，SharedPreferences 保证整批原子落盘：要么全落地，要么保持旧版。
+     */
+    fun replaceAllRules(
+        context: Context,
+        keywords: List<String>,
+        viewIds: List<String>,
+        selectors: List<String>,
+        pkgRules: Map<String, CloudPkgRule>,
+        disabled: List<String>,
+    ) {
+        val prefs = sp(context)
+        val editor = prefs.edit()
+        editor.putString(KEY_KEYWORDS_JSON, stringListToJson(keywords.filter { it.isNotBlank() }.distinct()))
+        editor.putString(KEY_VIEW_IDS_JSON, stringListToJson(viewIds.filter { it.isNotBlank() }.distinct()))
+        editor.putString(KEY_GLOBAL_SELECTORS_JSON, stringListToJson(selectors.filter { it.isNotBlank() }.distinct()))
+        // 旧云端包规则键先在同一次 edit 内全部摘除，再写入新集合，杜绝「旧包残留」
+        for (key in prefs.all.keys) {
+            if (key.startsWith(PREFIX_PKG_KEYWORDS) || key.startsWith(PREFIX_PKG_VIEW_IDS) ||
+                key.startsWith(PREFIX_PKG_SELECTORS)
+            ) {
+                editor.remove(key)
+            }
+        }
+        for ((pkg, rule) in pkgRules) {
+            editor.putStringSet(PREFIX_PKG_KEYWORDS + pkg, rule.keywords.toSet())
+            editor.putStringSet(PREFIX_PKG_VIEW_IDS + pkg, rule.viewIds.toSet())
+            editor.putStringSet(PREFIX_PKG_SELECTORS + pkg, rule.selectors.toSet())
+        }
+        editor.putStringSet(KEY_DISABLED, disabled.toSet())
+        editor.apply()
     }
 
     // ---------- 统计 ----------

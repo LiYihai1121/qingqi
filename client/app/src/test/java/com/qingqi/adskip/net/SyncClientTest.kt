@@ -11,6 +11,8 @@ import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -42,9 +44,12 @@ class SyncClientTest {
         server.start()
 
         // 注入信任测试证书的客户端；生产连接仍使用平台信任链与配置的证书 pin。
+        // retryOnConnectionFailure(false)：让连接失败直接抛 IOException（而非重试），
+        // 使「网络层异常才回退 v0」的行为在测试中确定可观测。
         SyncClient.testClient = okhttp3.OkHttpClient.Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)
             .certificatePinner(okhttp3.CertificatePinner.Builder().build())
             .sslSocketFactory(clientCertificates.sslSocketFactory(), clientCertificates.trustManager)
             .build()
@@ -256,9 +261,10 @@ class SyncClientTest {
     }
 
     @Test
-    fun `reportSkip falls back to v0 on v1 failure`() {
+    fun `reportSkip does not fall back to v0 on http status error`() {
+        // §6.5：v1 返回 5xx 时服务端已处理过请求，不再回退 v0——
+        // 回退会让同一跳过事件双份入库、统计计数虚增
         server.enqueue(MockResponse().setResponseCode(500))
-        server.enqueue(MockResponse().setResponseCode(200))
 
         SyncClient.reportSkip(
             server.url("/").toString(),
@@ -270,10 +276,52 @@ class SyncClientTest {
 
         val req1 = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/v1/reports/batch", req1.path)
+        // 不应产生 v0 请求（给 1s 窗口确认没有回退）
+        assertNull(server.takeRequest(1, TimeUnit.SECONDS))
+    }
 
-        val req2 = server.takeRequest(2, TimeUnit.SECONDS)!!
-        assertEquals("/api/skip", req2.path)
-        val body = JSONObject(req2.body.readUtf8())
+    @Test
+    fun `reportSkip does not fall back to v0 on rate limit`() {
+        // 429 同样是「服务端已处理」——回退会绕过 v1 的 deviceId 限频口径
+        server.enqueue(MockResponse().setResponseCode(429))
+
+        SyncClient.reportSkip(
+            server.url("/").toString(),
+            "com.test.app",
+            "skip",
+            "device-123",
+            emptyList(),
+        )
+
+        val req1 = server.takeRequest(2, TimeUnit.SECONDS)!!
+        assertEquals("/api/v1/reports/batch", req1.path)
+        assertNull(server.takeRequest(1, TimeUnit.SECONDS))
+    }
+
+    @Test
+    fun `reportSkip falls back to v0 on network failure`() {
+        // 仅网络层异常回退 v0：DISCONNECT_AT_START 模拟连接建立即被拒，
+        // v1 请求根本没到服务端，此时 v0 单条上报是合理的补报通道
+        server.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START))
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        SyncClient.reportSkip(
+            server.url("/").toString(),
+            "com.test.app",
+            "skip",
+            "device-123",
+            emptyList(),
+        )
+
+        // 断连的连接可能先被记录为空请求（path 为 "/"），轮询直到 v0 回退请求出现
+        val deadline = System.currentTimeMillis() + 4000
+        var v0Request: okhttp3.mockwebserver.RecordedRequest? = null
+        while (System.currentTimeMillis() < deadline && v0Request == null) {
+            val recorded = server.takeRequest(1, TimeUnit.SECONDS)
+            if (recorded != null && recorded.path == "/api/skip") v0Request = recorded
+        }
+        assertNotNull("network failure must trigger v0 fallback", v0Request)
+        val body = JSONObject(v0Request!!.body.readUtf8())
         assertEquals("com.test.app", body.getString("pkg"))
         assertEquals("skip", body.getString("label"))
     }

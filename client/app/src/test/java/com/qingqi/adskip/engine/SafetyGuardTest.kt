@@ -21,7 +21,7 @@ class SafetyGuardTest {
 
     @Test
     fun `self package allowed only when caller opts in`() {
-        val node = FakeAdNode.node(text = "跳过")
+        val node = FakeAdNode.node(text = "跳过", clickable = true)
         assertTrue(SafetyGuard.canClick(node, "com.qingqi.adskip", allowSelfPackage = true))
     }
 
@@ -95,20 +95,65 @@ class SafetyGuardTest {
 
     @Test
     fun `valid node allowed`() {
-        val node = FakeAdNode.node(text = "跳过", width = 100, height = 50)
+        val node = FakeAdNode.node(text = "跳过", clickable = true, width = 100, height = 50)
         assertTrue(SafetyGuard.canClick(node, "com.example.app"))
     }
 
     @Test
     fun `skip text not blocked`() {
-        val node = FakeAdNode.node(text = "跳过广告")
+        val node = FakeAdNode.node(text = "跳过广告", clickable = true)
         assertTrue(SafetyGuard.canClick(node, "com.example.app"))
     }
 
     @Test
     fun `english skip not blocked`() {
-        val node = FakeAdNode.node(text = "Skip")
+        val node = FakeAdNode.node(text = "Skip", clickable = true)
         assertTrue(SafetyGuard.canClick(node, "com.example.app"))
+    }
+
+    // ---------- 可点击路径护栏（DESIGN-ARCH-REVIEW §6.3） ----------
+
+    /**
+     * 核心契约：纯文本行（自身不可点击、父链也无任何可点击祖先）不得通过护栏。
+     * 2026-10-11 实测的误跳即此类——此前会落入坐标手势兜底把任意 UI 点掉。
+     */
+    @Test
+    fun `plain text row without click path blocked`() {
+        val node = FakeAdNode.node(text = "跳过")
+        assertFalse(SafetyGuard.canClick(node, "com.example.app"))
+    }
+
+    /**
+     * 不回归：命中关键词的文本节点本身不可点击、但容器可点击时（真实跳过按钮
+     * 的常见形态），父链点击路径有效，护栏放行——与 clickNode 的点击链一致。
+     */
+    @Test
+    fun `text node with clickable ancestor allowed`() {
+        val button = FakeAdNode.node(text = "跳过", clickable = false)
+        val container = FakeAdNode.node(clickable = true, children = listOf(button))
+        assertTrue(SafetyGuard.canClick(container.children().first(), "com.example.app"))
+    }
+
+    /** 可点击祖先在 3 层内：放行（clickableParent 自检起共 4 次判定的上限内）。 */
+    @Test
+    fun `clickable ancestor within three levels allowed`() {
+        val target = FakeAdNode.node(text = "跳过")
+        var current: FakeAdNode = target
+        repeat(2) { current = FakeAdNode.node(children = listOf(current)) }
+        // 可点击祖先距 target 第 3 层
+        FakeAdNode.node(clickable = true, children = listOf(current))
+        assertTrue(SafetyGuard.canClick(target, "com.example.app"))
+    }
+
+    /** 可点击祖先距 target 第 4 层起不再计入（与 FrameworkAdNode.clickableParent 的 4 次判定上限一致）。 */
+    @Test
+    fun `clickable ancestor beyond three levels not counted`() {
+        val target = FakeAdNode.node(text = "跳过")
+        var current: FakeAdNode = target
+        repeat(3) { current = FakeAdNode.node(children = listOf(current)) }
+        // 可点击祖先距 target 第 4 层，超出上限 → 视为无点击路径
+        FakeAdNode.node(clickable = true, children = listOf(current))
+        assertFalse(SafetyGuard.canClick(target, "com.example.app"))
     }
 
     @Test
@@ -142,7 +187,7 @@ class SafetyGuardTest {
 
     @Test
     fun `unlabeled button without sensitive ancestors allowed`() {
-        val button = FakeAdNode.node()
+        val button = FakeAdNode.node(clickable = true)
         val card = FakeAdNode.node(text = "限时秒杀", children = listOf(button))
         assertTrue(SafetyGuard.canClick(card.children().first(), "com.example.app"))
     }
