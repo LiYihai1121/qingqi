@@ -161,15 +161,33 @@ object Prefs {
 
     fun getPkgSkipCount(context: Context, pkg: String): Int = sp(context).getInt(PREFIX_PKG_COUNT + pkg, 0)
 
-    fun recordSkip(context: Context, pkg: String, label: String): Int {
-        val total = getTotalSkips(context) + 1
-        sp(context).edit()
-            .putInt(KEY_TOTAL, total)
-            .putString(KEY_LAST_APP, label)
-            .putInt(PREFIX_PKG_COUNT + pkg, getPkgSkipCount(context, pkg) + 1)
-            .apply()
+    /**
+     * 追加一条跳过日志，并更新「最近跳过应用」。
+     *
+     * **刻意不写计数**：计数的唯一累加者是 [StatsRepository]，唯一落盘路径是
+     * [StatsRepository.flush] → [addSkipCounts]。此前这里也写了一次 `total_skips`
+     * 与 `pkg_count:*`，与 flush 的待落盘增量重复累加，真机表现为「单次跳过
+     * 首页显示 2、5 秒后 3」（2026-10-11 实测）。同一事实只能有一份真值源。
+     */
+    fun appendSkipLog(context: Context, pkg: String, label: String) {
+        sp(context).edit().putString(KEY_LAST_APP, label).apply()
         addLog(context, pkg, label)
-        return total
+    }
+
+    /**
+     * 批量累加跳过计数——**计数的唯一写入路径**（由 [StatsRepository.flush] 调用）。
+     *
+     * 一次性提交同一批增量，避免每个包各写一次 SP；读改写在同一处完成，
+     * 保证「已落盘值 + 增量」的语义与 [StatsRepository.total] 的读法一致。
+     */
+    fun addSkipCounts(context: Context, totalDelta: Int, pkgDeltas: Map<String, Int>) {
+        if (totalDelta == 0 && pkgDeltas.isEmpty()) return
+        val editor = sp(context).edit()
+        editor.putInt(KEY_TOTAL, getTotalSkips(context) + totalDelta)
+        for ((pkg, delta) in pkgDeltas) {
+            editor.putInt(PREFIX_PKG_COUNT + pkg, getPkgSkipCount(context, pkg) + delta)
+        }
+        editor.apply()
     }
 
     // ---------- 跳过日志 ----------
