@@ -659,6 +659,7 @@ class ProjectStructureTest {
             ".worktrees", // 多 Agent worktree 落点（AGENT-WORKFLOW 第 2.1 节强制约定）
             ".mimosa", // 同族工具目录
             ".workbuddy", // 同族工具目录
+            ".workbuddy-ai", // 同族工具目录（WorkBuddy AI 的落点，与 .workbuddy 不同名）
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
             ".vscode", // 编辑器共享配置（选择性入库，规则见 VSCODE_SHARED_FILES）
         )
@@ -729,7 +730,7 @@ class ProjectStructureTest {
         val PRUNED_DIRS = setOf(
             ".git", "node_modules", "build", ".gradle", ".kotlin", ".idea", ".vscode",
             "captures", ".tools", "signing", "dist", "out", "target", "release", "bin",
-            ".mimosa", ".workbuddy", ".kilo", ".kilocode", ".worktrees", ".agents",
+            ".mimosa", ".workbuddy", ".workbuddy-ai", ".kilo", ".kilocode", ".worktrees", ".agents",
             ".cursor",
             ".cxx", ".externalNativeBuild", "data",
         )

@@ -48,7 +48,8 @@ git worktree prune
 
 ### 2.2 忽略规则必须共享
 
-- Agent 产物与工作区目录（`.kilo/`、`.kilocode/`、`.worktrees/`、`.agents/`、`.mimosa/`、`.workbuddy/`）**必须**写在仓库根 `.gitignore`（已提交、全员可见）；
+- Agent 产物与工作区目录（`.kilo/`、`.kilocode/`、`.worktrees/`、`.agents/`、`.mimosa/`、`.workbuddy/`、`.workbuddy-ai/`）**必须**写在仓库根 `.gitignore`（已提交、全员可见）；
+  > 注：`.workbuddy/` 与 `.workbuddy-ai/` 是**两个不同目录**，`.workbuddy/` 的忽略规则不覆盖 `.workbuddy-ai/`，必须各自登记；
 - **禁止**只写本机 `.git/info/exclude`：该文件不进版本库、换机器就失效，且会制造「git 干净但文件检索仍命中」的双重真相；
 - 工具若自动往 `.git/info/exclude` 追加同类规则，**以 `.gitignore` 为准**，重复规则无害但不可作为唯一来源。
 
@@ -181,7 +182,7 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 
 | 检查 | 拦截的混乱 |
 | --- | --- |
-| 根 `.gitignore` 必须覆盖 `.mimosa/`、`.workbuddy/`、`.kilo/`、`.kilocode/`、`.worktrees/`、`.agents/` | 忽略规则只藏在本机 `exclude` 里，git 与工具「双重真相」 |
+| 根 `.gitignore` 必须覆盖 `.mimosa/`、`.workbuddy/`、`.workbuddy-ai/`、`.kilo/`、`.kilocode/`、`.worktrees/`、`.agents/` | 忽略规则只藏在本机 `exclude` 里，git 与工具「双重真相」 |
 | 仓库内不得存在「像仓库但没有 `.git`」的目录（无元数据整仓副本） | 检索结果翻倍、Agent 改错副本、成果丢失 |
 | `docs/README.md` 必须登记 `AGENT-WORKFLOW.md` | 新增文档未进文档地图（AGENTS 规则 CI 化） |
 | 当前分支名必须符合 `type/<id>-<slug>`（detached HEAD 放行） | 分支不可追踪、多人混用同一分支 |

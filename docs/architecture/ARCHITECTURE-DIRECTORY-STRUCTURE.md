@@ -131,7 +131,7 @@ ui-app/                                   # Monorepo 根：客户端 + 服务端
 └── .vscode/                              # 仅入库 settings.json + extensions.json
 
 [ig] 忽略层（.gitignore）
-├── .kilo/ .kilocode/ .agents/ .mimosa/ .workbuddy/ .cursor/   # Agent 产物目录
+├── .kilo/ .kilocode/ .agents/ .mimosa/ .workbuddy/ .workbuddy-ai/ .cursor/   # Agent 产物目录
 ├── .worktrees/<agent>-<slug>/           # 每 Agent 一工作区（真实 git worktree）
 ├── node_modules/ client/build/ client/app/build/ *.apk       # 依赖与构建产物
 ├── *.jks *.keystore signing/ local.properties .env*          # 签名材料与本机配置
