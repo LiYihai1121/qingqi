@@ -25,6 +25,7 @@
     "**/.agents": true,
     "**/.mimosa": true,
     "**/.workbuddy": true,
+    "**/.workbuddy-ai": true,
     "**/.cursor": true
   },
   "search.exclude": {
@@ -39,6 +40,7 @@
     "**/.agents": true,
     "**/.mimosa": true,
     "**/.workbuddy": true,
+    "**/.workbuddy-ai": true,
     "**/.cursor": true
   },
 
@@ -64,6 +66,7 @@
     "**/.agents/**",
     "**/.mimosa/**",
     "**/.workbuddy/**",
+    "**/.workbuddy-ai/**",
     "**/.cursor/**"
   ],
 
