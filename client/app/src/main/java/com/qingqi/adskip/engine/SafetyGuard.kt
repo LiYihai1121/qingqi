@@ -4,7 +4,10 @@ package com.qingqi.adskip.engine
  * 安全护栏：引擎找到目标后、执行点击前的硬底线。
  *
  * 无论云端规则怎么被污染，客户端都有硬底线：
- * - 防自触发死循环（不点击本应用自身的节点）
+ * - 防自触发死循环（默认不点击本应用自身的节点）；
+ *   唯一例外是「模拟开屏广告自测」——浮层就在本应用内，此时由调用方显式传
+ *   `allowSelfPackage = true` 放行（见 [canClick]）。**默认关闭**，避免任何
+ *   调用方在无意间把护栏关掉。
  * - 关键词黑名单硬编码，云规则不可覆盖（防止污染规则误触敏感按钮）；
  *   英文一律小写后子串匹配，且覆盖**目标节点自身 + 父链（最多 [MAX_LABEL_DEPTH] 层）**：
  *   只看目标自身文案会被「无标签图标按钮」绕过——危险对话框里的确认按钮
@@ -88,11 +91,13 @@ object SafetyGuard {
      * 引擎找到目标后、执行点击前必须通过此检查。
      * @param node 引擎找到的目标节点
      * @param pkg 当前应用包名
+     * @param allowSelfPackage 仅「模拟开屏广告自测」传 true：浮层在本应用内，
+     *   自测态不存在「点自己触发自己」的回环，故放行自身包。默认 false。
      * @return true=可以点击, false=被安全护栏拦截
      */
-    fun canClick(node: AdNode, pkg: String): Boolean {
+    fun canClick(node: AdNode, pkg: String, allowSelfPackage: Boolean = false): Boolean {
         // 防自触发死循环
-        if (pkg == SELF_PKG) return false
+        if (pkg == SELF_PKG && !allowSelfPackage) return false
 
         // 包级硬底线：支付/银行类应用不进引擎（先于关键词检查）
         if (isPackageDenied(pkg)) return false

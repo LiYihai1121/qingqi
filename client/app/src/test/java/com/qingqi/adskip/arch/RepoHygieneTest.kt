@@ -28,6 +28,7 @@ class RepoHygieneTest {
         val required = listOf(
             ".mimosa", // AI 助手会话产物
             ".workbuddy", // 本地工具状态
+            ".workbuddy-ai", // 同上（WorkBuddy AI 实际落点目录，与 .workbuddy 不同名，需单独登记）
             ".kilo", // Agent 工作区（本次故障来源）
             ".kilocode", // 同上（legacy 目录名）
             ".worktrees", // 本项目约定的 worktree 落点
