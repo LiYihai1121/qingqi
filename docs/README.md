@@ -63,7 +63,7 @@ docs/
 
 | 主题 | 唯一事实源 | 其他文档的角色 |
 | --- | --- | --- |
-| 版本序列与能力意图（`3.0.3` → `3.1.0` → …） | [planning/ROADMAP.md](planning/ROADMAP.md) | 只引用版本号，不另立序列 |
+| 版本序列与能力意图（`3.0.3` → `3.1.0` → …，均为**重置前历史**；当前序列自 `1.0.0` 起，见下节「当前规划全景」的「版本序列基线」补注） | [planning/ROADMAP.md](planning/ROADMAP.md) | 只引用版本号，不另立序列 |
 | 专项里程碑、周次、出口条件 | [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md)（第 5~6 节） | 引用 ROADMAP 的版本号 |
 | L1 选择器技术方案与步骤 A–F | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) | 引用版本号与里程碑编号 |
 | Top 30 真机验收口径、试次记录与放行证据 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md) | 只记录实际设备结果，不将模拟器/单测标为真机通过 |
@@ -79,7 +79,9 @@ docs/
 
 > **改规划的顺序**：先改 `docs/planning/ROADMAP.md`（版本意图）→ 再改同目录的 `ROADMAP-ADS.md` 与 `DESIGN-PHASE1-SELECTOR.md` 的版本归属 → 最后同步 `CHANGELOG.md` 与 `RELEASE-HISTORY.md` 的对应行。`docs/api/API.md`、`docs/architecture/ARCHITECTURE.md` 涉及协议字段时一并更新。
 
-## 当前规划全景（更新于 2026-10-10）
+## 当前规划全景（表格更新于 2026-10-10；基线补注 2026-10-16）
+
+> **版本序列基线（2026-10-16 补注，必读）**：2026-10-13 仓库历史重置（`推倒重来`）后 SemVer **自 `1.0.0` 起重新计数**，当前已发布 `v1.0.1`（见 [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md)）。因此下表 `3.x` 各行属**重置前历史**，与 `1.x` 不构成连续序列，编号暂不重排、仅作归档参考；**本表不再代表当前发布序列**，当前状态一律以 [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) 为准。重置后各里程碑用什么版本号尚未决策，待规划层整体对齐时统一处理（届时才更新下表与 [planning/ROADMAP.md](planning/ROADMAP.md) 的编号）。
 
 | 版本 | 状态 | 内容 | 详见 |
 | --- | --- | --- | --- |
