@@ -9,10 +9,28 @@ import org.junit.Test
  */
 class SafetyGuardTest {
 
+    /**
+     * 断言用的是**发布包名**（与 `applicationId` 一致），不是带 `.debug` 后缀的
+     * 并行安装包：2026-10-11 的复测曾用不同包名绕过护栏，把「已修复」判成了假阳性。
+     */
     @Test
-    fun `self package blocked`() {
+    fun `self package blocked by default`() {
         val node = FakeAdNode.node(text = "跳过")
         assertFalse(SafetyGuard.canClick(node, "com.qingqi.adskip"))
+    }
+
+    @Test
+    fun `self package allowed only when caller opts in`() {
+        val node = FakeAdNode.node(text = "跳过")
+        assertTrue(SafetyGuard.canClick(node, "com.qingqi.adskip", allowSelfPackage = true))
+    }
+
+    /** 放行只对自身包生效，不会顺手放过支付/系统等其它底线。 */
+    @Test
+    fun `self test opt in does not weaken other guards`() {
+        assertFalse(SafetyGuard.canClick(FakeAdNode.node(text = "确认支付"), "com.eg.android.AlipayGphone", true))
+        assertFalse(SafetyGuard.canClick(FakeAdNode.node(text = "跳过"), "com.android.settings", true))
+        assertFalse(SafetyGuard.canClick(FakeAdNode.node(text = "跳过", visible = false), "com.qingqi.adskip", true))
     }
 
     @Test

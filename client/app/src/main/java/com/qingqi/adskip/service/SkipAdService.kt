@@ -276,8 +276,9 @@ class SkipAdService : AccessibilityService() {
         val rootNode = FrameworkAdNode(root)
         val target = engine.findTarget(rootNode, rules) ?: return
 
-        // 安全护栏：点击前复核
-        if (!SafetyGuard.canClick(target, pkg)) {
+        // 安全护栏：点击前复核。自测态浮层在本应用内，显式放行自身包——
+        // 否则 canClick 会拦下自检的「跳过」按钮，模拟测试永远点不动。
+        if (!SafetyGuard.canClick(target, pkg, allowSelfPackage = AppEvents.testActive)) {
             // LOW-2：日志只记包名与结果，不记屏幕文本（节点 text/desc 属用户屏幕内容）
             LogRing.w("Safety", "blocked click on pkg=$pkg")
             return
