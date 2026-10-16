@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import com.qingqi.adskip.core.AppExecutors
 import com.qingqi.adskip.core.LogRing
+import com.qingqi.adskip.data.CloudPkgRule
 import com.qingqi.adskip.data.Prefs
 import com.qingqi.adskip.data.RulesRepository
 import com.qingqi.adskip.data.ServerEndpoint
@@ -17,6 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
@@ -99,7 +101,7 @@ object SyncClient {
         val keywords: List<String>?,
         val viewIds: List<String>?,
         val selectors: List<String>?,
-        val pkgRules: Map<String, RulesRepository.PkgRule>,
+        val pkgRules: Map<String, CloudPkgRule>,
         val schemaVersion: Int,
         val hash: String,
         val version: Int,
@@ -116,7 +118,7 @@ object SyncClient {
         val keywords: List<String>?
         val viewIds: List<String>?
         val selectors: List<String>?
-        val pkgRules = mutableMapOf<String, RulesRepository.PkgRule>()
+        val pkgRules = mutableMapOf<String, CloudPkgRule>()
 
         if (rulesObj != null) {
             keywords = rulesObj.optJSONArray("globalKeywords")?.toStringList()
@@ -131,7 +133,7 @@ object SyncClient {
                     // 非法包名键不得进入偏好存储键空间（服务端 PKG_RE 同源校验）
                     if (!PKG_KEY_RE.matches(pkg)) continue
                     val rule = apps.optJSONObject(pkg) ?: continue
-                    pkgRules[pkg] = RulesRepository.PkgRule(
+                    pkgRules[pkg] = CloudPkgRule(
                         keywords = rule.optJSONArray("keywords")?.toStringList() ?: emptyList(),
                         viewIds = rule.optJSONArray("viewIds")?.toStringList() ?: emptyList(),
                         selectors = rule.optJSONArray("selectors")?.toStringList(MAX_SELECTORS) ?: emptyList(),
@@ -151,7 +153,7 @@ object SyncClient {
                     if (pkgRules.size >= MAX_CLOUD_APPS) break
                     if (!PKG_KEY_RE.matches(pkg)) continue
                     val rule = packages.optJSONObject(pkg) ?: continue
-                    pkgRules[pkg] = RulesRepository.PkgRule(
+                    pkgRules[pkg] = CloudPkgRule(
                         keywords = rule.optJSONArray("keywords")?.toStringList() ?: emptyList(),
                         viewIds = rule.optJSONArray("viewIds")?.toStringList() ?: emptyList(),
                         selectors = rule.optJSONArray("selectors")?.toStringList(MAX_SELECTORS) ?: emptyList(),
@@ -266,12 +268,19 @@ object SyncClient {
                 payload.put("events", JSONArray().put(event))
                 try {
                     httpPost("$base/api/v1/reports/batch", payload.toString(), pins)
-                } catch (e: Exception) {
-                    // 回退 v0
-                    val v0Payload = JSONObject()
-                    v0Payload.put("pkg", pkg)
-                    v0Payload.put("label", label)
-                    httpPost("$base/api/skip", v0Payload.toString(), pins)
+                } catch (e: IOException) {
+                    // 仅网络层异常（连接失败/读写中断——服务端大概率未处理该请求）
+                    // 才回退 v0 单条上报。HTTP 状态错误（429/4xx/5xx）说明服务端
+                    // 已处理过请求，回退会让同一跳过事件双份入库、统计计数虚增
+                    // （DESIGN-ARCH-REVIEW §6.5）。
+                    try {
+                        val v0Payload = JSONObject()
+                        v0Payload.put("pkg", pkg)
+                        v0Payload.put("label", label)
+                        httpPost("$base/api/skip", v0Payload.toString(), pins)
+                    } catch (e2: Exception) {
+                        // 静默失败
+                    }
                 }
             } catch (e: Exception) {
                 // 静默失败
