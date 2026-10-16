@@ -13,10 +13,17 @@
 
 针对 v1.0.0 上线后实测到的两处跳过链路缺陷的修复版。无新增能力，无破坏性变更，`versionCode` 自 `17` 递增至 `18`。
 
+发布：annotated tag [`v1.0.1`](https://github.com/LiYihai1121/ui-app/releases/tag/v1.0.1) 指向合并后的 `main`（`c68133a`，PR #167 squash 合入）。制品 `AdSkip-v1.0.1.apk`（2,226,747 bytes），SHA-256 `ea6cd1222cee432795831781e3c3fd36af632025d10299f33b9a0b26f822976e`，Release 同时附 `SHA256SUMS`。
+
 ### Fixed
 
 - **模拟开屏广告自测在发布版永远点不动**：安全护栏对「本应用自身包名」一律拒绝点击（防自触发死循环），而自测浮层恰好就在本应用内，其「跳过」按钮因此永远点不了——自检只会走到超时。现改为**仅自测态**由调用方显式放行自身包，默认拦截行为不变，且放行不削弱支付类应用、敏感系统界面等其它底线。
 - **跳过次数被重复累加**：单次跳过首页先显示 2、约 5 秒后变 3，而跳过记录恒为 1；且每轮落盘都会把同一批增量再算一次，计数随使用时间无界膨胀。现计数收敛为单一写入路径（日志写入不再顺带计数），落盘后立即清空待落盘增量。
+
+### 验证 (1.0.1)
+
+- `cd client && ./gradlew ktlintCheck assembleDebug testDebugUnitTest` 全绿；新增 `StatsRepositoryTest`（7 例）与扩充后的 `SafetyGuardTest`（21 例）通过。
+- Structure Contract（`com.qingqi.adskip.arch.*`）全过；`release.yml` 运行 `38866018994` completed success，产出并校验 `AdSkip-v1.0.1.apk` 与 `SHA256SUMS`。
 
 ## [1.0.0] - 2026-10-13
 
