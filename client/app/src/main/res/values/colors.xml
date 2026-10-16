@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  仅保留被引用的资源色。UI 运行时配色（品牌蓝/状态色/文本色）的唯一事实源是
+  仅保留被引用的资源色。UI 运行时配色（品牌绿/状态色/文本色）的唯一事实源是
   ui/theme/Theme.kt 的 Material3 ColorScheme；此处再存一份会形成第二份真相，
   且 status_on/status_off 这类名字与 R.string.status_on/off 撞名，极易误用。
 -->
@@ -10,5 +10,10 @@
       ic_launcher_background 颜色资源不再被任何文件引用，故删除以免留下第二份真相。
       改配色请改矢量里的 gradient item，不要在此加回同名颜色。
     -->
-    <color name="brand">#1565C0</color>
+    <!--
+      窗口级导航栏色（values/values-night 的 themes.xml 引用）。取品牌绿的深色调
+      #1D7C43（= Color.kt 的 LightPrimary）：导航栏在明暗主题下都要让浅色图标清晰，
+      直接用图标用的亮薄荷 #57E08E 会偏亮。改色请与 Color.kt 的主色同步。
+    -->
+    <color name="brand">#1D7C43</color>
 </resources>

@@ -7,21 +7,21 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #F5F7FA; color: #1F2937; }
-  .header { background: #1565C0; color: #fff; padding: 20px 24px; }
+  .header { background: #1D7C43; color: #fff; padding: 20px 24px; }
   .header h1 { font-size: 20px; font-weight: 600; }
   .header p { font-size: 13px; opacity: .85; margin-top: 4px; }
   .header .auth-status { font-size: 12px; opacity: .7; float: right; }
   .tabs { display: flex; gap: 4px; background: #fff; border-bottom: 1px solid #E5E7EB; padding: 0 24px; }
   .tab { padding: 12px 18px; font-size: 14px; cursor: pointer; color: #6B7280; border-bottom: 2px solid transparent; }
-  .tab.active { color: #1565C0; border-bottom-color: #1565C0; font-weight: 600; }
+  .tab.active { color: #1D7C43; border-bottom-color: #1D7C43; font-weight: 600; }
   .container { max-width: 960px; margin: 20px auto; padding: 0 16px; }
   .card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
   .card h2 { font-size: 15px; margin-bottom: 12px; }
   .hint { font-size: 12px; color: #9CA3AF; margin-top: 6px; }
   textarea, input[type=text] { width: 100%; border: 1px solid #D1D5DB; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; resize: vertical; }
-  textarea:focus, input[type=text]:focus { outline: none; border-color: #1565C0; }
-  button { background: #1565C0; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
-  button:hover { background: #0D47A1; }
+  textarea:focus, input[type=text]:focus { outline: none; border-color: #1D7C43; }
+  button { background: #1D7C43; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; }
+  button:hover { background: #176336; }
   button.ghost { background: #EEF2F7; color: #374151; }
   button.danger { background: #FEF2F2; color: #DC2626; }
   button:disabled { opacity: .5; cursor: not-allowed; }
@@ -32,12 +32,12 @@
   td { padding: 8px; border-bottom: 1px solid #F3F4F6; }
   .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
   .stat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 18px; }
-  .stat .num { font-size: 28px; font-weight: 700; color: #1565C0; }
+  .stat .num { font-size: 28px; font-weight: 700; color: #1D7C43; }
   .stat .label { font-size: 12px; color: #6B7280; margin-top: 4px; }
   .toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #1F2937; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; display: none; z-index: 10; }
   .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; }
   .bar-row .day { width: 86px; color: #6B7280; }
-  .bar { height: 14px; background: #90CAF9; border-radius: 4px; min-width: 2px; }
+  .bar { height: 14px; background: #8FDDB0; border-radius: 4px; min-width: 2px; }
   .pkg-head { display: flex; gap: 8px; margin-bottom: 10px; }
   .pkg-head input { flex: 1; }
   .hidden { display: none; }

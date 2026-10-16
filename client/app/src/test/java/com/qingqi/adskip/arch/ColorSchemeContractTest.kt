@@ -9,7 +9,7 @@ import java.io.File
  *
  * 背景（实测缺陷）：`Theme.kt` 的 `lightColorScheme/darkColorScheme` 只显式覆盖了部分
  * M3 角色，而代码里实际使用了 `surfaceContainer*` 三个角色——它们**从未被声明**，
- * 一直走 M3 内置默认值。默认值是为通用场景调的中性紫调，与 `Color.kt` 里维护的品牌蓝
+ * 一直走 M3 内置默认值。默认值是为通用场景调的中性紫调，与 `Color.kt` 里维护的品牌绿
  * 不是同一套色相，于是应用卡片底色与品牌色系悄悄脱节。
  *
  * 这类缺口不会报错、不会崩、审查时也看不出来（代码读起来完全正常），只有把
@@ -44,7 +44,7 @@ class ColorSchemeContractTest {
         val undeclared = (used - declared).sorted()
         assertTrue(
             "以下 M3 颜色角色被代码使用，却未在 Theme.kt 的品牌色板里声明——它们会走 M3 内置默认值，" +
-                "而那套中性色与 Color.kt 的品牌蓝不是同一色相，卡片底色会与应用配色悄悄脱节。\n" +
+                "而那套中性色与 Color.kt 的品牌绿不是同一色相，卡片底色会与应用配色悄悄脱节。\n" +
                 "请在 lightColorScheme / darkColorScheme 中显式赋值：\n" +
                 undeclared.joinToString("\n") { "  colorScheme.$it" },
             undeclared.isEmpty(),
@@ -101,10 +101,15 @@ class ColorSchemeContractTest {
                 "否则深色系统下的闪屏仍是浅色：\n  ${night.path}",
             "android:windowBackground" in night.readText(),
         )
+        // 品牌色有两个字面量形态：标识薄荷绿 #57E08E 与界面主色深绿 #1D7C43，
+        // 任一写死在窗口主题里都会让另一套主题（深色/浅色）出错，故一并禁止。
+        val brandLiterals = listOf("#57E08E", "#1D7C43")
+        val hardcoded = brandLiterals.filter { it in base.readText() }
         assertTrue(
-            "状态栏颜色不得写死品牌蓝字面量，否则深色系统下仍是那块亮蓝；应走透明，" +
-                "让已 enableEdgeToEdge 的内容自己延伸：\n  ${base.path}",
-            "#1565C0" !in base.readText(),
+            "状态栏颜色不得写死品牌绿字面量（${brandLiterals.joinToString(" / ")}），" +
+                "否则深色系统下仍是那块亮绿；应走透明，" +
+                "让已 enableEdgeToEdge 的内容自己延伸。当前命中：${hardcoded.joinToString()}\n  ${base.path}",
+            hardcoded.isEmpty(),
         )
     }
 
