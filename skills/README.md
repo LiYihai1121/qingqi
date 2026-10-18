@@ -1,10 +1,10 @@
 # Agent 技能开发（skills/README.md）
 
 > 状态：已生效；最后更新：2026-10-11。
-> 适用范围：所有随仓库版本控制的 Agent 技能（`branch-guard`、`code-simplifier`、`software-development-full`、
+> 适用范围：所有随仓库版本控制的 Agent 技能（`branch-guard`、`code-simplifier`、`software-development-full`,
 > `contract-first`、`release`、`security-audit`、`architecture-boundary-guard`、`accessibility-engine-guard`、
 > `android-compose-design`、`android-vpn-dns-filter`、`vendor-rom-keepalive`、`network-security-guard`、
-> `server-bun-typescript`、`planning-docs-guard` 等）。
+> `server-bun-typescript`、`planning-docs-guard`、`archify` 等）。
 > 挂载方式：`kilo.json` 的 `skills.paths: ["./skills"]`；技能加载与权限见 [kilo.json](../kilo.json)。
 
 本目录是**随仓库版本控制的 Agent 技能**的唯一存放处。技能不是「个人配置」：放进 `.kilo/` 等被
@@ -21,6 +21,14 @@ skills/
 │   └── SKILL.md
 ├── android-vpn-dns-filter/       自研技能：L2 网络过滤层（Phase 0 未获批不驱动实现）
 │   └── SKILL.md
+├── archify/                       第三方上游技能：技术架构图渲染（架构/流程/时序/数据流/状态机五种图型，
+│                                 │                             输出带明暗主题切换与 PNG/SVG 导出的独立 HTML；MIT，
+│                                 │                             来源与署名见同目录 NOTICE.md）
+│                                 ├── SKILL.md / LICENSE / NOTICE.md
+│                                 ├── schemas/                  四种图型的 JSON Schema（renderers 前置校验）
+│                                 ├── renderers/                workflow / sequence / dataflow / lifecycle 渲染器（.mjs，本目录 npm install 后使用）
+│                                 ├── examples/                JSON 输入示例
+│                                 └── assets/template.html      architecture 图型模板
 ├── architecture-boundary-guard/  自研技能：边界契约测试地图（跨包 / 跨端 / 根目录）
 │   └── SKILL.md
 ├── branch-guard/                 自研技能：分支治理（规则指针 + 自检动作，不复述规则）
