@@ -17,7 +17,7 @@
 `▲` = 建议新增（当前缺失，来源见第 5 节差距清单）；`[ig]` = 被 `.gitignore` 覆盖、禁入库。
 
 ```text
-ui-app/                                   # Monorepo 根：客户端 + 服务端 + 治理资产
+qingqi/                                   # Monorepo 根：客户端 + 服务端 + 治理资产
 ├── README.md                            # 项目门面：定位/快速开始/目录摘要（非事实源）
 ├── CHANGELOG.md                         # 用户可见变更（单写者，Keep a Changelog）
 ├── CONTRIBUTING.md                      # 流程规范：分支/提交/PR 门禁/发版/回滚

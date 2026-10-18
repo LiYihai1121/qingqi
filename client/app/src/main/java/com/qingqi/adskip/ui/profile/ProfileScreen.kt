@@ -263,8 +263,8 @@ private fun AboutCard(state: ProfileViewModel.UiState, vendorName: (Vendor) -> S
 }
 
 /** 开源项目主页与问题反馈入口（应用商店若上架，可在此同步补充）。 */
-private const val PROJECT_URL = "https://github.com/LiYihai1121/ui-app"
-private const val FEEDBACK_URL = "https://github.com/LiYihai1121/ui-app/issues"
+private const val PROJECT_URL = "https://github.com/LiYihai1121/qingqi"
+private const val FEEDBACK_URL = "https://github.com/LiYihai1121/qingqi/issues"
 
 /**
  * 链接行：图标 + 标题，整行可点，跳系统浏览器。

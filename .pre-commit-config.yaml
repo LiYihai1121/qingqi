@@ -1,4 +1,4 @@
-# Pre-commit hooks for ui-app
+# Pre-commit hooks for qingqi
 # Optional contributor tooling: pip install pre-commit && pre-commit install
 #
 # 注意门禁归属：本仓库的强制门禁是 githooks/（主检出提交拦截 + Conventional Commits
