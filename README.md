@@ -258,6 +258,7 @@ bun run typecheck     # tsc --noEmit
 - 版本规则：遵循 SemVer；Android `versionCode` 全局单调递增，`versionName` 与服务端 `server/package.json` 版本保持一致；正式版本使用不可移动的 `vX.Y.Z` 标签。
 - 发布流程：`release/vX.Y.Z` 冻结验收，CI 根据 tag 生成可追溯制品并记录校验和；事故优先回滚已验证制品，修复通过 `hotfix/*` 发布。
 - 团队协作：提交格式、Pull Request 门禁、分支保护、发布和回滚规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 社区行为准则见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)；参与本项目视为同意遵守。
 - 功能路线以 [ROADMAP.md](docs/planning/ROADMAP.md) 为准，架构与模块职责以 [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) 为准，版本链路以 [RELEASE-HISTORY.md](docs/planning/RELEASE-HISTORY.md) 为准；**文档入口与规划事实源见 [docs/README.md](docs/README.md)**。
 
 ## 合规提示
