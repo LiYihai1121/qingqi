@@ -14,7 +14,7 @@
 
 面向用户的界面重构与质量整改版本：v4 蓝色视觉方案落地并重建六页与导航，UI 评审 P0/P1/P2 全量整改，新增 archify 架构图技能。无协议或数据形态变更，`versionCode` 自 `18` 递增至 `19`。
 
-发布：annotated tag [`v1.1.0`](https://github.com/LiYihai1121/qingqi/releases/tag/v1.1.0) 指向合并后的 `main`；制品名称 `AdSkip-v1.1.0.apk`，大小与 SHA-256 以 Release 页 `SHA256SUMS` 为准。
+发布：annotated tag [`v1.1.0`](https://github.com/LiYihai1121/qingqi/releases/tag/v1.1.0) 指向合并后的 `main`（`6d8e622`，PR #196 squash 合入）。制品 `AdSkip-v1.1.0.apk`（2,288,495 bytes），SHA-256 `86bb8c374acb174d022349431562a5c10537785841f9f630e72b0f9145f40634`，Release 同时附 `SHA256SUMS`。
 
 ### Added (1.1.0)
 
