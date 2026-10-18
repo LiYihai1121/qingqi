@@ -83,7 +83,7 @@
 
 环境：Windows + PowerShell，JDK 21（`D:\Java\jdk-21.0.12.1+1`），Gradle 9.7.0 wrapper。
 PowerShell 不支持 `&&`，实际命令形态为
-`cmd /c 'cd /d F:\LocaRepository\ui-app\client && F:\LocaRepository\ui-app\client\gradlew.bat <task>'`。
+`cmd /c 'cd /d F:\LocaRepository\qingqi\client && F:\LocaRepository\qingqi\client\gradlew.bat <task>'`。
 
 | 门禁 | 结果 | 数字 |
 | --- | --- | --- |

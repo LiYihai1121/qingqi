@@ -1,7 +1,7 @@
 # 版本控制与发布管理体系重设计（DESIGN-VERSION-MANAGEMENT）
 
 > 状态：待评审；最后更新：2026-10-11。
-> 本文档覆盖五个维度：分支模型、存量分支重构、版本号规范、发布工作流、实施路线图。它不另立规则——所有规则的事实源仍是 [CONTRIBUTING.md](../../CONTRIBUTING.md)；本文档是把这些规则组织成一套**可执行体系**的设计说明书，冲突时以 CONTRIBUTING 为准。前置事实：[FOLLOW-UP-PROCESS-AUDIT.md](FOLLOW-UP-PROCESS-AUDIT.md)（历史合规审计）、[#104](https://github.com/LiYihai1121/ui-app/pull/104)（CI 镜像修复）。
+> 本文档覆盖五个维度：分支模型、存量分支重构、版本号规范、发布工作流、实施路线图。它不另立规则——所有规则的事实源仍是 [CONTRIBUTING.md](../../CONTRIBUTING.md)；本文档是把这些规则组织成一套**可执行体系**的设计说明书，冲突时以 CONTRIBUTING 为准。前置事实：[FOLLOW-UP-PROCESS-AUDIT.md](FOLLOW-UP-PROCESS-AUDIT.md)（历史合规审计）、[#104](https://github.com/LiYihai1121/qingqi/pull/104)（CI 镜像修复）。
 >
 > **版本序列基线（2026-10-16 补注，必读）**：2026-10-13 仓库历史重置（`推倒重来`）后 SemVer **自 `1.0.0` 起重新计数**，当前已发布 `v1.0.1`（见 [RELEASE-HISTORY.md](RELEASE-HISTORY.md)）。本页第 3、5 节出现的 `3.x` / `v3.4.0` / `v3.5.0` / `v4.0.0` 等均为**重置前的历史示例与规划**，**规则本身**（版本号形态、递增语义、禁止事项、发布工作流）继续适用，但示例版本号不构成当前序列。另：§3.3「禁止跳号」的连续性自重置起有一次**显式豁免**——`v3.4.2` → `v1.0.0` 属「重置重新计数」，已记于 [RELEASE-HISTORY.md](RELEASE-HISTORY.md) 的「版本起点声明」，此后按新序列推导。「重置后各里程碑用什么版本号」尚未决策。
 
