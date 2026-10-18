@@ -89,7 +89,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 > **⚠️ 协作事件记录与硬性要求（2026-10-11）**
 >
-> 两个会话同时写入**主检出**（`F:/LocaRepository/ui-app`），造成一次实际冲突：一方的未提交改动
+> 两个会话同时写入**主检出**（`F:/LocaRepository/qingqi`），造成一次实际冲突：一方的未提交改动
 > 被另一方 stash（`stashed unrelated feature changes`），且 `a6f8150`（移除 code-simplifier）
 > 被提交进了他人分支。所幸改动经 `git stash pop` 全量恢复，未丢失工作。
 >

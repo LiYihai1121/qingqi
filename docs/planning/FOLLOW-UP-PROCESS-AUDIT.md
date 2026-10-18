@@ -42,6 +42,6 @@
 
 ## 5. 与其他治理工件的关系
 
-- 钩子基础设施（`core.hooksPath`、主检出拦截）由 [#96](https://github.com/LiYihai1121/ui-app/pull/96) 建立，本提交在其上追加 `commit-msg`；
-- 认领板与协作事件记录见 [#95](https://github.com/LiYihai1121/ui-app/pull/95)；架构演进（R1–R3）见 [#101](https://github.com/LiYihai1121/ui-app/pull/101)；
+- 钩子基础设施（`core.hooksPath`、主检出拦截）由 [#96](https://github.com/LiYihai1121/qingqi/pull/96) 建立，本提交在其上追加 `commit-msg`；
+- 认领板与协作事件记录见 [#95](https://github.com/LiYihai1121/qingqi/pull/95)；架构演进（R1–R3）见 [#101](https://github.com/LiYihai1121/qingqi/pull/101)；
 - 本文档为**点时审计报告**，不承载常驻规则——常驻规则一律进 CONTRIBUTING（本提交已增补），避免两份真相。

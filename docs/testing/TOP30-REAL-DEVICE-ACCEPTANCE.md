@@ -2,7 +2,7 @@
 
 > 状态：**未完成、未验证**。此文档定义可复核的验收流程，不代表已经拥有 30 条有效规则、已经跑过真实设备或已经达到指标。结果以带日期的测试记录和证据为准。
 >
-> 任务跟踪：[Issue #88](https://github.com/LiYihai1121/ui-app/issues/88)。版本归属仍待确认，不把这次文档变更计入已发布能力。
+> 任务跟踪：[Issue #88](https://github.com/LiYihai1121/qingqi/issues/88)。版本归属仍待确认，不把这次文档变更计入已发布能力。
 
 ## 1. 验收目标和口径
 
@@ -72,8 +72,8 @@ D1–D3 是 Android 版本覆盖的最低建议，D4–D8 是 OEM 扩展矩阵�
 
 **范围声明**：本次为安装/启动/服务绑定/引擎实战的**冒烟验证 + 缺陷发现批次**，不构成 Top 30 验收通过；逐 App 广告场景（第 4 节流程）未执行。
 
-- **安装与启动**：`INSTALL_FAILED_USER_RESTRICTED`（MIUI USB 安装限制）排除后安装成功；首启即崩（FATAL at `AdSkipApp.onCreate` → `Prefs.sp`）——**真机必现缺陷 B1**：`MasterKey.Builder` 未显式 `setKeyScheme`，修复于 [#124](https://github.com/LiYihai1121/ui-app/pull/124)（已合并）。结论：**v3.4.0 及之前所有版本在任何 API 23+ 真机上首启必崩**，Robolectric 单测无法暴露；已装用户需更新到含 #124 的版本。
-- **快照导出**：`EXPORT_SNAPSHOT` 广播路径在 Service 上下文 `startActivity` 缺 `FLAG_ACTIVITY_NEW_TASK`，崩溃并连带杀死无障碍服务进程（logcat 实录）——**真机必现缺陷 B2**，修复于 [#125](https://github.com/LiYihai1121/ui-app/pull/125)。
+- **安装与启动**：`INSTALL_FAILED_USER_RESTRICTED`（MIUI USB 安装限制）排除后安装成功；首启即崩（FATAL at `AdSkipApp.onCreate` → `Prefs.sp`）——**真机必现缺陷 B1**：`MasterKey.Builder` 未显式 `setKeyScheme`，修复于 [#124](https://github.com/LiYihai1121/qingqi/pull/124)（已合并）。结论：**v3.4.0 及之前所有版本在任何 API 23+ 真机上首启必崩**，Robolectric 单测无法暴露；已装用户需更新到含 #124 的版本。
+- **快照导出**：`EXPORT_SNAPSHOT` 广播路径在 Service 上下文 `startActivity` 缺 `FLAG_ACTIVITY_NEW_TASK`，崩溃并连带杀死无障碍服务进程（logcat 实录）——**真机必现缺陷 B2**，修复于 [#125](https://github.com/LiYihai1121/qingqi/pull/125)。
 - **服务绑定**：`dumpsys accessibility` 实测 `Bound services: 轻启·跳过开屏广告`（FEEDBACK_GENERIC，监听 TYPE_WINDOW_STATE_CHANGED/CONTENT_CHANGED）。注意：MIUI 会把 adb 写入的 `accessibility_enabled` 回置为 0，且服务值未变化时不触发重绑——需占位符切换法或系统设置 UI 手动开启。
 - **引擎实战（日常使用路径，非 Top 30 口径）**：服务绑定后日常使用约 20 分钟，累计跳过 83 → 86（`com.android.settings` 弹窗、MIUI 桌面推广等），记录页带时间戳条目（如 `10-11 13:07:19 | com.android.settings`）；观察窗口内**误触 0**、服务无二次崩溃。
 - **来源判别**：应用对模拟广告浮层的跳过来源判别准确（引擎点击 vs 手动点击分别引导），符合「规则命中 ≠ 点击成功」的口径设计。

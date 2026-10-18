@@ -1,7 +1,7 @@
 # 轻启
 
-[![CI](https://github.com/LiYihai1121/ui-app/actions/workflows/ci.yml/badge.svg)](https://github.com/LiYihai1121/ui-app/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/LiYihai1121/ui-app?sort=semver)](https://github.com/LiYihai1121/ui-app/releases)
+[![CI](https://github.com/LiYihai1121/qingqi/actions/workflows/ci.yml/badge.svg)](https://github.com/LiYihai1121/qingqi/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/LiYihai1121/qingqi?sort=semver)](https://github.com/LiYihai1121/qingqi/releases)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 一个自动跳过 Android 应用开屏广告的**全栈**工具：Android 客户端（无障碍服务）+ 自建后端（规则中心 / 统计 / 管理后台）。
@@ -58,7 +58,7 @@
 
 | 渠道 | 说明 |
 | --- | --- |
-| [GitHub Releases](https://github.com/LiYihai1121/ui-app/releases) | 下载最新 `AdSkip-vX.Y.Z.apk` 与 `SHA256SUMS`；安装前注意事项见 [分发与下载](#分发与下载) |
+| [GitHub Releases](https://github.com/LiYihai1121/qingqi/releases) | 下载最新 `AdSkip-vX.Y.Z.apk` 与 `SHA256SUMS`；安装前注意事项见 [分发与下载](#分发与下载) |
 | 本地构建 | 见 [构建与下载](#构建与下载)，签名配置就绪后 `assembleRelease` 直接产出可安装包 |
 
 ### 安装与配置（Android 8.0+）

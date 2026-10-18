@@ -20,7 +20,7 @@
 
 针对 v1.0.0 上线后实测到的两处跳过链路缺陷的修复版。无新增能力，无破坏性变更，`versionCode` 自 `17` 递增至 `18`。
 
-发布：annotated tag [`v1.0.1`](https://github.com/LiYihai1121/ui-app/releases/tag/v1.0.1) 指向合并后的 `main`（`c68133a`，PR #167 squash 合入）。制品 `AdSkip-v1.0.1.apk`（2,226,747 bytes），SHA-256 `ea6cd1222cee432795831781e3c3fd36af632025d10299f33b9a0b26f822976e`，Release 同时附 `SHA256SUMS`。
+发布：annotated tag [`v1.0.1`](https://github.com/LiYihai1121/qingqi/releases/tag/v1.0.1) 指向合并后的 `main`（`c68133a`，PR #167 squash 合入）。制品 `AdSkip-v1.0.1.apk`（2,226,747 bytes），SHA-256 `ea6cd1222cee432795831781e3c3fd36af632025d10299f33b9a0b26f822976e`，Release 同时附 `SHA256SUMS`。
 
 ### Fixed
 
