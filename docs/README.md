@@ -32,7 +32,9 @@ docs/
 │   ├── PLAN-OFFLINE-SYNC.md       离线缓存与数据同步整体重设计实施计划（计划书，未评审）
 │   ├── ROADMAP-ADS-VERIFY.md      能力边界「不做限制」：外部证据 / 风险评估 / 门禁验证记录
 │   ├── FOLLOW-UP.md               安全加固与技术补充计划（已修复清单 / 待修复 / 里程碑）
-│   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
+│   ├── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
+│   ├── DESIGN-TELEMETRY-ANALYTICS.md  行为分析平台设计（目标 / 埋点 / 指标 / 数据模型 / ADR / 风险）
+│   └── PLAN-TELEMETRY-ANALYTICS.md    行为分析平台开发计划（WBS / 排期 / 测试 / CI / 部署 / 分工）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
 ```
 
@@ -47,6 +49,8 @@ docs/
 | 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
 | 知道接下来做什么、按什么顺序做 | [planning/ROADMAP.md](planning/ROADMAP.md) → [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) |
+| 了解行为分析平台的目标、埋点与指标口径、数据模型与选型 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) |
+| 查看行为分析平台的排期、WBS、测试与部署方案 | [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
 | 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
@@ -85,6 +89,7 @@ docs/
 | 客户端 UI 的**当前**落地规格（v4：六模块功能 / 交互流程 / 边界 / 差异清单） | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) | 表现层的现行事实源；v3 评审记录（DESIGN-UI-REVIEW）保留为历史依据，两者冲突时以本文为准 |
 | 已发布版本链路（tag / 提交 / Release / 制品） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) | CHANGELOG 只记用户可见变更，不复述链路 |
 | 协议与接口 | [api/API.md](api/API.md) + [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)（第 7 节） | DESIGN 只描述增量字段 |
+| 行为埋点事件、指标口径与洞察规则 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) | 排期与人力见 [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 客户端/服务端分层与模块职责 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | README 只给目录树摘要 |
 | 流程规范（分支/提交/门禁/发版） | [CONTRIBUTING.md](../CONTRIBUTING.md) | [AGENTS.md](../AGENTS.md) 为执行摘要 |
 | 多 Agent 并行协作（隔离/所有权/契约/交接） | [development/AGENT-WORKFLOW.md](development/AGENT-WORKFLOW.md) | 本页不复制其条款，仅登记入口；其卫生检查由 `RepoHygieneTest` 强制 |

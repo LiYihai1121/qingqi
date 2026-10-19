@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轻启 AdSkip — 用户行为分析看板（原型）</title>
+<style>
+  :root{
+    --bg:#0e1220; --bg2:#141a2c; --panel:#171e33; --panel2:#1d2540;
+    --line:#2a3352; --line2:#39456b;
+    --tx:#e8ecf6; --tx2:#a8b2cc; --tx3:#737f9e;
+    --acc:#4dd4ac; --acc2:#5aa9ff; --warn:#ffb454; --bad:#ff6b81; --pur:#b28dff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  code{font-family:var(--mono);font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--acc)}
+
+  .wrap{max-width:1360px;margin:0 auto;padding:22px 26px 80px}
+
+  header{
+    display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;justify-content:space-between;
+    background:linear-gradient(135deg,#182241,#141a2c);border:1px solid var(--line);
+    border-radius:14px;padding:20px 24px;margin-bottom:20px
+  }
+  header h1{margin:0;font-size:21px;letter-spacing:.2px}
+  header .sub{color:var(--tx2);font-size:12.5px;margin-top:5px}
+  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button,label.btn{
+    background:var(--panel2);color:var(--tx2);border:1px solid var(--line2);
+    border-radius:7px;padding:6px 13px;font-size:12.5px;cursor:pointer;font-family:inherit
+  }
+  button:hover,label.btn:hover{color:var(--tx);border-color:var(--acc);}
+  input[type=file]{display:none}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;font-size:10.5px;padding:2px 9px;
+    border-radius:20px;border:1px solid;letter-spacing:.3px;white-space:nowrap
+  }
+  .badge.demo{color:var(--warn);border-color:rgba(255,180,84,.45);background:rgba(255,180,84,.1)}
+  .badge.real{color:var(--acc);border-color:rgba(77,212,172,.45);background:rgba(77,212,172,.1)}
+  .badge.prop{color:var(--pur);border-color:rgba(178,141,255,.45);background:rgba(178,141,255,.1)}
+
+  .notice{
+    border:1px solid rgba(255,180,84,.35);border-left:3px solid var(--warn);
+    background:var(--panel);border-radius:9px;padding:11px 16px;margin-bottom:18px;
+    font-size:12.5px;color:var(--tx2)
+  }
+  .notice b{color:var(--warn)}
+
+  .grid{display:grid;gap:16px}
+  .g-kpi{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px}
+  .g-2{grid-template-columns:repeat(auto-fit,minmax(400px,1fr))}
+  .g-1{grid-template-columns:1fr}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+  .panel > .ph{display:flex;align-items:center;gap:9px;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap}
+  .panel h3{margin:0;font-size:15px;letter-spacing:.2px}
+  .panel .pd{font-size:11.5px;color:var(--tx3);margin:2px 0 12px}
+  .panel.dim{opacity:.94}
+  .panel.dim > .ph h3{color:var(--tx2)}
+
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .kpi .v{font-size:23px;font-weight:700;font-family:var(--mono);line-height:1.15;color:var(--acc)}
+  .kpi .l{font-size:12px;color:var(--tx2);margin-top:2px}
+  .kpi .h{font-size:11px;color:var(--tx3);margin-top:3px}
+  .kpi.warn .v{color:var(--warn)} .kpi.bad .v{color:var(--bad)} .kpi.blue .v{color:var(--acc2)}
+
+  .chart{position:relative;width:100%}
+  .chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .tip{
+    position:absolute;display:none;pointer-events:none;transform:translate(-50%,-125%);
+    background:#0b0f1c;border:1px solid var(--line2);border-radius:7px;padding:6px 10px;
+    font-size:12px;white-space:nowrap;z-index:9;box-shadow:0 6px 18px rgba(0,0,0,.5)
+  }
+  .tip b{color:var(--acc);font-family:var(--mono)}
+  .tip span{color:var(--tx3);font-size:11px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--tx2)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+  /* funnel */
+  .fn{display:flex;flex-direction:column;gap:2px}
+  .fn .row{margin-bottom:2px}
+  .fn .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+  .fn .top .nm{color:var(--tx2)}
+  .fn .top .vl{font-family:var(--mono);color:var(--tx);font-size:12px}
+  .fn .bar{height:22px;border-radius:5px;background:linear-gradient(90deg,var(--acc2),var(--acc));min-width:2px}
+  .fn .bar.warn{background:linear-gradient(90deg,var(--warn),#ff9a6b)}
+  .fn .bar.bad{background:linear-gradient(90deg,var(--bad),#ff97a5)}
+  .fn .drop{font-size:11px;color:var(--bad);padding:1px 0 5px 2px}
+  .fn .drop.neutral{color:var(--tx3)}
+
+  /* lists */
+  .lst{display:flex;flex-direction:column;gap:7px}
+  .li{display:flex;align-items:center;gap:10px;font-size:12.5px;
+      background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 11px}
+  .li .rk{font-family:var(--mono);color:var(--tx3);font-size:11px;width:18px;flex:0 0 18px}
+  .li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2)}
+  .li .vl{font-family:var(--mono);font-size:12px;color:var(--tx)}
+  .li .pc{font-size:11px;color:var(--tx3);width:52px;text-align:right;flex:0 0 52px}
+
+  /* insight cards */
+  .ins{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:13px}
+  .ic{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--acc);
+      border-radius:9px;padding:13px 15px}
+  .ic.warn{border-left-color:var(--warn)} .ic.bad{border-left-color:var(--bad)} .ic.info{border-left-color:var(--acc2)}
+  .ic h4{margin:0 0 7px;font-size:13.5px;color:var(--tx)}
+  .ic dl{margin:0;font-size:12px}
+  .ic dt{color:var(--tx3);font-size:11px;margin-top:6px;letter-spacing:.3px}
+  .ic dd{margin:1px 0 0;color:var(--tx2)}
+  .ic .pri{margin-top:9px}
+
+  /* table */
+  .tbl{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:9px}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{padding:7px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:var(--panel2);color:var(--tx2);font-weight:600;font-size:11px;position:sticky;top:0}
+  tbody tr:hover{background:#1b2338}
+  td.t{font-family:var(--mono);color:var(--tx3)}
+  td.p{font-family:var(--mono);color:var(--tx2)}
+  .ch{font-size:10.5px;padding:1px 7px;border-radius:20px;border:1px solid}
+  .ch.text{color:var(--acc);border-color:rgba(77,212,172,.4)}
+  .ch.viewId{color:var(--acc2);border-color:rgba(90,169,255,.4)}
+  .ch.selector{color:var(--pur);border-color:rgba(178,141,255,.4)}
+
+  .empty{padding:26px;text-align:center;color:var(--tx3);font-size:12.5px;
+         border:1px dashed var(--line2);border-radius:9px}
+
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--tx3);font-size:11.5px;line-height:1.8}
+  @media(max-width:720px){ .wrap{padding:16px 14px 60px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>轻启 AdSkip · 用户行为分析看板</h1>
+    <div class="sub">
+      指标体系与面板结构对应《用户行为分析与体验洞察项目方案》；默认载入<b>符合真实 <code>statsSummary()</code> 数据模型的合成演示数据</b>。
+    </div>
+  </div>
+  <div class="tools">
+    <span class="badge demo" id="srcBadge">合成演示数据</span>
+    <label class="btn" for="fileInput">导入真实 statsSummary JSON</label>
+    <input type="file" id="fileInput" accept=".json,application/json">
+    <button id="resetBtn">恢复演示数据</button>
+  </div>
+</header>
+
+<div class="notice" id="notice">
+  <b>数据说明：</b>本项目暂无真实用户行为样本（服务端 <code>data/</code> 为运行时目录、未入库）。看板中标注
+  <span class="badge demo">合成演示</span> 的面板来自真实数据模型构造的演示数据；标注
+  <span class="badge prop">建议新增</span> 的面板对应方案中 P0–P3 尚未埋点的能力，<b>真实 <code>statsSummary()</code> 当前不含这些字段</b>。
+  导入真实 JSON 后，趋势 / 排行 / 最近记录会切换为真实数据，其余面板保持演示并持续标注。
+</div>
+
+<!-- KPI -->
+<div class="grid g-kpi" id="kpis"></div>
+
+<div class="grid g-2">
+  <div class="panel">
+    <div class="ph"><h3>14 日跳过趋势</h3><span class="badge" id="bTrend">合成演示</span></div>
+    <div class="pd">对应 <code>statsSummary().byDay</code>。当前 API 仅返回最近 14 天（存储保留 90 天），方案建议支持 30/90 天切换。</div>
+    <div class="chart" id="trend"></div>
+  </div>
+
+  <div class="panel dim">
+    <div class="ph"><h3>匹配渠道构成</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+    <div class="pd"><code>StatsSummary</code> 目前<b>丢弃了</b>已存储的 <code>AppStat.byChannel</code>，因此该图当前无法从 API 计算 —— 这是方案中「极低修复成本」的 P0 项。</div>
+    <div class="chart" id="channel"></div>
+    <div class="legend" id="channelLegend"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="ph"><h3>按应用跳过排行</h3><span class="badge" id="bApps">合成演示</span></div>
+  <div class="pd">对应 <code>statsSummary().byApp</code>。结合漏跳数据后，可升级为「按 漏跳量 × 受影响设备数 排序的规则待办清单」。</div>
+  <div class="chart" id="topApps"></div>
+</div>
+
+<div class="grid g-2">
+  <div class="panel dim">
+    <div class="ph"><h3>跳过结局诊断（漏跳 / 误拦）</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+    <div class="pd">P0 核心：<code>skip_outcome</code> 把「只记成功」扩展为 matched / unmatched / blocked 三分结局。目前漏跳与护栏拦截<b>零遥测</b>。</div>
+    <div class="chart" id="outcome"></div>
+    <div class="legend" id="outcomeLegend"></div>
+  </div>
+
+  <div class="panel dim">
+    <div class="ph"><h3>激活漏斗</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+    <div class="pd">P1：安装 → 生效的 6 步转化。除转化率外还看<b>每步中位耗时</b>——「转化了但花了 7 分钟」同样是严重体验问题。</div>
+    <div class="fn" id="funnel"></div>
+  </div>
+</div>
+
+<div class="grid g-2">
+  <div class="panel dim">
+    <div class="ph"><h3>设备留存曲线</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+    <div class="pd">P1：无账号体系，故以「设备」为单位。需用 <code>svc_lifecycle</code> 做「有效留存」，纯 app_open 会严重低估（用户不开 App 但服务在跑，其实用得好）。</div>
+    <div class="chart" id="retention"></div>
+  </div>
+
+  <div class="panel dim">
+    <div class="ph"><h3>页面浏览与停留</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+    <div class="pd">P1：<code>screen_view</code> / <code>screen_exit</code> 配对算停留。用途是<b>识别困惑</b>——设置页停留过长 + 反复进出 = 配置看不懂。</div>
+    <div class="lst" id="screens"></div>
+  </div>
+</div>
+
+<div class="panel dim">
+  <div class="ph"><h3>异常操作路径</h3><span class="badge prop">建议新增 · 合成演示</span></div>
+  <div class="pd">P2 路径分析：识别「异常绕行」与「死路」——用户其实在怀疑功能是否工作，或在配置上卡住。</div>
+  <div class="lst" id="anomalies"></div>
+</div>
+
+<div class="panel">
+  <div class="ph"><h3>体验洞察卡片</h3><span class="badge prop">洞察引擎输出 · 合成演示</span></div>
+  <div class="pd">洞察而非图表才是最终产物：每张卡片含【问题】【证据】【影响面】【建议】【优先级】，可直接排期。</div>
+  <div class="ins" id="insights"></div>
+</div>
+
+<div class="panel">
+  <div class="ph"><h3>最近跳过记录</h3><span class="badge" id="bRecent">合成演示</span></div>
+  <div class="pd">对应 <code>statsSummary().recent</code>。当前 API 截断到 50 条，而存储上限 <code>RECENT_CAP</code> 为 500 —— 方案建议提到 200。</div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>时间</th><th>应用</th><th>包名</th><th>渠道</th></tr></thead>
+      <tbody id="recentBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  轻启 AdSkip · 用户行为分析看板原型 · 2026-10-19<br>
+  合成数据严格遵循真实数据结构（<code>{total, today, byDay[], byApp[], recent[]}</code>）；导入真实 JSON 即可无缝替换趋势 / 排行 / 最近记录三个面板。<br>
+  <b>注意：</b>由于上报默认关闭且需手动开启云端同步，任何真实样本都天然偏向「愿意配服务端的用户」，绝对数字不能代表全体，只能用于相对变化与分群对比。
+</footer>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   0. 工具
+   ============================================================ */
+const fmt = n => (n == null ? "—" : Number(n).toLocaleString("zh-CN"));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function rng(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
+
+/* ============================================================
+   1. 合成演示数据 —— 严格遵循真实 statsSummary() 结构
+   ============================================================ */
+const APPS = [
+  { pkg:"com.tencent.mm",                 label:"微信",       count:186400 },
+  { pkg:"com.taobao.taobao",              label:"淘宝",       count:121300 },
+  { pkg:"com.ss.android.ugc.aweme",       label:"抖音",       count:98700  },
+  { pkg:"com.tencent.mobileqq",           label:"QQ",         count:74200  },
+  { pkg:"com.sina.weibo",                 label:"微博",       count:61800  },
+  { pkg:"com.kuaishou.nebula",            label:"快手",       count:52400  },
+  { pkg:"com.jingdong.app.mall",          label:"京东",       count:44100  },
+  { pkg:"com.baidu.searchbox",            label:"百度",       count:38900  },
+  { pkg:"com.UCMobile",                   label:"UC浏览器",   count:31500  },
+  { pkg:"com.netease.cloudmusic",         label:"网易云音乐", count:27600  },
+  { pkg:"com.qiyi.video",                 label:"爱奇艺",     count:23800  },
+  { pkg:"com.tencent.qqlive",             label:"腾讯视频",   count:20300  },
+  { pkg:"com.zhihu.android",              label:"知乎",       count:16900  },
+  { pkg:"com.eg.android.AlipayGphone",    label:"支付宝",     count:12400  },
+  { pkg:"com.ximalaya.ting.android",      label:"喜马拉雅",   count:9100   },
+];
+
+function buildDemo(){
+  const r = rng(20261019);
+  // --- byDay: 最近 14 天，周末偏高 ---
+  const end = new Date(2026, 9, 19); // 2026-10-19
+  const byDay = [];
+  for (let i = 13; i >= 0; i--){
+    const d = new Date(end); d.setDate(d.getDate() - i);
+    const wd = d.getDay();                       // 0=日 6=六
+    const boost = (wd === 0 || wd === 6) ? 1750 : (wd === 5 ? 620 : 0);
+    const growth = (13 - i) * 46;                // 轻微增长趋势
+    const v = Math.round(6600 + boost + growth + (r() - 0.5) * 1150);
+    byDay.push({
+      day: d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"),
+      count: v
+    });
+  }
+  const today = byDay[byDay.length - 1].count;
+
+  // --- recent: 最近 50 条 ---
+  const totalW = APPS.reduce((s,a) => s + a.count, 0);
+  const recent = [];
+  let cursor = new Date(2026, 9, 19, 20, 47, 0);
+  for (let i = 0; i < 50; i++){
+    let x = r() * totalW, app = APPS[APPS.length - 1];
+    for (const a of APPS){ if (x < a.count){ app = a; break; } x -= a.count; }
+    const cr = r();
+    const channel = cr < 0.68 ? "text" : (cr < 0.90 ? "viewId" : "selector");
+    cursor = new Date(cursor.getTime() - Math.round(60 + r() * 900) * 1000);
+    recent.push({
+      ts: cursor.toISOString(),
+      pkg: app.pkg, label: app.label, channel
+    });
+  }
+  return {
+    total: 1284930,
+    today,
+    byDay,
+    byApp: APPS.map(a => ({ pkg:a.pkg, label:a.label, count:a.count })),
+    recent
+  };
+}
+
+/* ---- 建议新增能力对应的演示数据（真实 summary 当前不含） ---- */
+const PROPOSED = {
+  // P0 skip_outcome
+  outcome: { matched:9450, unmatched:2260, blocked:290 },   // 候选总数 12000
+  // 渠道构成（P0 修复 byChannel 后可得）
+  channel: { text:68, viewId:22, selector:10 },
+  // P1 激活漏斗：step, 进入数, 中位耗时(秒)
+  funnel: [
+    { step:"① 安装并首次打开", n:10000, p50:0   },
+    { step:"② 开启无障碍服务", n:6200,  p50:52  },
+    { step:"③ 配置云端规则",   n:3800,  p50:424 },
+    { step:"④ 电池优化白名单", n:2400,  p50:88  },
+    { step:"⑤ 保活引导完成",   n:1800,  p50:61  },
+    { step:"⑥ 首次成功跳过",   n:1500,  p50:0   },
+  ],
+  // P1 设备留存
+  retention: [{ d:"D1", v:72 }, { d:"D3", v:61 }, { d:"D7", v:54 }, { d:"D14", v:46 }, { d:"D30", v:38 }],
+  // P1 页面浏览与停留
+  screens: [
+    { name:"home · 首页",       views:8420, dwell:"18s" },
+    { name:"apps · 应用管理",   views:3120, dwell:"41s" },
+    { name:"settings · 云同步", views:2460, dwell:"2m 06s" },
+    { name:"logs · 跳过日志",   views:1980, dwell:"12s" },
+    { name:"profile · 设备权限",views:1140, dwell:"33s" },
+  ],
+  // P2 异常路径
+  anomalies: [
+    { t:"无障碍开关反复开启（≥3 次/日）",            n:"312 次/周",  d:"86 台设备", lv:"bad"  },
+    { t:"点击「立即同步」后无任何后续事件（死路）",  n:"203 次/周",  d:"64 台设备", lv:"warn" },
+    { t:"跳过日志页被反复打开（≥4 次/日）",          n:"158 次/周",  d:"41 台设备", lv:"warn" },
+    { t:"同步失败后连续重试风暴（≥5 次）",           n:"47 次/周",   d:"12 台设备", lv:"bad"  },
+  ],
+  // 服务存活（P2）
+  svc: { online:94.2, deaths:1.4, recover:68 }
+};
+
+/* 洞察卡片（洞察引擎输出示例） */
+const INSIGHTS = [
+  {
+    cls:"bad", title:"云端规则配置是激活流程最大流失点",
+    ev:"漏斗 ②→③ 相对跌幅 <b>38.7%</b>（6,200 → 3,800），且该步中位耗时 <b>7 分 04 秒</b>，是其余各步的 5–8 倍。",
+    imp:"每周约 <b>2,400 台</b>设备在此步流失，占安装量的 24%。",
+    act:"把 HTTPS + 证书指纹 + HMAC 密钥三项配置拆成分步引导并前置说明；提供「仅本地规则」的明确出口，避免用户卡死。",
+    pri:"P1"
+  },
+  {
+    cls:"warn", title:"护栏拦截率 2.4% 已越过 2% 告警阈值",
+    ev:"本周 <code>blocked</code> 290 次 / 候选 12,000 次。当前无法区分「正确拦下支付按钮」与「误拦了可跳过的广告」。",
+    imp:"涉及约 <b>6%</b> 活跃设备；误拦会直接摧毁用户对「安全可靠」的信任。",
+    act:"为 blocked 事件补充拦截原因分类（黑名单命中 / 可见性 / 面积），先判断是过度拦截还是正常防护再决定是否放宽。",
+    pri:"P0"
+  },
+  {
+    cls:"warn", title:"漏跳集中在长尾 App，但 Top 应用已现 41% 漏跳",
+    ev:"整体漏跳率 18.8%；单个应用维度下「爱奇艺」漏跳率 <b>41%</b>，"  +
+       "远超 40% 的单应用告警阈值，疑似该 App 改版导致原规则失效。",
+    imp:"该应用覆盖约 <b>11%</b> 活跃设备，估算每周丢失约 1,900 次跳过机会。",
+    act:"按「漏跳量 × 受影响设备数」生成规则待办清单，优先为 Top 漏跳 App 补写选择器规则，上线后复查漏跳率是否下降。",
+    pri:"P0"
+  },
+  {
+    cls:"info", title:"MIUI 设备服务日均中断 1.4 次，保活引导效果未经验证",
+    ev:"<code>svc_lifecycle: destroyed</code> 事件集中在 MIUI 设备（占 <b>68%</b>）；引导后 7 日复活率 68%。",
+    imp:"影响约 <b>23%</b> 活跃设备，估算造成 <b>18%</b> 的跳过机会丢失。",
+    act:"巡检发现中断后改为强提醒而非静默通知；按 ROM 做差异化保活引导文案（MIUI 自启动 / 省电策略单独说明）。",
+    pri:"P1"
+  },
+  {
+    cls:"bad", title:"样本偏差：结论系统性偏向极客用户",
+    ev:"遥测默认关闭且需手动开启云端同步，可分析样本<b>天然排除</b>了沉默的大多数。",
+    imp:"所有绝对数字<b>不能代表全体用户</b>；普通用户的激活流失被系统性低估。",
+    act:"结论只用于相对变化与分群对比；考虑 P1 引入「仅本机聚合」模式，在不上传任何事件的前提下让用户自查漏跳率。",
+    pri:"P0"
+  },
+];
+
+/* ============================================================
+   2. 图表（纯手写 SVG，无外部依赖）
+   ============================================================ */
+const NS = 'xmlns="http://www.w3.org/2000/svg"';
+
+function lineArea(data, opts){
+  const W = opts.w || 620, H = opts.h || 250;
+  const PL = 52, PR = 14, PT = 16, PB = 30;
+  const n = data.length;
+  if (!n) return '<div class="empty">无数据</div>';
+  const vals = data.map(d => d.v);
+  const max = Math.max.apply(null, vals) * 1.12;
+  const min = 0;
+  const iw = W - PL - PR, ih = H - PT - PB;
+  const X = i => PL + (n === 1 ? iw/2 : (iw * i) / (n - 1));
+  const Y = v => PT + ih - ((v - min) / (max - min)) * ih;
+  const pts = data.map((d,i) => ({ x:X(i), y:Y(d.v) }));
+  const gid = "g" + Math.random().toString(36).slice(2,8);
+
+  let grid = "", ylbl = "";
+  for (let k = 0; k <= 4; k++){
+    const gv = min + (max - min) * (k / 4);
+    const gy = Y(gv);
+    grid += `<line x1="${PL}" y1="${gy.toFixed(1)}" x2="${W-PR}" y2="${gy.toFixed(1)}" stroke="#2a3352" stroke-width="1"/>`;
+    ylbl += `<text x="${PL-8}" y="${(gy+3.5).toFixed(1)}" fill="#737f9e" font-size="10" text-anchor="end">${fmt(Math.round(gv))}</text>`;
+  }
+  const line = pts.map((p,i) => `${i?"L":"M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = line + ` L${pts[n-1].x.toFixed(1)},${(PT+ih).toFixed(1)} L${pts[0].x.toFixed(1)},${(PT+ih).toFixed(1)} Z`;
+  const dots = pts.map((p,i) =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#0e1220" stroke="${opts.color}" stroke-width="2"/>`).join("");
+  const xlbl = data.map((d,i) => {
+    if (i % 2 !== 0 && i !== n-1) return "";
+    return `<text x="${X(i).toFixed(1)}" y="${H-9}" fill="#737f9e" font-size="10" text-anchor="middle">${esc(d.l)}</text>`;
+  }).join("");
+
+  return `<svg ${NS} viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${opts.color}" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="${opts.color}" stop-opacity="0.02"/>
+    </linearGradient></defs>
+    ${grid}${ylbl}
+    <path d="${area}" fill="url(#${gid})"/>
+    <path d="${line}" fill="none" stroke="${opts.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}${xlbl}
+  </svg>`;
+}
+
+function attachTip(el, pts, data, unit){
+  const svg = el.querySelector("svg"); if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const tip = document.createElement("div"); tip.className = "tip"; el.appendChild(tip);
+  el.addEventListener("mousemove", e => {
+    const rect = svg.getBoundingClientRect();
+    const scale = rect.width / vb.width;
+    const x = (e.clientX - rect.left) / scale;
+    let best = 0, bd = Infinity;
+    pts.forEach((p,i) => { const d = Math.abs(p.x - x); if (d < bd){ bd = d; best = i; } });
+    const p = pts[best];
+    tip.style.display = "block";
+    tip.style.left = (p.x * scale) + "px";
+    tip.style.top  = (p.y * scale - 6) + "px";
+    tip.innerHTML = `<b>${fmt(data[best].v)}</b>${unit||""}<br><span>${esc(data[best].l)}</span>`;
+  });
+  el.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+}
+
+function donut(segs, opts){
+  const W = opts.w || 620, H = opts.h || 250;
+  const cx = 150, cy = H/2, r = 88, sw = 30;
+  const C = 2 * Math.PI * r;
+  const total = segs.reduce((s,x) => s + x.v, 0) || 1;
+  let acc = 0, arcs = "";
+  segs.forEach(s => {
+    const len = (s.v / total) * C;
+    arcs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.c}" stroke-width="${sw}"
+      stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})"><title>${esc(s.l)}: ${fmt(s.v)} (${(s.v/total*100).toFixed(1)}%)</title></circle>`;
+    acc += len;
+  });
+  let legend = "";
+  segs.forEach(s => {
+    legend += `<span><i style="background:${s.c}"></i>${esc(s.l)} <b style="color:#e8ecf6;font-family:var(--mono)">${fmt(s.v)}</b>
+      <span style="color:#737f9e">(${(s.v/total*100).toFixed(1)}%)</span></span>`;
+  });
+  const centerVal = opts.center ? `<text x="${cx}" y="${cy}" fill="#e8ecf6" font-size="20" font-weight="700"
+      text-anchor="middle" font-family="monospace">${esc(opts.center)}</text>` : "";
+  return { svg:`<svg ${NS} viewBox="0 0 ${W} ${H}">${arcs}${centerVal}</svg>`, legend };
+}
+
+function hbar(items, opts){
+  const W = opts.w || 900, rowH = 24, H = items.length * rowH + 8;
+  const max = Math.max.apply(null, items.map(i => i.v)) || 1;
+  const LW = 150, RW = 96, BW = W - LW - RW;
+  let rows = "";
+  items.forEach((it, i) => {
+    const y = i * rowH + 4;
+    const bw = Math.max(3, (it.v / max) * BW);
+    rows += `<text x="${LW-10}" y="${y+15}" fill="#a8b2cc" font-size="12" text-anchor="end">${esc(it.l)}</text>
+      <rect x="${LW}" y="${y+3}" width="${BW}" height="15" rx="4" fill="#1d2540"/>
+      <rect x="${LW}" y="${y+3}" width="${bw.toFixed(1)}" height="15" rx="4" fill="${it.c || 'url(#hb)'}">
+        <title>${esc(it.l)}: ${fmt(it.v)}</title></rect>
+      <text x="${LW+BW+10}" y="${y+15}" fill="#e8ecf6" font-size="11.5" font-family="monospace">${fmt(it.v)}</text>`;
+  });
+  return `<svg ${NS} viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="hb" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5aa9ff"/><stop offset="100%" stop-color="#4dd4ac"/>
+    </linearGradient></defs>${rows}</svg>`;
+}
+
+/* ============================================================
+   3. 渲染
+   ============================================================ */
+let DATA = buildDemo();
+let MODE = "demo";   // demo | real
+
+function setBadges(){
+  const b = MODE === "real";
+  const src = document.getElementById("srcBadge");
+  src.className = "badge " + (b ? "real" : "demo");
+  src.textContent = b ? "真实数据" : "合成演示数据";
+  ["bTrend","bApps","bRecent"].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = "badge " + (b ? "real" : "demo");
+    el.textContent = b ? "真实数据" : "合成演示";
+  });
+  const n = document.getElementById("notice");
+  n.style.display = b ? "none" : "";
+}
+
+function renderKpis(){
+  const d = DATA;
+  const sum14 = d.byDay.reduce((s,x) => s + x.count, 0);
+  const avg7  = Math.round(d.byDay.slice(-7).reduce((s,x) => s + x.count, 0) / 7);
+  const o = PROPOSED.outcome;
+  const det = o.matched + o.unmatched + o.blocked;
+  const rate = (o.matched / det * 100).toFixed(1);
+  const miss = (o.unmatched / det * 100).toFixed(1);
+  const blk  = (o.blocked  / det * 100).toFixed(1);
+  const cards = [
+    { v: fmt(d.total), l:"累计跳过次数",        h:"statsSummary.total", cls:"" },
+    { v: fmt(d.today), l:"今日跳过",            h:"statsSummary.today", cls:"blue" },
+    { v: fmt(avg7),    l:"近 7 日日均",         h:"近 14 日合计 " + fmt(sum14), cls:"" },
+    { v: d.byApp.length + "+", l:"覆盖应用数",  h:"Top 15 之外为长尾 / _other", cls:"" },
+    { v: rate + "%",   l:"跳过成功率",          h:"漏跳 " + miss + "% · 拦截 " + blk + "%", cls:"" },
+    { v: PROPOSED.svc.online + "%", l:"服务在线率", h:"日均中断 " + PROPOSED.svc.deaths + " 次/设备", cls:"warn" },
+  ];
+  document.getElementById("kpis").innerHTML = cards.map(c =>
+    `<div class="kpi ${c.cls}"><div class="v">${c.v}</div><div class="l">${c.l}</div><div class="h">${c.h}</div></div>`
+  ).join("");
+}
+
+function renderTrend(){
+  const d = DATA.byDay.map(x => ({ l: x.day.slice(5), v: x.count }));
+  const el = document.getElementById("trend");
+  el.innerHTML = lineArea(d, { color:"#4dd4ac", w:620, h:250 });
+  const svg = el.querySelector("svg");
+  if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const PL=52,PR=14,PT=16,PB=30, iw=vb.width-PL-PR, ih=vb.height-PT-PB;
+  const max = Math.max.apply(null, d.map(x=>x.v)) * 1.12;
+  const pts = d.map((x,i) => ({ x: PL + (iw*i)/(d.length-1), y: PT + ih - (x.v/max)*ih }));
+  attachTip(el, pts, d, " 次");
+}
+
+function renderChannel(){
+  const c = PROPOSED.channel;
+  const segs = [
+    { l:"text 文本关键词", v:c.text,     c:"#4dd4ac" },
+    { l:"viewId 控件 ID",  v:c.viewId,   c:"#5aa9ff" },
+    { l:"selector 选择器", v:c.selector, c:"#b28dff" },
+  ];
+  const out = donut(segs, { w:620, h:250, center:"渠道构成" });
+  document.getElementById("channel").innerHTML = out.svg;
+  document.getElementById("channelLegend").innerHTML = out.legend;
+}
+
+function renderTopApps(){
+  const items = DATA.byApp.slice(0, 12).map(a => ({ l:a.label, v:a.count }));
+  document.getElementById("topApps").innerHTML = hbar(items, { w:900 });
+}
+
+function renderOutcome(){
+  const o = PROPOSED.outcome;
+  const segs = [
+    { l:"matched 命中并跳过", v:o.matched,   c:"#4dd4ac" },
+    { l:"unmatched 漏跳",     v:o.unmatched, c:"#ffb454" },
+    { l:"blocked 护栏拦截",   v:o.blocked,   c:"#ff6b81" },
+  ];
+  const out = donut(segs, { w:620, h:250, center:(o.matched/(o.matched+o.unmatched+o.blocked)*100).toFixed(1)+"%" });
+  document.getElementById("outcome").innerHTML = out.svg;
+  document.getElementById("outcomeLegend").innerHTML = out.legend;
+}
+
+function renderFunnel(){
+  const f = PROPOSED.funnel;
+  const base = f[0].n;
+  let html = "";
+  f.forEach((s, i) => {
+    const w = Math.max(2, (s.n / base) * 100);
+    const cls = i === 2 ? "warn" : "";
+    html += `<div class="row">
+      <div class="top"><span class="nm">${esc(s.step)}</span>
+        <span class="vl">${fmt(s.n)} · ${(s.n/base*100).toFixed(1)}%${s.p50 ? " · 中位 " + Math.round(s.p50) + "s" : ""}</span></div>
+      <div class="bar ${cls}" style="width:${w}%"></div>`;
+    if (i < f.length - 1){
+      const drop = ((f[i+1].n - s.n) / s.n * 100);
+      const bad = drop <= -30;
+      html += `<div class="drop ${bad ? "" : "neutral"}">↓ 相对 ${drop.toFixed(1)}%</div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById("funnel").innerHTML = html;
+}
+
+function renderRetention(){
+  const d = PROPOSED.retention.map(x => ({ l:x.d, v:x.v }));
+  const el = document.getElementById("retention");
+  el.innerHTML = lineArea(d, { color:"#5aa9ff", w:620, h:250 });
+  const svg = el.querySelector("svg"); if (!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const PL=52,PR=14,PT=16,PB=30, iw=vb.width-PL-PR, ih=vb.height-PT-PB;
+  const max = Math.max.apply(null, d.map(x=>x.v)) * 1.12;
+  const pts = d.map((x,i) => ({ x: PL + (iw*i)/(d.length-1), y: PT + ih - (x.v/max)*ih }));
+  attachTip(el, pts, d, "%");
+}
+
+function renderScreens(){
+  document.getElementById("screens").innerHTML = PROPOSED.screens.map(s =>
+    `<div class="li"><span class="rk">·</span>
+      <span class="nm">${esc(s.name)}</span>
+      <span class="vl">${fmt(s.views)} 次</span>
+      <span class="pc">停留 ${s.dwell}</span></div>`).join("");
+}
+
+function renderAnomalies(){
+  document.getElementById("anomalies").innerHTML = PROPOSED.anomalies.map((a,i) =>
+    `<div class="li"><span class="rk">${i+1}</span>
+      <span class="nm">${esc(a.t)}</span>
+      <span class="vl" style="color:${a.lv==='bad'?'#ff6b81':'#ffb454'}">${a.n}</span>
+      <span class="pc">${a.d}</span></div>`).join("");
+}
+
+function renderInsights(){
+  const pmap = { "P0":"b p0","P1":"b p1","P2":"b p2","P3":"b p3" };
+  document.getElementById("insights").innerHTML = INSIGHTS.map(x =>
+    `<div class="ic ${x.cls}">
+      <h4>${x.title}</h4>
+      <dl>
+        <dt>证据</dt><dd>${x.ev}</dd>
+        <dt>影响面</dt><dd>${x.imp}</dd>
+        <dt>建议</dt><dd>${x.act}</dd>
+      </dl>
+      <div class="pri"><span class="b ${x.pri==='P0'?'p0':(x.pri==='P1'?'p1':'p2')}">${x.pri}</span></div>
+    </div>`).join("");
+}
+
+function renderRecent(){
+  const rows = DATA.recent.slice(0, 50).map(e => {
+    const t = new Date(e.ts);
+    const ts = t.getFullYear() + "-" + String(t.getMonth()+1).padStart(2,"0") + "-" +
+               String(t.getDate()).padStart(2,"0") + " " +
+               String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0") + ":" +
+               String(t.getSeconds()).padStart(2,"0");
+    return `<tr><td class="t">${ts}</td><td>${esc(e.label || "—")}</td>
+      <td class="p">${esc(e.pkg || "—")}</td>
+      <td><span class="ch ${e.channel}">${esc(e.channel || "—")}</span></td></tr>`;
+  }).join("");
+  document.getElementById("recentBody").innerHTML = rows ||
+    `<tr><td colspan="4"><div class="empty">无记录</div></td></tr>`;
+}
+
+function renderAll(){
+  setBadges(); renderKpis(); renderTrend(); renderChannel(); renderTopApps();
+  renderOutcome(); renderFunnel(); renderRetention(); renderScreens();
+  renderAnomalies(); renderInsights(); renderRecent();
+}
+
+/* ============================================================
+   4. 导入真实 statsSummary JSON
+   ============================================================ */
+document.getElementById("fileInput").addEventListener("change", ev => {
+  const f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const j = JSON.parse(fr.result);
+      const ok = j && typeof j === "object" && Array.isArray(j.byDay) && Array.isArray(j.byApp) && Array.isArray(j.recent);
+      if (!ok) throw new Error("缺少 byDay / byApp / recent 数组");
+      DATA = {
+        total:  Number(j.total  ?? j.byDay.reduce((s,x)=>s+(x.count||0),0)),
+        today:  Number(j.today  ?? 0),
+        byDay:  j.byDay.map(x => ({ day:String(x.day), count:Number(x.count||0) })),
+        byApp:  j.byApp.map(x => ({ pkg:String(x.pkg||""), label:String(x.label||x.pkg||""), count:Number(x.count||0) }))
+                  .sort((a,b) => b.count - a.count),
+        recent: j.recent.map(x => ({ ts:x.ts, pkg:x.pkg, label:x.label, channel:x.channel }))
+      };
+      MODE = "real";
+      renderAll();
+      alert("已载入真实 statsSummary：趋势 / 排行 / 最近记录已切换为真实数据。\n\n标注「建议新增」的面板依赖 P0–P3 尚未埋点的字段，仍为演示数据。");
+    } catch (err) {
+      alert("导入失败：" + err.message + "\n\n请确保文件为 statsSummary() 导出的 JSON（含 total / today / byDay / byApp / recent）。");
+    }
+    ev.target.value = "";
+  };
+  fr.readAsText(f, "utf-8");
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  DATA = buildDemo(); MODE = "demo"; renderAll();
+});
+
+renderAll();
+</script>
+</body>
+</html>
