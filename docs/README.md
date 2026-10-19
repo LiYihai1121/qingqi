@@ -116,7 +116,7 @@ docs/
 
 未排期能力见 [planning/ROADMAP.md](planning/ROADMAP.md) 的「候选池」；L2/L3 启动前必须先完成 Phase 0 合规评审（见 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 3 节）。
 
-> **已落地**：系统级体验——下拉快捷磁贴（`TileService`）+ 厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。
+> **已落地**：系统级体验——厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。下拉快捷磁贴（`TileService`）曾随同一版本发布，现已随权限清单重构**整体下线**（见 [CHANGELOG.md](../CHANGELOG.md) Unreleased）。
 
 ## 规划中尚未创建的文档
 

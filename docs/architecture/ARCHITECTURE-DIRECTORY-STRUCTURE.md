@@ -57,7 +57,7 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 │           │   │   ├── core/             # 零业务依赖基础件（LogRing/Clock/Executors）
 │           │   │   ├── engine/           # 选择器匹配引擎（纯 JVM 可单测）
 │           │   │   ├── service/          # 无障碍服务 SkipAdService
-│           │   │   ├── device/           # 厂商 ROM 保活/磁贴（TileService/入口表）
+│           │   │   ├── device/           # 厂商 ROM 保活/权限判定（入口表 + 三态状态源）
 │           │   │   ├── data/             # 规则/偏好/统计存储（EncryptedSharedPreferences）
 │           │   │   ├── net/              # SyncClient（OkHttp + HMAC 验签 + 证书 pin）
 │           │   │   └── sync/             # 同步编排（SyncJobService）
@@ -166,7 +166,7 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 
 | # | 缺口 | 建议动作 | 依据 |
 |---|---|---|---|
-| 1 | 无 `client/app/src/androidTest/` | 落地磁贴/保活/跳过主链路 E2E（Maestro 或仪器化） | 测试层缺口：E2E 为 0 |
+| 1 | 无 `client/app/src/androidTest/` | 落地保活/权限/跳过主链路 E2E（Maestro 或仪器化） | 测试层缺口：E2E 为 0 |
 | 2 | 无覆盖率配置 | 客户端 JaCoCo、服务端 `bun test --coverage`，先观测后阈值 | 度量层缺口 |
 | 3 | 无 `client/gradle/verification-metadata.xml` | `--write-verification-metadata sha256` | 供应链完整性 |
 | 4 | 无 `.gitleaks.toml` allowlist | secret-scan 转强制前完成历史扫描 triage | K6 后续 |

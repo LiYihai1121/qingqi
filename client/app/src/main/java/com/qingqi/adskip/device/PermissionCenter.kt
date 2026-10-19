@@ -39,17 +39,17 @@ data class PermissionItem(
 object PermissionKeys {
     const val ACCESSIBILITY = "accessibility"
     const val BATTERY = "battery"
+    const val NOTIFICATION = "notification"
     const val VENDOR_KEEPALIVE = "vendor_keepalive"
-    const val QUICK_TILE = "quick_tile"
 }
 
 /**
  * 权限与系统开关的**单一汇总点**（零 Android 依赖，可纯 JVM 单测）。
  *
- * 存在理由：「跳过静默失效」是最高频的用户投诉，成因却是四类互不相干的系统开关——
- * 无障碍没开、后台被电池优化杀掉、厂商自启动没放行、磁贴没加。此前它们分散在
+ * 存在理由：「跳过静默失效」是最高频的用户投诉，成因却是几类互不相干的系统开关——
+ * 无障碍没开、后台被电池优化杀掉、通知被系统拦掉、厂商自启动没放行。此前它们分散在
  * 首页状态环、「我的」页无障碍卡片与设置页三处，用户无法一眼看出「到底还差什么」。
- * 这里把四类收敛成一张可核对清单。
+ * 这里把它们收敛成一张可核对清单。
  *
  * 判定原则（与 [AccessibilityStatus] / [BatteryExemption] 一致）：
  * **能查的查真值，查不到的如实说不知道，绝不谎报。**
@@ -74,6 +74,19 @@ object PermissionCenter {
     }
 
     /**
+     * 通知权限 → 权限项状态。
+     *
+     * 通知被拒绝时**服务守护的通知会被系统静默丢弃**（Android 13+ 的
+     * `POST_NOTIFICATIONS` 是运行时权限），用户只会看到「跳过莫名失效」，
+     * 因此这一项必须能查真值并给出直达入口。
+     */
+    fun notificationStatus(permission: NotificationPermission): PermissionStatus = when (permission) {
+        NotificationPermission.GRANTED -> PermissionStatus.READY
+        NotificationPermission.DENIED -> PermissionStatus.NEEDS_ACTION
+        NotificationPermission.UNKNOWN -> PermissionStatus.UNKNOWN
+    }
+
+    /**
      * 厂商自启动**恒为 [PermissionStatus.UNKNOWN]**。
      *
      * 这是刻意的、不可「优化」掉的：厂商自启动没有公开查询 API。谎报「未开启」
@@ -82,23 +95,13 @@ object PermissionCenter {
     fun vendorKeepAliveStatus(): PermissionStatus = PermissionStatus.UNKNOWN
 
     /**
-     * 快捷磁贴状态。
-     *
-     * 系统同样没有「该磁贴是否已被添加」的公开查询，因此以磁贴服务自身的
-     * `onTileAdded` 记录为准：有记录 = READY，无记录 = UNKNOWN（而非未添加——
-     * 用户可能早已添加，只是本机记录被清过）。
-     */
-    fun quickTileStatus(added: Boolean): PermissionStatus =
-        if (added) PermissionStatus.READY else PermissionStatus.UNKNOWN
-
-    /**
-     * 组装清单。顺序即展示顺序：无障碍与电池是「不设就没法工作」的硬前提，
-     * 厂商保活与磁贴是增强项，用户按此优先级逐项处理最省事。
+     * 组装清单。顺序即展示顺序：无障碍、电池与通知是「不设就没法正常工作」的硬前提，
+     * 厂商保活是增强项，用户按此优先级逐项处理最省事。
      */
     fun build(
         accessibility: AccessibilityStatus,
         battery: BatteryExemption,
-        tileAdded: Boolean,
+        notification: NotificationPermission,
     ): List<PermissionItem> = listOf(
         PermissionItem(
             key = PermissionKeys.ACCESSIBILITY,
@@ -113,15 +116,15 @@ object PermissionCenter {
             actionable = true,
         ),
         PermissionItem(
-            key = PermissionKeys.VENDOR_KEEPALIVE,
+            key = PermissionKeys.NOTIFICATION,
             title = "",
-            status = vendorKeepAliveStatus(),
+            status = notificationStatus(notification),
             actionable = true,
         ),
         PermissionItem(
-            key = PermissionKeys.QUICK_TILE,
+            key = PermissionKeys.VENDOR_KEEPALIVE,
             title = "",
-            status = quickTileStatus(tileAdded),
+            status = vendorKeepAliveStatus(),
             actionable = true,
         ),
     )

@@ -1,25 +1,18 @@
 package com.qingqi.adskip.device
 
-import android.app.StatusBarManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
-import com.qingqi.adskip.R
 import com.qingqi.adskip.core.LogRing
-import java.util.concurrent.Executor
 
 /**
- * 系统级入口的**唯一跳转出口**：厂商保活引导、无障碍设置、应用详情、磁贴添加。
+ * 系统级入口的**唯一跳转出口**：厂商保活引导、无障碍设置、通知设置、应用详情。
  *
  * 分层职责：本对象只做「Intent 组装 + 可用性探测 + 降级重试」，
- * 候选入口表（[VendorKeepAlive]）与磁贴交互决策（[QuickTileLogic]）均为纯 Kotlin，便于 JVM 单测。
+ * 候选入口表（[VendorKeepAlive]）为纯 Kotlin，便于 JVM 单测。
  *
  * 边界契约：本包属 `device/` 层，允许依赖 `core/`（日志）与 `service/`（无障碍真实状态与关闭请求），
  * 禁止依赖 `ui/`、`data/`、`net/`、`sync/`（见 ARCHITECTURE.md 2.1 与 ArchitectureBoundaryTest）。
@@ -27,9 +20,6 @@ import java.util.concurrent.Executor
 object KeepAliveNavigator {
 
     private const val TAG = "KeepAlive"
-
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val mainExecutor = Executor { command -> mainHandler.post(command) }
 
     /** 当前设备所属 ROM（[Build] 读取失败时返回 GENERIC，不抛异常）。 */
     fun detectVendor(): Vendor = try {
@@ -72,6 +62,37 @@ object KeepAliveNavigator {
     )
 
     /**
+     * 打开本应用的**通知设置页**。
+     *
+     * 为什么不直接跳「应用详情页」：通知开关在应用详情页里只是众多条目之一，
+     * 用户仍需自己找到「通知」再点进去。直接跳通知页少两步，且这是「通知权限」
+     * 这一项唯一有意义的落点。
+     *
+     * 优先用 [Settings.ACTION_APP_NOTIFICATION_SETTINGS]（API 26+ 就有，可带包名直达）；
+     * 个别 ROM 不解析该 action，退回应用详情页——通知开关在那里同样可达。
+     */
+    fun openNotificationSettings(context: Context): Boolean {
+        val direct = try {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        } catch (e: Exception) {
+            LogRing.w(TAG, "build notification settings intent failed: ${e.message}")
+            null
+        }
+        if (direct != null && isResolvable(context, direct)) {
+            return try {
+                context.startActivity(direct)
+                true
+            } catch (e: Exception) {
+                LogRing.w(TAG, "open notification settings failed: ${e.message}")
+                false
+            }
+        }
+        return openAppDetails(context)
+    }
+
+    /**
      * 打开「电池优化白名单」设置。
      *
      * 先尝试带本应用包名的直连请求页（Android 官方推荐），不可用时回退到白名单总列表页。
@@ -83,54 +104,6 @@ object KeepAliveNavigator {
         ),
         GuideEntry(action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
     ).any { start(context, it) }
-
-    // ---------- 快捷磁贴 ----------
-
-    /** 当前系统是否支持「应用主动请求添加磁贴」（Android 13+ 的 `requestAddTileService`）。 */
-    fun canRequestAddTile(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
-    /**
-     * 请求系统弹出「添加到快捷设置」确认框（Android 13+）。
-     *
-     * @param label 磁贴在确认框中的标题
-     * @param onResult 归一化后的结果，在主线程回调
-     * @return 是否已成功发起请求（`false` 表示版本不支持或系统服务缺失）
-     */
-    fun requestAddTile(context: Context, label: String, onResult: (TileAddResult) -> Unit): Boolean {
-        if (!canRequestAddTile()) return false
-        val manager = context.getSystemService(StatusBarManager::class.java) ?: return false
-        val component = ComponentName(context, SkipTileService::class.java)
-        val icon = Icon.createWithResource(context, R.drawable.ic_qs_skip)
-        return try {
-            manager.requestAddTileService(component, label, icon, mainExecutor) { code ->
-                onResult(toTileAddResult(code))
-            }
-            true
-        } catch (e: Throwable) {
-            // 这里必须捕获 Throwable 而非 Exception。
-            //
-            // `StatusBarManager.requestAddTileService` 的第 5 个参数在 AOSP 中经历过
-            // `RemoteCallback` → `Consumer<Integer>` 的变更（已核对：android-34/35 均为
-            // `Consumer<Integer>`；android-33 引入时的形态未能在本机证实）。若目标系统仍是
-            // 旧签名，调用点会抛 `NoSuchMethodError`——它是 **Error**，`catch (Exception)`
-            // 抓不到，会在 `viewModelScope` 协程里直接崩溃，且崩溃栈与「添加磁贴」毫无关联，
-            // 极难归因。降级为提示手动添加，代价远小于崩溃。
-            LogRing.w(TAG, "requestAddTileService failed: ${e.javaClass.simpleName}: ${e.message}")
-            false
-        }
-    }
-
-    /**
-     * 把 [StatusBarManager] 的整型返回码归一化为 [TileAddResult]。
-     *
-     * 常量本身是 `static final int`，编译期即内联，故低版本设备上引用它们是安全的。
-     */
-    fun toTileAddResult(result: Int): TileAddResult = when (result) {
-        StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> TileAddResult.ADDED
-        StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> TileAddResult.ALREADY_ADDED
-        StatusBarManager.TILE_ADD_REQUEST_ERROR_APP_NOT_IN_FOREGROUND -> TileAddResult.NOT_FOREGROUND
-        else -> TileAddResult.FAILED
-    }
 
     // ---------- 内部实现 ----------
 
