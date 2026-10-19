@@ -167,19 +167,26 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
                     }
 
                     item {
-                        TextButton(onClick = { confirmClear = true }) {
-                            Icon(
-                                imageVector = AdSkipIcons.Delete,
-                                contentDescription = null,
-                                modifier = Modifier.size(UiSizes.inlineIcon),
-                                tint = StatusColors.off,
-                            )
-                            Spacer(Modifier.width(Spacing.sm))
-                            Text(
-                                text = stringResource(R.string.logs_clear),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = StatusColors.off,
-                            )
+                        // 「清空」是页面级收尾动作，设计稿居中；TextButton 默认只占内容宽度，
+                        // 直接放在 LazyColumn item 里会贴左，看起来像漏排了一行。
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            TextButton(onClick = { confirmClear = true }) {
+                                Icon(
+                                    imageVector = AdSkipIcons.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(UiSizes.inlineIcon),
+                                    tint = StatusColors.off,
+                                )
+                                Spacer(Modifier.width(Spacing.sm))
+                                Text(
+                                    text = stringResource(R.string.logs_clear),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = StatusColors.off,
+                                )
+                            }
                         }
                     }
                 }

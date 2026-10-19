@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +54,7 @@ import com.qingqi.adskip.device.KeepAliveNavigator
 import com.qingqi.adskip.ui.Messenger
 import com.qingqi.adskip.ui.UiEffect
 import com.qingqi.adskip.ui.components.AppHeader
+import com.qingqi.adskip.ui.components.IconPlate
 import com.qingqi.adskip.ui.components.LabeledSwitch
 import com.qingqi.adskip.ui.components.SectionCard
 import com.qingqi.adskip.ui.components.SectionHint
@@ -387,20 +390,9 @@ private fun ActionCard(
 ) {
     SectionCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(UiSizes.tileIcon)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(UiSizes.tileGlyph),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+            // 图标底衬用 36dp 的 IconPlate，而不是 48dp 的瓦片底衬：
+            // 设计稿这一行的图标与「设置行」同级（36dp），48dp 会让卡片看起来像被图标压住。
+            IconPlate(icon = icon)
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -442,35 +434,45 @@ private fun QuickTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = Spacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    // 瓦片必须是**卡片**：设计稿里三块快捷入口是白底 + 圆角 + 投影的独立卡片。
+    // 此前只画了图标与标签（无容器），三个入口看起来像浮在页面上的散装图标，
+    // 与上下两张卡片的视觉层级断裂，点按区域也缺少边界提示。
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = UiSizes.cardElevation),
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(UiSizes.tileIcon)
-                .clip(MaterialTheme.shapes.small)
-                .background(containerColor),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = Spacing.xs, vertical = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(UiSizes.tileGlyph),
-                tint = contentColor,
+            Box(
+                modifier = Modifier
+                    .size(UiSizes.tileIcon)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(containerColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(UiSizes.tileGlyph),
+                    tint = contentColor,
+                )
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(Modifier.height(Spacing.sm))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
