@@ -29,14 +29,14 @@ import com.qingqi.adskip.ui.theme.UiSizes
 /**
  * 权限与系统开关清单卡。
  *
- * 存在的理由：四类开关（无障碍 / 电池优化 / 厂商自启动 / 快捷磁贴）此前分散在首页状态环、
+ * 存在的理由：几类开关（无障碍 / 电池优化 / 通知 / 厂商自启动）此前分散在首页状态环、
  * 本页无障碍卡片与设置页三处，用户无法一眼看出「到底还差什么才能正常工作」。
  * 这里把它们收成一张**可核对清单**：每项给出真实状态与直达入口。
  *
  * 两条刻意的设计约束（与 device/PermissionCenter 的判定一致）：
  *
- * 1. **UNKNOWN 不谎报为「需要处理」**。厂商自启动没有公开查询 API，磁贴也无法反查
- *    是否已添加；谎报会让用户在系统页反复来回而状态永远不变。故这类项显示
+ * 1. **UNKNOWN 不谎报为「需要处理」**。厂商自启动没有公开查询 API；
+ *    谎报会让用户在系统页反复来回而状态永远不变。故这类项显示
  *    「无法自动确认，请手动核对」并且**仍然给出入口**——否则「无法确认」会变成死路。
  *
  * 2. **本文件不做任何状态判定**，只按 [PermissionItem.status] 取文案与渲染；
@@ -131,8 +131,8 @@ private fun statusColor(status: PermissionStatus): androidx.compose.ui.graphics.
 private fun PermissionItem.titleRes(): Int = when (key) {
     PermissionKeys.ACCESSIBILITY -> R.string.permission_accessibility
     PermissionKeys.BATTERY -> R.string.permission_battery
+    PermissionKeys.NOTIFICATION -> R.string.permission_notification
     PermissionKeys.VENDOR_KEEPALIVE -> R.string.permission_vendor_keepalive
-    PermissionKeys.QUICK_TILE -> R.string.permission_quick_tile
     else -> R.string.permission_section
 }
 

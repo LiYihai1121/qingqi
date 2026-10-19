@@ -16,7 +16,6 @@ import com.qingqi.adskip.device.BatteryExemption
 import com.qingqi.adskip.device.KeepAliveNavigator
 import com.qingqi.adskip.device.LanguageMode
 import com.qingqi.adskip.device.LocaleApplier
-import com.qingqi.adskip.device.TileAddResult
 import com.qingqi.adskip.device.Vendor
 import com.qingqi.adskip.ui.UiEffect
 import com.qingqi.adskip.ui.vendorLabelRes
@@ -211,7 +210,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         _uiState.value = _uiState.value.copy(batteryExemption = queryBatteryExemption())
     }
 
-    // ---------- 厂商保活引导与快捷磁贴 ----------
+    // ---------- 厂商保活引导 ----------
 
     /** 打开厂商「自启动 / 后台管理」设置页；候选入口均不可用时提示手动路径。 */
     fun openKeepAliveSettings() {
@@ -223,36 +222,6 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             R.string.settings_keepalive_failed
         }
         send(container.app.getString(messageRes, vendorName))
-    }
-
-    /** Android 13+ 请求系统弹出「添加到快捷设置」；低版本或系统服务缺失时提示手动添加。 */
-    fun requestAddTile() {
-        val tileLabel = container.app.getString(R.string.tile_label)
-        if (!KeepAliveNavigator.canRequestAddTile()) {
-            send(container.app.getString(R.string.settings_tile_manual, tileLabel))
-            return
-        }
-        val started = KeepAliveNavigator.requestAddTile(
-            context = container.app,
-            label = tileLabel,
-        ) { result -> send(tileAddMessage(result)) }
-        if (!started) {
-            send(container.app.getString(R.string.settings_tile_manual, tileLabel))
-        }
-    }
-
-    private fun tileAddMessage(result: TileAddResult): String {
-        val messageRes = when (result) {
-            TileAddResult.ADDED -> R.string.settings_tile_added
-            TileAddResult.ALREADY_ADDED -> R.string.settings_tile_exists
-            TileAddResult.NOT_FOREGROUND -> R.string.settings_tile_not_foreground
-            TileAddResult.FAILED -> R.string.settings_tile_manual
-        }
-        return if (messageRes == R.string.settings_tile_manual) {
-            container.app.getString(messageRes, container.app.getString(R.string.tile_label))
-        } else {
-            container.app.getString(messageRes)
-        }
     }
 
     private fun vendorName(vendor: Vendor): String = container.app.getString(vendorLabelRes(vendor))

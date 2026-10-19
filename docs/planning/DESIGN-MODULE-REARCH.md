@@ -104,7 +104,7 @@ client/
 │       └── 权限面：BIND_NOTIFICATION_LISTENER_SERVICE（新，major）
 ├── data/                         # Android library：Prefs / RulesRepository / StatsRepository / SettingsRepository
 ├── net/                          # Android library：SyncClient
-├── device/                       # Android library：VendorKeepAlive / QuickTileLogic / SkipTileService
+├── device/                       # Android library：VendorKeepAlive / KeepAliveNavigator / 权限三态状态源
 └── sync/                         # Android library：SyncJobService
 ```
 

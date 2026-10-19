@@ -84,6 +84,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 | `gzdx` | `.worktrees/gzdx-gitleaks` | `ci/gitleaks-enforce` | `.gitleaks.toml`、`.github/workflows/ci.yml`、`SECURITY.md`、`client/app/src/test/.../arch/ProjectStructureTest.kt`、`AGENT-WORKFLOW.md`（认领板自身） | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 | `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |
+| DSH | `.agents/worktrees/feature/199-service-permissions-drop-tile` | `feature/199-service-permissions-drop-tile` | `device/`、`ui/profile/`、`ui/settings/`、`client/app/src/main/res/values*/strings.xml`、`client/app/src/main/AndroidManifest.xml`、`client/app/src/test/**/arch/{ManifestContractTest,ProjectStructureTest}.kt`、`client/app/src/test/**/device/`、`README.md`、`CHANGELOG.md`、`docs/`（架构/路线图/技能同步） | 进行中 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
@@ -151,17 +152,17 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 4. **遗留与风险**：已知未覆盖场景、平台差异、需要真机验证的点；
 5. **建议下一步**：接手方可以直接执行的第一条命令。
 
-示例（磁贴任务收工）：
+示例（设备层权限项收口任务收工）：
 
 ```text
-1. 新增 client/.../device/{VendorKeepAlive,QuickTileLogic,KeepAliveNavigator,SkipTileService}.kt，
-   SkipAdService 增加 isEnabled()/requestShutdown()，AndroidManifest 注册磁贴与 <queries>。
-2. 新增 device/ 层边界（ARCHITECTURE.md 2.1），由 ArchitectureBoundaryTest 守护；
-   新增 ManifestContractTest 守护磁贴注册与 <queries> 覆盖。
-3. assembleDebug 通过；testDebugUnitTest 全绿（新增用例若干）；bun test 全绿；typecheck exit 0。
-4. 入口表为社区经验值，ROM 升级可能失效（已做运行时可解析性探测 + 降级）；
-   未在 MIUI/HarmonyOS 真机验证跳转，磁贴点按关闭为“一键关核心功能”策略，待产品确认。
-5. 在 MIUI 与 HarmonyOS 真机上各跑一次保活跳转，把失败项回报以修表。
+1. 新增 client/.../device/NotificationPermission.kt（三态判定，纯函数可 JVM 单测），
+   PermissionCenter.build 增加 notification 参数，ProfileViewModel 读系统真值后入清单。
+2. 边界未变（device/ 仍不得依赖 ui/data/net/sync），由 ArchitectureBoundaryTest 守护；
+   新增 ManifestContractTest 用例守护 POST_NOTIFICATIONS 声明与「磁贴已从清单移除」。
+3. assembleDebug 通过；testDebugUnitTest 全绿（288 例 / 0 失败）；bun test 全绿；typecheck exit 0。
+4. 通知状态取 NotificationManager.areNotificationsEnabled()：同时覆盖「未授予运行时权限」
+   与「用户授权后又关掉通知」两种情况，比 checkSelfPermission 更贴近用户看到的真实开关。
+5. 在 Android 13+ 真机上验证「未授权 → 点去设置 → 弹窗授权 → 清单转为已就绪」。
 ```
 
 ## 8. 冲突裁决

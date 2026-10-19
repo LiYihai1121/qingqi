@@ -95,18 +95,6 @@
                 android:resource="@xml/skip_service_config" />
         </service>
 
-        <!-- 下拉通知栏快捷磁贴（系统级状态/启停入口，Android 13+ 支持应用主动请求添加） -->
-        <service
-            android:name=".device.SkipTileService"
-            android:exported="true"
-            android:icon="@drawable/ic_qs_skip"
-            android:label="@string/tile_label"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-        </service>
-
         <!-- 规则同步任务（JobScheduler，三合一替代 AlarmManager 套件） -->
         <service
             android:name=".sync.SyncJobService"

@@ -36,7 +36,7 @@
 - ✅ 跳过上报服务端（服务端不在线时静默跳过，纯本地照常工作）
 - ✅ 自动同步规则（JobScheduler 每 12 小时，跨重启持久化，无需 BootReceiver）
 - ✅ 免打扰时段与电池优化白名单引导
-- ✅ 下拉磁贴（Quick Tile）+ ROM 适配保活引导
+- ✅ ROM 适配保活引导（自启动 / 后台运行白名单）
 - ✅ 环形日志（内存 500 条，设置页可导出分享）
 - ✅ 中英双语资源（values / values-en）
 
@@ -125,16 +125,15 @@ client/app/src/main/java/com/qingqi/adskip/   # Android 客户端源码（Kotlin
 │   ├── logs/                       #   跳过日志 Screen + ViewModel
 │   ├── profile/                    #   设备与权限 Screen + ViewModel + PermissionCard
 │   └── settings/                   #   云同步设置 Screen + ViewModel
-├── device/                         # 系统集成（ROM 识别与保活、权限、下拉磁贴、语言）
+├── device/                         # 系统集成（ROM 识别与保活、权限、语言）
 │   ├── VendorKeepAlive.kt          #   ROM 识别与厂商保活引导
 │   ├── BatteryExemption.kt         #   电池优化白名单判定
 │   ├── AccessibilityStatus.kt      #   无障碍权限状态判定
+│   ├── NotificationPermission.kt   #   通知权限状态判定
 │   ├── KeepAliveNavigator.kt       #   厂商设置页跳转
 │   ├── PermissionCenter.kt         #   权限引导中心
 │   ├── LanguageMode.kt             #   语言模式（enum）
-│   ├── LocaleApplier.kt            #   语言应用
-│   ├── QuickTileLogic.kt           #   下拉磁贴逻辑
-│   └── SkipTileService.kt          #   下拉磁贴 Service
+│   └── LocaleApplier.kt            #   语言应用
 ├── service/                        # Android 框架编排层（薄编排，保证 engine 纯 JVM）
 │   ├── SkipAdService.kt            # 服务层（薄编排：事件/节流/点击/SafetyGuard）
 │   ├── FrameworkAdNode.kt          # 框架适配（包装 AccessibilityNodeInfo；归 service 保 engine 纯 JVM）

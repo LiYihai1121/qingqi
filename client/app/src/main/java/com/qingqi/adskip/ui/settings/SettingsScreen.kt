@@ -337,22 +337,6 @@ fun SettingsContent(
                     ),
                 )
             }
-            Spacer(Modifier.height(Spacing.lg))
-            RowDivider(startIndent = 0.dp)
-            Spacer(Modifier.height(Spacing.lg))
-            SectionHint(
-                stringResource(
-                    R.string.settings_tile_hint,
-                    stringResource(R.string.tile_label),
-                ),
-            )
-            Spacer(Modifier.height(Spacing.lg))
-            FilledTonalButton(
-                onClick = viewModel::requestAddTile,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.settings_tile_add))
-            }
         }
 
         SectionCard {
