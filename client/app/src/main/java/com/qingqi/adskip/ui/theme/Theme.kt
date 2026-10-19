@@ -165,7 +165,7 @@ val LocalStatusPalette = staticCompositionLocalOf { LightStatusPalette }
  *
  * [dynamicColor] 默认 **false**，这是一次有代价的取舍，记录理由以便日后复核：
  *
- * 开启壁纸取色时（Android 12+），`Color.kt` 里维护的品牌蓝 #3D7DF6 与整套 M3 明暗
+ * 开启壁纸取色时（Android 12+），`Color.kt` 里维护的品牌绿 #1D7C43 与整套 M3 明暗
  * 方案会被整体绕过。于是一次运行中会同时存在三套互相独立的色彩来源：
  *  - 应用底色 = 壁纸取色（colorScheme）
  *  - 启动器图标 = 固定品牌渐变（不参与主题）

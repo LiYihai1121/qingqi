@@ -63,10 +63,10 @@ import com.qingqi.adskip.ui.components.TagBadge
 import com.qingqi.adskip.ui.components.rememberAppLabel
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.StatusColors
-import com.qingqi.adskip.ui.theme.TileBlue
-import com.qingqi.adskip.ui.theme.TileBlueContainer
-import com.qingqi.adskip.ui.theme.TileGreen
-import com.qingqi.adskip.ui.theme.TileGreenContainer
+import com.qingqi.adskip.ui.theme.TileAmber
+import com.qingqi.adskip.ui.theme.TileAmberContainer
+import com.qingqi.adskip.ui.theme.TileBrand
+import com.qingqi.adskip.ui.theme.TileBrandContainer
 import com.qingqi.adskip.ui.theme.TilePurple
 import com.qingqi.adskip.ui.theme.TilePurpleContainer
 import com.qingqi.adskip.ui.theme.UiSizes
@@ -201,16 +201,16 @@ fun HomeScreen(
                     QuickTile(
                         icon = AdSkipIcons.Clock,
                         label = stringResource(R.string.quick_open_logs),
-                        contentColor = TileBlue,
-                        containerColor = TileBlueContainer,
+                        contentColor = TileBrand,
+                        containerColor = TileBrandContainer,
                         onClick = onOpenLogs,
                         modifier = Modifier.weight(1f),
                     )
                     QuickTile(
                         icon = AdSkipIcons.Tag,
                         label = stringResource(R.string.quick_add_keyword),
-                        contentColor = TileGreen,
-                        containerColor = TileGreenContainer,
+                        contentColor = TileAmber,
+                        containerColor = TileAmberContainer,
                         onClick = onOpenRules,
                         modifier = Modifier.weight(1f),
                     )
