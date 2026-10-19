@@ -101,6 +101,7 @@ fun AppsScreen(onBack: () -> Unit = {}, viewModel: AppsViewModel = viewModel(fac
     Column(modifier = Modifier.fillMaxSize()) {
         PageHeader(
             title = stringResource(R.string.apps_title),
+            subtitle = stringResource(R.string.apps_hint),
             onBack = onBack,
             backLabel = stringResource(R.string.action_back),
         )
@@ -167,7 +168,12 @@ fun AppsScreen(onBack: () -> Unit = {}, viewModel: AppsViewModel = viewModel(fac
                                 onToggle = { enabled -> viewModel.setEnabled(row.pkg, enabled) },
                             )
                             if (index != visible.lastIndex) {
-                                RowDivider(startIndent = Spacing.xxxl)
+                                // 分隔线左端对齐应用名文字，而不是图标左缘：
+                                // 行内容缩进 = 卡片内边距(lg) + 图标(appIcon) + 图标与文字间距(md)。
+                                // 旧值 xxxl(40dp) 是列表图标 40dp 时代的残留，与 44dp 的 appIcon 差 32dp。
+                                RowDivider(
+                                    startIndent = Spacing.lg + UiSizes.appIcon + Spacing.md,
+                                )
                             }
                         }
                     }

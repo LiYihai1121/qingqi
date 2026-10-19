@@ -24,6 +24,7 @@ import com.qingqi.adskip.ui.components.TagBadge
 import com.qingqi.adskip.ui.components.TwoLineRow
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.StatusColors
+import com.qingqi.adskip.ui.theme.UiSizes
 
 /**
  * 权限与系统开关清单卡。
@@ -66,7 +67,8 @@ fun PermissionCard(
             items.forEachIndexed { index, item ->
                 PermissionRow(item = item, onOpen = onOpen)
                 if (index != items.lastIndex) {
-                    RowDivider(startIndent = Spacing.lg)
+                    // 对齐状态点之后的文字（点 10dp + 间距 12dp），而不是对齐状态点本身。
+                    RowDivider(startIndent = UiSizes.statusDot + Spacing.md)
                 }
             }
         }

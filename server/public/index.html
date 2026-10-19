@@ -161,21 +161,6 @@
   .feature h3 { font-size: 15px; font-weight: 700; }
   .feature p { font-size: 13px; color: var(--text-2); margin-top: 6px; }
 
-  /* 工作原理 */
-  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  .step {
-    background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; position: relative;
-  }
-  .step .no {
-    width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff;
-    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 12px;
-  }
-  .step h3 { font-size: 14px; font-weight: 700; }
-  .step p { font-size: 12px; color: var(--text-2); margin-top: 6px; }
-
-  /* 路线图 */
   .timeline { max-width: 640px; margin: 0 auto; position: relative; padding-left: 28px; }
   .timeline::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
   .tl-item { position: relative; padding-bottom: 30px; }
@@ -214,10 +199,9 @@
     .hero .wrap { grid-template-columns: 1fr; gap: 40px; }
     .hero h1 { font-size: 34px; }
     .features { grid-template-columns: 1fr 1fr; }
-    .flow { grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 560px) {
-    .features, .flow { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
     nav .links a.hide-s { display: none; }
   }
 </style>
@@ -234,10 +218,9 @@
     </div>
     <div class="links">
       <a href="#features" class="hide-s">功能</a>
-      <a href="#how" class="hide-s">原理</a>
       <a href="#roadmap" class="hide-s">路线图</a>
       <a href="/admin">管理后台</a>
-      <a class="btn btn-primary" style="padding:8px 16px;" href="/download">下载 v{{APP_VERSION}}</a>
+      <a class="btn btn-primary" style="padding:8px 16px;" href="/download">下载 v1.1.0</a>
     </div>
   </div>
 </nav>
@@ -245,7 +228,7 @@
 <header class="hero">
   <div class="wrap">
     <div class="reveal">
-      <span class="badge"><span class="dot"></span>v{{APP_VERSION}} 已发布</span>
+      <span class="badge"><span class="dot"></span>v1.1.0 已发布</span>
       <h1>开屏广告<br /><em>一闪而过</em></h1>
       <p class="sub">基于无障碍服务的开屏广告自动跳过工具。文本 + 控件 ID 双通道识别，规则云端同步，数据不出本机。</p>
       <div class="actions">
@@ -334,21 +317,6 @@
   </div>
 </section>
 
-<section id="how">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <h2>工作原理</h2>
-      <p>只点击广告界面本身展示的「跳过」按钮，不拦截、不破解任何内容</p>
-    </div>
-    <div class="flow">
-      <div class="step reveal"><div class="no">1</div><h3>监听启动</h3><p>无障碍服务接收应用窗口状态与内容变化事件。</p></div>
-      <div class="step reveal"><div class="no">2</div><h3>识别按钮</h3><p>遍历界面节点，文本关键词与控件 ID 双通道匹配「跳过」按钮。</p></div>
-      <div class="step reveal"><div class="no">3</div><h3>模拟点击</h3><p>优先执行节点点击，不可点击时按坐标派发模拟手势。</p></div>
-      <div class="step reveal"><div class="no">4</div><h3>记录上报</h3><p>本地写入日志与统计，静默上报自建服务端。</p></div>
-    </div>
-  </div>
-</section>
-
 <section class="soft" id="roadmap">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -385,7 +353,7 @@
     <div class="box reveal">
       <h2>立即开始轻启</h2>
       <p>Android 8.0+ · 安装后开启无障碍服务即可生效</p>
-      <a class="btn btn-light" href="/download">下载 轻启 v{{APP_VERSION}}</a>
+      <a class="btn btn-light" href="/download">下载 轻启 v1.1.0</a>
       <a class="btn btn-line" href="/admin" style="margin-left:10px;">进入管理后台</a>
     </div>
   </div>

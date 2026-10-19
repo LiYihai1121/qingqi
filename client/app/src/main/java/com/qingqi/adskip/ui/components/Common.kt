@@ -204,16 +204,32 @@ fun PageHeader(
             }
             Spacer(Modifier.width(Spacing.xs))
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() },
-        )
+        // 标题与副标题必须**纵向**排布（副标题在标题下一行）。
+        // 此前 subtitle 参数被接收却从未渲染，规则页与记录页的说明文案直接消失；
+        // 即使并排渲染也是错的：设计稿的页头是「大标题 + 一行说明」的两行结构，
+        // 并排会让说明挤在标题右侧，窄屏上必然被省略号吃掉。
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
+            )
+            if (subtitle != null) {
+                Spacer(Modifier.height(Spacing.xs))
+                Text(
+                    text = subtitle,
+                    // 副标题用 bodyMedium：设计稿 .st 与 .tt 的比例约 2/3，
+                    // headlineSmall(22sp) 对应 14sp；用 bodySmall 会退成脚注层级。
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if (onAction != null && actionLabel != null) {
             Spacer(Modifier.width(Spacing.sm))
             Button(

@@ -75,6 +75,29 @@ class ScreenHeaderContractTest {
         )
     }
 
+    @Test
+    fun `page header renders its subtitle parameter`() {
+        // 背景（实测缺陷）：PageHeader 接收 subtitle，但函数体里从未渲染它，
+        // 规则页与记录页传入的说明文案被静默丢弃——调用方看不出问题，
+        // 只有对照设计稿才发现页头少了一行。
+        // 断言方式：在 PageHeader 的函数块内，subtitle 至少出现两次
+        // （参数声明 + 实际使用）；只有声明说明它又被丢了。
+        val file = File(uiRoot(), "components/Common.kt")
+        assertTrue("未找到 components/Common.kt", file.isFile)
+        val text = file.readText()
+        val start = text.indexOf("fun PageHeader(")
+        assertTrue("components/Common.kt 里找不到 PageHeader 实现", start >= 0)
+        val end = text.indexOf("\n}", start).let { if (it < 0) text.length else it }
+        val block = text.substring(start, end)
+        val occurrences = Regex("""\bsubtitle\b""").findAll(block).count()
+
+        assertTrue(
+            "PageHeader 声明了 subtitle 参数却没有渲染（函数块内出现 $occurrences 次）：" +
+                "调用方传入的页头说明会直接消失。参数要么渲染，要么从签名里删掉。",
+            occurrences >= 2,
+        )
+    }
+
     // ---------- 工具 ----------
 
     private fun uiRoot(): File = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/ui")
