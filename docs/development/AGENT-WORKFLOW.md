@@ -81,6 +81,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
+| `codex-click-stats-safety` | `.worktrees/codex-click-stats-safety` | `fix/20261027-click-stats-safety` | `service/SkipAdService.kt`、`engine/SafetyGuard.kt`、`data/StatsRepository.kt`、对应 JVM 回归测试、`arch/ArchitectureBoundaryTest.kt`、本文件认领板行 | 已完成（本地验证通过） |
 | `gzdx` | `.worktrees/gzdx-gitleaks` | `ci/gitleaks-enforce` | `.gitleaks.toml`、`.github/workflows/ci.yml`、`SECURITY.md`、`client/app/src/test/.../arch/ProjectStructureTest.kt`、`AGENT-WORKFLOW.md`（认领板自身） | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 | `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |
