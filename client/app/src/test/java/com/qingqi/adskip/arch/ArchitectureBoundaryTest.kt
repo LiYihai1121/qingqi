@@ -10,19 +10,37 @@ import java.io.File
  *
  * 纯 JVM 源码扫描（不依赖 Android SDK），随 `testDebugUnitTest` 门禁运行——
  * 把边界从文档约定升级为 CI 可执行规则。
+ *
+ * **分层模型（五层，依赖只允许自上而下）**
+ *
+ * ```
+ * presentation/  界面层：Compose Screen / ViewModel / 导航 / 设计系统
+ *      │  （可读 platform/device 的系统入口，不可碰无障碍服务与原始存储）
+ *      ▼
+ * platform/      系统集成层：AccessibilityService / TileService / 厂商保活
+ *      │
+ *      ▼
+ * data/          数据层：local（存储原语）/ remote（HTTP）/ repository（仓库）/ sync（调度）
+ *      │
+ *      ▼
+ * domain/        业务逻辑层：纯 Kotlin 匹配引擎与安全护栏（零 Android 依赖）
+ *
+ * core/          公共层：时钟/线程/日志/事件/加密存储/语言偏好，被各层使用但不依赖任何业务包
+ * di/            组合根：唯一允许装配全部依赖的位置
+ * ```
  */
 class ArchitectureBoundaryTest {
 
-    // ---------- engine：纯 JVM，保证引擎测试可在纯 JVM 运行、可拆分 module ----------
+    // ---------- domain：纯 JVM，保证引擎测试可在纯 JVM 运行、可拆分 module ----------
 
     @Test
-    fun `engine depends only on itself and the JVM`() = assertNoBannedImports(
-        pkgDir = "engine",
+    fun `domain depends only on itself and the JVM`() = assertNoBannedImports(
+        pkgDir = "domain",
         banned = listOf("android.", "androidx.", "com.qingqi.adskip."),
-        allowed = listOf("com.qingqi.adskip.engine."),
+        allowed = listOf("com.qingqi.adskip.domain."),
     )
 
-    // ---------- core：零业务包依赖（事件总线/时钟/日志均为横切设施） ----------
+    // ---------- core：零业务包依赖（事件总线/时钟/日志/存储均为横切设施） ----------
 
     @Test
     fun `core depends on no other business package`() = assertNoBannedImports(
@@ -31,55 +49,61 @@ class ArchitectureBoundaryTest {
         allowed = listOf("com.qingqi.adskip.core."),
     )
 
-    // ---------- ui：不直连 service / net / sync / 原始偏好 Prefs ----------
+    // ---------- presentation：不直连无障碍服务 / 原始存储 / 网络 / 后台调度 ----------
 
     @Test
-    fun `ui never imports service net sync or raw prefs`() = assertNoBannedImports(
-        pkgDir = "ui",
+    fun `presentation never imports the service layer raw storage network or sync`() = assertNoBannedImports(
+        pkgDir = "presentation",
         banned = listOf(
-            "com.qingqi.adskip.service.",
-            "com.qingqi.adskip.net.",
-            "com.qingqi.adskip.sync.",
-            "com.qingqi.adskip.data.Prefs",
+            "com.qingqi.adskip.platform.accessibility.",
+            "com.qingqi.adskip.data.local.",
+            "com.qingqi.adskip.data.remote.",
+            "com.qingqi.adskip.data.sync.",
         ),
     )
 
-    // ---------- 下层永不反向依赖 ui（依赖倒置：经 StateFlow/组合根向上供值） ----------
+    // ---------- 下层永不反向依赖 presentation（依赖倒置：经 StateFlow/组合根向上供值） ----------
 
     @Test
-    fun `data never imports ui or service`() = assertNoBannedImports(
+    fun `data never imports presentation or platform`() = assertNoBannedImports(
         pkgDir = "data",
-        banned = listOf("com.qingqi.adskip.ui.", "com.qingqi.adskip.service."),
+        banned = listOf("com.qingqi.adskip.presentation.", "com.qingqi.adskip.platform."),
     )
 
     @Test
-    fun `net never imports ui or service`() = assertNoBannedImports(
-        pkgDir = "net",
-        banned = listOf("com.qingqi.adskip.ui.", "com.qingqi.adskip.service."),
+    fun `remote data source never imports presentation or platform`() = assertNoBannedImports(
+        pkgDir = "data/remote",
+        banned = listOf("com.qingqi.adskip.presentation.", "com.qingqi.adskip.platform."),
     )
 
     @Test
-    fun `sync never imports ui or service`() = assertNoBannedImports(
-        pkgDir = "sync",
-        banned = listOf("com.qingqi.adskip.ui.", "com.qingqi.adskip.service."),
+    fun `sync scheduling never imports presentation or platform`() = assertNoBannedImports(
+        pkgDir = "data/sync",
+        banned = listOf("com.qingqi.adskip.presentation.", "com.qingqi.adskip.platform."),
     )
 
     @Test
-    fun `service never imports ui`() = assertNoBannedImports(
-        pkgDir = "service",
-        banned = listOf("com.qingqi.adskip.ui."),
+    fun `platform never imports presentation`() = assertNoBannedImports(
+        pkgDir = "platform",
+        banned = listOf("com.qingqi.adskip.presentation."),
     )
 
-    // ---------- device：系统集成层可向下取系统状态，不可反向依赖 ui/业务层 ----------
+    @Test
+    fun `accessibility service never imports presentation`() = assertNoBannedImports(
+        pkgDir = "platform/accessibility",
+        banned = listOf("com.qingqi.adskip.presentation."),
+    )
+
+    // ---------- platform/device：系统入口层可读系统状态，不可碰原始存储与网络 ----------
 
     @Test
-    fun `device never imports ui data net or sync`() = assertNoBannedImports(
-        pkgDir = "device",
+    fun `device entry points never import presentation raw storage or network`() = assertNoBannedImports(
+        pkgDir = "platform/device",
         banned = listOf(
-            "com.qingqi.adskip.ui.",
-            "com.qingqi.adskip.data.",
-            "com.qingqi.adskip.net.",
-            "com.qingqi.adskip.sync.",
+            "com.qingqi.adskip.presentation.",
+            "com.qingqi.adskip.data.local.",
+            "com.qingqi.adskip.data.remote.",
+            "com.qingqi.adskip.data.sync.",
         ),
     )
 

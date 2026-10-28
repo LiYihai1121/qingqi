@@ -20,7 +20,7 @@ import java.io.File
  */
 class ColorSchemeContractTest {
 
-    private val themeFile = "client/app/src/main/java/com/qingqi/adskip/ui/theme/Theme.kt"
+    private val themeFile = "client/app/src/main/java/com/qingqi/adskip/presentation/designsystem/theme/Theme.kt"
 
     @Test
     fun `every color role used by the app is declared in the brand scheme`() {
@@ -115,8 +115,10 @@ class ColorSchemeContractTest {
 
     @Test
     fun `typography and shape systems stay complete and consistent`() {
-        val type = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/ui/theme/Type.kt")
-        val theme = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/ui/theme/Theme.kt")
+        val type =
+            File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/presentation/designsystem/theme/Type.kt")
+        val theme =
+            File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/presentation/designsystem/theme/Theme.kt")
         assertTrue("Type.kt 不存在：${type.path}", type.isFile)
 
         // M3 的 Typography 要求全部 15 个角色，无法只定义用到的那些；

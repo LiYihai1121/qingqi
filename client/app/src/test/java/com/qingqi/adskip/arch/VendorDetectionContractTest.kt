@@ -40,7 +40,7 @@ class VendorDetectionContractTest {
     fun `the guarded entry point keeps its exception handling`() {
         val navigator = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/device/KeepAliveNavigator.kt",
+            "client/app/src/main/java/com/qingqi/adskip/platform/device/KeepAliveNavigator.kt",
         )
         assertTrue("KeepAliveNavigator 不存在：${navigator.path}", navigator.isFile)
         val code = stripComments(navigator.readText())

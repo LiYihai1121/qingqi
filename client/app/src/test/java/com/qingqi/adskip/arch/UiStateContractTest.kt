@@ -65,14 +65,14 @@ class UiStateContractTest {
     fun `state components live in the shared component library`() {
         val expected = listOf("EmptyState", "ErrorState")
         val missing = expected.filterNot { name ->
-            File(appRoot(), "src/main/java/com/qingqi/adskip/ui/components")
+            File(appRoot(), "src/main/java/com/qingqi/adskip/presentation/designsystem/component")
                 .listFiles()
                 ?.any { it.isFile && "fun $name(" in it.readText() }
                 ?: false
         }
 
         assertTrue(
-            "状态类组件必须收口在 ui/components/ 下，否则各页面会各写一份，手感与文案都难以统一。" +
+            "状态类组件必须收口在 presentation/designsystem/component/ 下，否则各页面会各写一份，手感与文案都难以统一。" +
                 "缺失：\n" + missing.joinToString("\n") { "  fun $it(" },
             missing.isEmpty(),
         )
@@ -107,7 +107,7 @@ class UiStateContractTest {
 
     @Test
     fun `title components expose heading semantics`() {
-        val common = File(appRoot(), "src/main/java/com/qingqi/adskip/ui/components/Common.kt")
+        val common = File(appRoot(), "src/main/java/com/qingqi/adskip/presentation/designsystem/component/Common.kt")
         assertTrue("页面组件文件不存在：${common.path}", common.isFile)
         val text = common.readText()
 
@@ -132,7 +132,7 @@ class UiStateContractTest {
 
     @Test
     fun `accessible names are not announced twice`() {
-        val main = File(appRoot(), "src/main/java/com/qingqi/adskip/ui/MainActivity.kt")
+        val main = File(appRoot(), "src/main/java/com/qingqi/adskip/presentation/MainActivity.kt")
         assertTrue("MainActivity 不存在：${main.path}", main.isFile)
         val mainText = main.readText()
         val navStart = mainText.indexOf("NavigationBarItem(")
@@ -146,7 +146,7 @@ class UiStateContractTest {
             "contentDescription = stringResource" !in navBody,
         )
 
-        val orb = File(appRoot(), "src/main/java/com/qingqi/adskip/ui/components/StatusOrb.kt")
+        val orb = File(appRoot(), "src/main/java/com/qingqi/adskip/presentation/designsystem/component/StatusOrb.kt")
         assertTrue("StatusOrb 不存在：${orb.path}", orb.isFile)
         assertTrue(
             "状态环是纯装饰，语义必须由相邻的状态文字承担。若在这里重新挂 contentDescription，" +
@@ -158,8 +158,8 @@ class UiStateContractTest {
     @Test
     fun `the wide screen width cap has a single implementation`() {
         val token = "UiSizes.contentMaxWidth"
-        val canonical = "client/app/src/main/java/com/qingqi/adskip/ui/theme/Spacing.kt"
-        val uiRoot = File(appRoot(), "src/main/java/com/qingqi/adskip/ui")
+        val canonical = "client/app/src/main/java/com/qingqi/adskip/presentation/designsystem/theme/Spacing.kt"
+        val uiRoot = File(appRoot(), "src/main/java/com/qingqi/adskip/presentation")
         val consumers = uiRoot.walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
             .filter { token in it.readText() }
@@ -178,14 +178,14 @@ class UiStateContractTest {
 
     /** 四个页面级 Composable 的源码路径（相对仓库根）。 */
     private fun screens(): List<String> = listOf(
-        "client/app/src/main/java/com/qingqi/adskip/ui/home/HomeScreen.kt",
-        "client/app/src/main/java/com/qingqi/adskip/ui/apps/AppsScreen.kt",
-        "client/app/src/main/java/com/qingqi/adskip/ui/logs/LogsScreen.kt",
-        "client/app/src/main/java/com/qingqi/adskip/ui/settings/SettingsScreen.kt",
+        "client/app/src/main/java/com/qingqi/adskip/presentation/feature/home/HomeScreen.kt",
+        "client/app/src/main/java/com/qingqi/adskip/presentation/feature/apps/AppsScreen.kt",
+        "client/app/src/main/java/com/qingqi/adskip/presentation/feature/logs/LogsScreen.kt",
+        "client/app/src/main/java/com/qingqi/adskip/presentation/feature/settings/SettingsScreen.kt",
     ).filter { File(repoRoot(), it).isFile }
 
     private fun viewModels(): List<String> {
-        val dir = File(appRoot(), "src/main/java/com/qingqi/adskip/ui")
+        val dir = File(appRoot(), "src/main/java/com/qingqi/adskip/presentation")
         return dir.walkTopDown()
             .filter { it.isFile && it.name.endsWith("ViewModel.kt") }
             .map { it.relativeTo(repoRoot()).path.replace('\\', '/') }

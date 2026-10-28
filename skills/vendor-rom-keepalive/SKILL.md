@@ -10,7 +10,7 @@ metadata:
 
 | 关注点 | 事实源 |
 | --- | --- |
-| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`） |
+| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/platform/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`） |
 | 厂商标签与 UI 映射 | `ui/VendorLabels.kt` |
 | 快捷磁贴 | `device/SkipTileService.kt`、`device/QuickTileLogic.kt` |
 | `<queries>` 可见性声明与 manifest 契约 | `AndroidManifest.xml`；`ManifestContractTest` |

@@ -13,7 +13,7 @@ import java.io.File
  * 品牌名一致性那条守护上线后，改名不再可能只改一种语言。
  *
  * 本文件把设计规范审计得出的四条可机器检查的结论固化为门禁：
- * 1. 间距只能取 [com.qingqi.adskip.ui.theme.Spacing] 标度内的值；
+ * 1. 间距只能取 [com.qingqi.adskip.presentation.designsystem.theme.Spacing] 标度内的值；
  * 2. 反馈类操作不得使用 `Toast`（必须走 Snackbar，才能带「撤销」）；
  * 3. 开关行只能有一处实现（`LabeledSwitch`），不得再有 `fun SwitchRow`；
  * 4. 每个 locale 的 `strings.xml` 不得存在未被引用的文案。
@@ -49,7 +49,7 @@ class UiContractTest {
             }
 
         assertTrue(
-            "间距字面量必须取自 ui/theme/Spacing.kt 的标度（${allowed.sorted().joinToString("/")}dp）；" +
+            "间距字面量必须取自 presentation/designsystem/theme/Spacing.kt 的标度（${allowed.sorted().joinToString("/")}dp）；" +
                 "尺寸类请用 UiSizes，圆角属 shape 体系。以下位置用了标度外的值：\n" +
                 offenders.joinToString("\n") { "  $it" },
             offenders.isEmpty(),
@@ -74,7 +74,7 @@ class UiContractTest {
     fun `in-app icons come from the custom library not material`() {
         val offenders = uiSources().filter { codeOf(it).contains("androidx.compose.material.icons") }
         assertTrue(
-            "界面图标必须来自自绘 AdSkipIcons（ui/theme/icons/AdSkipIcons.kt）：" +
+            "界面图标必须来自自绘 AdSkipIcons（presentation/designsystem/icons/AdSkipIcons.kt）：" +
                 "Material 图标（箭头系、纸飞机系）与品牌图形「HUD 取景框」不属于同一套设计语言，" +
                 "混用会让图标重新回到各写各的状态。以下文件仍在引用 Material 图标：\n" +
                 offenders.joinToString("\n") { "  $it" },
@@ -86,7 +86,7 @@ class UiContractTest {
     fun `switch rows have exactly one implementation`() {
         val offenders = uiSources().filter { "fun SwitchRow" in codeOf(it).joinToString("\n") }
         assertTrue(
-            "开关行只能有一处实现（components/LabeledSwitch，整行可点）；" +
+            "开关行只能有一处实现（presentation/designsystem/component/LabeledSwitch，整行可点）；" +
                 "出现第二份实现会让同一功能出现两种手感，用户会把其中一个当 bug：" +
                 offenders.joinToString("\n") { " $it" },
             offenders.isEmpty(),
@@ -102,7 +102,7 @@ class UiContractTest {
             .orEmpty()
         assertTrue("未找到任何 values*/ 资源目录", locales.isNotEmpty())
 
-        // 引用方不止 ui/：device/（磁贴）、service/（无障碍）、core/ 都会取文案；
+        // 引用方不止 ui/：platform/device/（磁贴）、platform/accessibility/（无障碍）、core/ 都会取文案；
         // AndroidManifest 的 android:label 指向 @string/；无障碍服务的说明文案
         // 由 res/xml/skip_service_config.xml 的 @string/ 引用。只扫 Kotlin 会把
         // 这些在用文案误判为死文案——那不是护栏，是噪音。
