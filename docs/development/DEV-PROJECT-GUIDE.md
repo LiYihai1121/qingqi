@@ -5,6 +5,7 @@
 > 性质：**入口级总览（Onboarding Guide）**。它回答「这个项目是什么、怎么跑起来、改哪里、按什么顺序做」，**不复制**任何专项文档的细节。
 > 阅读顺序建议：§1 → §3 → §6（先跑起来）→ 回到 §4/§5 理解代码 → §7/§8 了解节奏与门禁。
 > 事实源边界：本文只承载「跨模块的整合视图」；任何单一主题的权威描述见 [docs/README.md](../README.md) 的「规划事实源」表。
+> **与 [DESIGN-TECH-SOLUTION.md](../planning/DESIGN-TECH-SOLUTION.md) 的分工**：两份均为团队入口，视角**互补而非重复**——该文给**模块 DoD、技术难点、验收标准**（回答「怎么做算做完」），本文给**部署运维、环境搭建、跨模块数据流**（回答「怎么跑起来、怎么上线」）。**两者冲突时以该文为准**（其为已评审基线）；需求编号以该文 `FR`/`NFR` 为主，本文 `F`/`N` 是同一批需求的另一种切分。
 
 ---
 
@@ -173,7 +174,7 @@
 | `net/` | 规则同步、上报、证书 pin、HMAC 验签 | `SyncClient.kt` | `SyncClient.fetchRules()` |
 | `service/` | 无障碍服务（薄编排层） | `SkipAdService.kt` | 系统回调 |
 | `device/` | 权限状态、保活引导、磁贴、语言应用 | `AccessibilityStatus.kt`、`SkipTileService.kt` | 各系统集成点 |
-| `ui/` | 六屏表现层 + 设计令牌 | `MainActivity.kt`、`theme/`、各屏 | Composable 函数 |
+| `ui/` | 表现层：**6 个导航目的地 / 7 个 Screen 目录** + 设计令牌 | `MainActivity.kt`、`theme/`、各屏 | Composable 函数 |
 
 **依赖方向约束**：`ui → data/engine`、`service → engine/data/net`、`engine` 不依赖 `android.*`（由 `AdNode` 抽象保证）。边界由 `ArchitectureBoundaryTest` 强制。
 
@@ -435,7 +436,7 @@ cd server && bun test && bun run typecheck
 | 层 | 位置 | 职责 | 准入 |
 | --- | --- | --- | --- |
 | **JVM 单测** | `client/app/src/test/`、`server/test/` | 纯逻辑：规则引擎、选择器解析、载荷校验、统计归日 | 任何业务逻辑改动 |
-| **契约测试** | `client/.../arch/`（10 个）、`server/test/fixtures/` | 双端必须一致的形状：清单、目录、色板、UI 间距、选择器夹具 | 跨端边界改动 |
+| **契约测试** | `client/.../arch/`（**15 个**）、`server/test/fixtures/` | 双端必须一致的形状：清单、目录、色板、UI 间距、选择器夹具 | 跨端边界改动 |
 | **进程内集成** | `server/test/smoke.test.ts` | 起服务 → 打真实 HTTP → 断言响应 | 协议或路由改动 |
 | **真机验收** | 手工，记录于 `docs/testing/` | 无障碍服务的真实行为 | 涉及 `service/`、`device/` 或规则内容 |
 

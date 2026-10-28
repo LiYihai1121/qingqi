@@ -65,6 +65,32 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 并行开发期追加两步：`git worktree list` 与认领板（[3.2](#32-认领板)）确认没有他人正在使用同一目录或同一路径，登记后再写第一个文件。
 
+### 2.4 暂存区污染：他人已 `git add` 时如何提交
+
+`git status --short` 只显示「有没有改动」，**不区分「谁改的」**。当另一个 Agent 已经 `git add` 但还没 `commit` 时，直接 `git commit` 会把他暂存的内容一起提交——这是最隐蔽的串味方式，因为从 `git diff` 看「都是未提交改动」。
+
+**判定**（开工自检追加两条）：
+
+```bash
+git diff --cached --name-only | wc -l   # 非 0 = 暂存区已有内容，未必是你的
+git diff --cached --stat | tail -3      # 纯重命名会显示 0 insertions / 0 deletions
+```
+
+**处置：不要 `git commit`，改用独立 worktree 提交**
+
+```bash
+git worktree add .worktrees/<agent>-<slug> -b <type>/<id>-<slug> HEAD
+# 逐文件复制本次改动（不要 cp -r 整个仓库）
+git -C .worktrees/<agent>-<slug> add <你的路径>
+git -C .worktrees/<agent>-<slug> commit -m "<type>(<scope>): <description>"
+```
+
+worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动放行，**无需** `ADSKIP_ALLOW_MAIN_COMMIT` 逃生口。
+
+**实证（2026-10-29）**：主检出在 `refactor/201-package-layering`，暂存区已有他人 **85 个文件重命名**（纯移动），工作区另有 **116 项**改动。按上述方式提交文档层 10 个文件后，主检出的分支、暂存区、工作区**全部未被触碰**。
+
+**已知代价**：worktree 的基点是当时的 `HEAD`。若他人改动尚未提交，你的提交里引用的路径或符号可能与他即将提交的不一致（2026-10-29 即出现「文档引用旧包路径、代码已是新包结构」）。**提交前确认基线**，必要时在 PR 说明中标注「依赖某未合入分支」，并在其合入后统一更新引用。
+
 
 ## 3. 所有权：唯一写入者
 
