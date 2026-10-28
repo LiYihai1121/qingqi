@@ -115,6 +115,21 @@
   "files.insertFinalNewline": true,
   "files.eol": "\n",
 
+  // 法律文本不是 Markdown，别让编辑器把它当 Markdown 解析。
+  // LICENSE 是 GPL-3.0 的逐字副本——许可证正文自己写明「changing it is not allowed」，
+  // DCO 同样是固定文本；两者都没有扩展名，一旦 languageId 被识别成 markdown，
+  // markdownlint 就会对正文报一批无法靠改文件消除的伪问题：
+  //   MD041（首行不是一级标题）= 首行是居中的 "GNU GENERAL PUBLIC LICENSE"；
+  //   MD029（有序列表前缀 1/1/1）= 许可条款编号 "2. Basic Permissions." 等；
+  //   MD038（代码段内多余空格）= 附录里的 `show w' 反引号引用。
+  // 这些行是许可文本的一部分，改动即等于篡改许可证，只能从解析层面排除。
+  // 扩展侧依据：markdownlint 仅在 languageId === "markdown" 时 lint，
+  // 因此把这两个文件钉死为 plaintext 即可，无需关掉任何 lint 规则。
+  "files.associations": {
+    "LICENSE": "plaintext",
+    "DCO": "plaintext"
+  },
+
   // 构建文件（settings.gradle.kts / build.gradle.kts 等）变更时自动重载 Java 项目模型，
   // 不再逐次弹「build file has been changed」询问。本仓库是单一 gradle 工程
   // （worktree 副本已被 java.import.exclusions 排除），自动重载没有误伤风险。

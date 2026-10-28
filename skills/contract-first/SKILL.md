@@ -9,6 +9,7 @@ metadata:
 # 契约先行（contract-first）
 
 > **规则指针（唯一事实源，本文不复制正文）**
+>
 > - 契约先行与门禁清单：[AGENTS.md](../../AGENTS.md)「多 Agent 协作」「验证与合并」
 > - 边界契约定义：[docs/architecture/ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md) 2.1
 > - 协议同步要求：[docs/api/API.md](../../docs/api/API.md)

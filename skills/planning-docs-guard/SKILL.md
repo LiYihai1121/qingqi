@@ -9,6 +9,7 @@ metadata:
 # 规划文档守卫（planning-docs-guard）
 
 > **规则指针（唯一事实源，本文不复制正文）**
+>
 > - 文档地图与登记义务：[docs/README.md](../../docs/README.md)
 > - 版本序列事实源：[ROADMAP.md](../../docs/planning/ROADMAP.md)
 > - 里程碑与出口条件：[ROADMAP-ADS.md](../../docs/planning/ROADMAP-ADS.md)
