@@ -39,6 +39,9 @@ node_modules/
 # 沙箱 ACL 恢复报告（本机安全策略工具落盘，仅记录本机权限裁决，不入库）
 .dsh-acl-recovery/
 
+# 本机 Agent 运行时目录（工具自带 skills 落点，不含仓库资产，不入库）
+.dsh/
+
 # 多 Agent 协作产物与工作区（详见 docs/development/AGENT-WORKFLOW.md）
 # 这些目录必须写在共享的 .gitignore 里：只写进本机 .git/info/exclude 会造成
 # 「git status 干净、但文件检索/读取仍能命中」的双重真相，进而导致 agent 改错副本。

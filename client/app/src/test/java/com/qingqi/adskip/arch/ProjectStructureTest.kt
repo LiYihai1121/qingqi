@@ -667,6 +667,7 @@ class ProjectStructureTest {
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
             ".designkit-history-delivery", // 美图设计室 AI设计 CLI（designkit）按 cwd 落的房间历史缓存，不入库
             ".dsh-acl-recovery", // 沙箱 ACL 恢复报告（本机安全策略工具落盘），不入库
+            ".dsh", // 本机 Agent 运行时目录（工具自带 skills 落点），不入库
             ".vscode", // 编辑器共享配置（选择性入库，规则见 VSCODE_SHARED_FILES）
         )
 
