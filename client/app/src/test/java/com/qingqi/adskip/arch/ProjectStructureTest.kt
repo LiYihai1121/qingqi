@@ -711,6 +711,10 @@ class ProjectStructureTest {
             ".pre-commit-config.yaml", // 预提交钩子配置（代码质量门禁）
             ".secrets.baseline", // detect-secrets 基线文件（允许存在但不强制）
             ".gitleaks.toml", // gitleaks 密钥扫描配置（allowlist 只收窄已核实误报，CI secret-scan job 强制）
+            // Markdown 结构检查配置：同一份文件被 CI 的 Docs Lint job 与 VS Code 的
+            // markdownlint 扩展共用（cli2 格式），因此必须入库——只放本机就会变成
+            // 「编辑器绿的、CI 红的」两份真相。
+            ".markdownlint-cli2.jsonc",
         )
 
         // client/ 白名单：末尾几项为本机生成/被忽略的目录，允许存在但不强制
