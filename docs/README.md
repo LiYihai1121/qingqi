@@ -94,8 +94,8 @@ docs/
 | L1 选择器技术方案与步骤 A–F | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) | 引用版本号与里程碑编号 |
 | Top 30 真机验收口径、试次记录与放行证据 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md) | 只记录实际设备结果，不将模拟器/单测标为真机通过 |
 | L2 DNS、L3 Root、L4 通知治理边界与 Phase 0 决策提案 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md) | 提案不代表正式合规批准；L2/L3 仍禁用 |
-| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单；
-| 架构演进（客户端多模块化 / 服务端存储 / 部署） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) | 引用 ROADMAP 版本号；与 L1–L5 能力里程碑的合并点见其第 7 节 |目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
+| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单 |
+| 架构演进（客户端多模块化 / 服务端存储 / 部署） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) | 引用 ROADMAP 版本号；与 L1–L5 能力里程碑的合并点见其第 7 节；目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
 | 服务端 API 的移动端契约（上报可靠性 / 传输效率 / 生命周期协商 / 服务端可维护性） | [planning/DESIGN-SERVER-MOBILE-READINESS.md](planning/DESIGN-SERVER-MOBILE-READINESS.md) | 客户端队列的存储与调度以 [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) 为准，本文只定协议约束；接口字段最终以 `api/API.md` 与 `server/test/fixtures/api.contract.json` 为准 |
 | 整改的执行序列、需求台账与阶段划分 | [planning/PLAN-REMEDIATION.md](planning/PLAN-REMEDIATION.md) | 整合层：只承载优先级与依赖，细节以 DESIGN-SERVER-MOBILE-READINESS / FOLLOW-UP-DOC-AUDIT / FOLLOW-UP-PROCESS-AUDIT 三份为准 |
 | 研发交付口径：统一术语、模块完成定义（DoD）、测试分层与验收清单 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md) | 交付入口：架构细节以 ARCHITECTURE.md 为准，接口字段以 API.md 为准，本文只做导航与补充 |

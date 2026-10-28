@@ -7,6 +7,7 @@
 目标是在现有 AdSkip（Kotlin + Jetpack Compose）基础上，采用分层、可测试、尽量本地化的方式治理个人设备上的广告体验。优先复用成熟开源项目与规则集，避免复制实现代码前未审许可证、维护状态和规则来源。
 
 非目标：
+
 - 不破解、注入或修改第三方 App 的代码，不解密 HTTPS/TLS，不绕过付费功能或访问控制。
 - 不代跳激励视频，不点击广告素材、下载按钮、购买、授权、登录或其他非明确关闭动作。
 - 不承诺“全量去广告”；不能识别的广告必须明确标记为未覆盖。
@@ -73,6 +74,7 @@
 ## 6. 开源复用与许可证治理
 
 候选项目（仅作为调研对象，不代表已批准复制代码）：
+
 - [GKD](https://github.com/gkd-kit/gkd)：研究规则/订阅和节点选择器设计；复用代码前核实当前许可证、版本和兼容性。
 - [AdAway](https://github.com/AdAway/AdAway)：研究 hosts/DNS 过滤和规则管理。
 - [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome)：作为外部 DNS 过滤替代方案，不默认把服务端组件嵌入 Android APK。
@@ -96,7 +98,6 @@
 - Android `VpnService`：https://developer.android.com/develop/connectivity/vpn
 - Android `NotificationListenerService`：https://developer.android.com/reference/android/service/notification/NotificationListenerService
 - Google Play 的 VPN 服务政策（如未来考虑商店分发，发布前重新核对）：https://support.google.com/googleplay/android-developer/answer/12564964
-
 
 ## 9. Phase 0 决策记录（提案，尚未获批准）
 

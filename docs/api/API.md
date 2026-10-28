@@ -1,4 +1,4 @@
-# AdSkip 服务端 API 参考（API）
+# 轻启 服务端 API 参考（API）
 
 基础地址：`https://<服务器域名>:3210`。云端同步客户端仅接受 HTTPS，并要求配置规则签名密钥和 SHA-256 证书 pin。
 
@@ -7,7 +7,7 @@
 ## 通用约定
 
 - **请求体**：所有带请求体的端点必须显式声明 `Content-Type: application/json`，否则返回 `415`（阻断跨站表单伪造）
-- **请求体上限**：1 MiB（`MAX_BODY`，env 可覆盖）。超限在协议层被拒绝——keep-alive 连接返回 `413`，冷连接直接断开 socket；超限正文不会进入应用内存
+- **请求体上限**：1 MiB（`config.MAX_BODY` 常量，**不支持 env 覆盖**）。超限在协议层被拒绝——keep-alive 连接返回 `413`，冷连接直接断开 socket；超限正文不会进入应用内存
 - **JSON 限制**：键数 ≤ 100、嵌套深度 ≤ 5，越界返回 `400`
 - **鉴权**：管理端点需要 `Authorization: Bearer <ADMIN_TOKEN>`；未配置 `ADMIN_TOKEN` 时管理端点返回 `503`；令牌比较为常数时间实现
 - **限流**（内存令牌桶，空闲桶 5 分钟回收）：读 120 次/分/IP、写 10 次/分/IP、上报 30 次/分/deviceId（deviceId 缺失时按 IP）；超限 `429`；批量上报在读体之前先做 IP 级预检
@@ -51,7 +51,7 @@
 | 结构 | 引号个数、方括号个数配平（快检，不校验顺序） | 完整文法：key ∈ `text/desc/vid/click`、运算符 ∈ `= * ^ $`、组合符、最多 4 段 compound |
 | 不过时 | 丢弃该条 | 丢弃该条（静默） |
 
-**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/qingqi/adskip/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
+**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/qingqi/adskip/domain/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
 
 ### POST /api/v1/rules/test  `[admin]`
 
@@ -120,6 +120,6 @@
 | --- | --- |
 | `GET /` | 产品落地页（服务端把 `{{APP_VERSION}}` 占位符替换为 `server/package.json` 的版本号，避免文案与发布版本漂移） |
 | `GET /admin` | 管理后台（登录 + diff 预览 + 规则模拟器 + 统计看板） |
-| `GET /download` | 下载 APK（`APK_FILE`，默认仓库根 `AdSkip-latest.apk`） |
+| `GET /download` | 下载 APK（`config.APK_FILE`，默认 `server/` 上一级 `AdSkip-latest.apk`） |
 
-`/download` 找不到 APK 时返回 `404`。可通过 `APK_FILE` 环境变量指定绝对路径或相对服务端工作目录的文件路径。
+`/download` 找不到 APK 时返回 `404`。路径由 `config.APK_FILE` 固定（不读 env）；仅测试可经 `startServer({ apkFile })` 注入。

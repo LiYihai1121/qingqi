@@ -6,8 +6,8 @@
 > 可点性是否由组件类型声明）在 v4 中依然成立并已延续**，但品牌色取值、
 > 导航结构（v3 的「应用」一级页在 v4 降为二级）、区块标签体系均已变更。
 > 最后更新：2026-10-16（v3）。
-
-> 状态：**已实施** — 评审结论与重构均已落地到 `client/app/src/main/java/com/qingqi/adskip/ui/`。
+>
+> 状态：**已实施** — 评审结论与重构均已落地到 `client/app/src/main/java/com/qingqi/adskip/presentation/`（2026-10-29 五层重组后）。
 > 最后更新：2026-10-16。
 > 性质：**设计评审记录（Review + Design）**，同时是本次 UI 重构的决策依据与验收判据。
 > 范围：仅客户端表现层（`ui/`）。不含业务逻辑、服务端、数据层。
@@ -262,8 +262,8 @@ private object Shapes { const val XS = 6; const val SM = 10; const val MD = 14
 
 ## 8. 变更规模
 
-```
-client/app/src/main/java/com/qingqi/adskip/ui/**
+```text
+client/app/src/main/java/com/qingqi/adskip/presentation/**
 client/app/src/main/res/values*/strings.xml
 ─────────────────────────────────────────────
 +1339 / -479   （合计 1818 行）

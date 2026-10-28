@@ -78,6 +78,7 @@
 | **组合根** | `di/` | `AppContainer`：手动 DI，唯一装配点 | 不承载业务逻辑 |
 
 **关键设计**：
+
 - **MVVM + StateFlow + UiEffect 单向数据流**：ViewModel 通过 `viewModelFactory { initializer { } }` 从 `AppContainer` 取依赖，可回退状态聚合为单一 `UiState` 暴露 `StateFlow`（Compose `collectAsStateWithLifecycle()` 收集）；Toast 等一次性事件统一经 `effects: SharedFlow<UiEffect>` 下发，由 Screen 在 `LaunchedEffect` 中消费，四个页面同一套模式。
 - **AppEvents**：`Service` 层通过 `AppEvents.setServiceRunning()` / `AppEvents.emitSkipped()` 推送状态，ViewModel 通过 `StateFlow` / `SharedFlow` 收集，取代旧架构中 UI 直接注册 `BroadcastReceiver` 的方式；模拟测试标记 `testActive` 同样经 AppEvents 中转，ui 与 service 互不依赖。
 - **RulesRepository.ruleSetFor(pkg)** 是规则的唯一组装点——全局关键词 + 应用专属关键词 + 全局 ViewID + 应用专属 ViewID + 选择器（全局/应用级，`3.0.3` 起）+ 禁用开关，合并为一个不可变的 `RuleSet` 交给引擎。选择器在**合并后才编译**（`SelectorParser.parse`），解析失败的条目在组装期丢弃，不进入 `RuleSet.selectors`。
@@ -104,6 +105,7 @@
 | 组合根（`AdSkipApp`/`di.AppContainer`） | 全部（唯一 DI 装配点） | —（不承载业务逻辑） |
 
 规则解读：
+
 - **domain 纯 JVM**：不触碰任何 Android 类型——引擎单测可在纯 JVM 毫秒级运行，也是未来拆分 `:core:engine` module 的前提。
 - **presentation 单向取值**：UI 只经 `StateFlow`/`UiEffect` 收状态与事件、经 `AppContainer` 拿仓库；不直连网络、后台调度与原始偏好。`data/repository/SettingsRepository` 是设置页的唯一数据出口（收口 `SyncClient`/`SyncJobService`/`Prefs`）。
 - **presentation 可用 `platform/device`、不可用 `platform/accessibility`**：系统入口（跳设置页、磁贴、权限三态）是 UI 的合法依赖；无障碍服务只经 `AppEvents` 向 UI 广播状态，二者不直接引用。
@@ -113,11 +115,11 @@
 
 > 另一条由测试守护的隐式约定：保活入口表依赖 Android 11+ 的包可见性，`<queries>` 声明必须与 `platform/device/VendorKeepAlive.kt` 的入口表逐条对齐，
 > 由 `client/app/src/test/java/com/qingqi/adskip/arch/ManifestContractTest.kt` 校验（漏声明只会让跳转静默失败，不会编译报错）。
-
+>
 > **广播必须收窄到本应用**：所有 `sendBroadcast` 都要带 `setPackage(...)`。
 > `ACTION_SKIPPED` 携带用户正在使用的应用名，未收窄的隐式广播可被任意第三方应用注册同名 action 监听；
 > 同样由 `ManifestContractTest` 强制。
-
+>
 > ⚠️ **`RECEIVE_BOOT_COMPLETED` 不是可清理的残留权限**：同步任务用 `setPersisted(true)` 跨重启恢复，
 > 而 `JobInfo.Builder.setPersisted` 标注了 `@RequiresPermission(RECEIVE_BOOT_COMPLETED)`——
 > 缺少该权限时 `JobScheduler.schedule()` **静默返回 0**，表现为「重启后规则不再自动同步」，无崩溃无日志。
@@ -145,7 +147,7 @@
 > **白名单是刻意收紧的**：确需新增根级条目时，先更新 `ProjectStructureTest` 的
 > `ALLOWED_ROOT_DIRS` / `ALLOWED_ROOT_FILES` 并在 PR 说明理由——让结构调整成为一次显式决策，
 > 而不是一次顺手拖拽。若条目属于本机生成物，正确做法是写入根 `.gitignore` 而非加白名单。
-
+>
 > version catalog 与 build-logic 约定插件（阶段 B）已完成，模块拆分（阶段 C）待排期；
 > 迁移细节、具体坑位与回滚策略见
 > [DESIGN-BUILD-FRAMEWORK.md](../planning/DESIGN-BUILD-FRAMEWORK.md)。
@@ -153,6 +155,7 @@
 ## 3. 数据流
 
 **跳过一次广告：**
+
 ```text
 窗口事件 → SkipAdService（150ms 节流 / 1.2s 去抖，Clock 注入）
         → RulesRepository.ruleSetFor(pkg) 取规则（LruCache 命中）

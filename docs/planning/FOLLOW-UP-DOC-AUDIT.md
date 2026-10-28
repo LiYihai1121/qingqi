@@ -224,6 +224,7 @@
 - 证据：`skills/README.md`「SKILL.md 格式」只要求 `name` + `description`，正文只要求「指针 + 自检动作」。15 个技能的实际结构是：`规范唯一事实源` → `开工前自检` → `提交前自检` → `自检：确认未出现以下情况`。**没有任何一个技能声明「读什么」「产出什么形态」**。
 - 影响：Agent 加载技能后无法确定交付物是「检查清单」「PR 描述」「报告」还是「代码改动」。唯一例外是 `code-simplifier`（明确「report only concrete, evidenced findings with their location…」）和 `security-audit`（「只报告有证据的发现」）——恰好是第三方/审计类技能，说明这个信息**是必要的**，只是没被规范要求。
 - 建议：在 `skills/README.md`「SKILL.md 格式」增加两个必填段：
+
   ```markdown
   ## 输入
   - 必读：<规范文件 / 源码路径>
@@ -232,6 +233,7 @@
   - 形态：<自检清单回执 / PR 描述段落 / 审查报告>
   - 不产出：<明确排除物，如「不改代码」>
   ```
+
   并给 4 个流程类技能（`branch-guard` / `contract-first` / `release` / `planning-docs-guard`）优先补齐。
 
 **S2 — description 语言混排（中文 6 / 英文 9）**

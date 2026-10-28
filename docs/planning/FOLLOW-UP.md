@@ -105,6 +105,7 @@
 ## 里程碑建议
 
 ### v3.3.0（安全加固版）
+
 - [x] 明文流量策略显式收口（NSC base-config 放行，行为等价；HTTPS 迁移后收紧）
 - [x] EncryptedSharedPreferences 全量迁移
 - [x] `reportSkip` deviceId bug 修复
@@ -119,11 +120,13 @@
 - [x] `MockWebServer` 网络层单测（v3.3.0）
 
 ### v3.4.0（工程化版）
+
 - [ ] 端到端集成测试
 - [x] `SyncClient` 连接池/Keep-Alive/重试（随 OkHttp 迁移完成，v3.3.0）
 - [ ] `store.ts` 备份压缩/增量
 
 ### v4.0.0（可观测版）
+
 - [ ] 指标导出（Prometheus/OTel）
 - [ ] 客户端崩溃上报（非强制，可选）
 - [ ] 服务端健康检查增强（/metrics）

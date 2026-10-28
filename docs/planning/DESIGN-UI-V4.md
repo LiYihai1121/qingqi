@@ -3,7 +3,7 @@
 > 状态：**已实施** — 六个页面、导航重构与契约同步均已落地，`ktlintCheck` / `assembleDebug` / `testDebugUnitTest`（286 项）全部通过。
 > 最后更新：2026-10-16。
 > 性质：**设计还原规格 + 交互设计文档**。本文件是 v4 界面（蓝色方案）的唯一落地依据。
-> 范围：客户端表现层（`client/app/src/main/java/com/qingqi/adskip/ui/**`）及与之耦合的导航、文案、契约测试。不含业务引擎与服务端。
+> 范围：客户端表现层（`client/app/src/main/java/com/qingqi/adskip/presentation/**`，2026-10-29 五层重组后）及与之耦合的导航、文案、契约测试。不含业务引擎与服务端。
 > 上游依据：用户提供的 6 屏设计图（首页 / 关键词管理 / 应用管理 / 跳过记录 / 设置 / 引导页）。
 > 前序文档：v3 的评审记录见 [DESIGN-UI-REVIEW.md](DESIGN-UI-REVIEW.md)（薄荷绿方案，已被本版取代）。
 
@@ -133,6 +133,7 @@ v4 不是 v3 的「换肤」，而是一次**信息架构重排 + 视觉语言�
 **数据来源**：`HomeViewModel.UiState`（`accessibilityStatus` / `totalSkips` / `lastApp` / `keywords` / `fakeAdVisible` / `countdown`）。不新增数据源。
 
 **不可逾越的约束**：
+
 - `accessibilityUnknown` 必须与 `serviceRunning` 分开渲染（三态，详见 §5.1）；
 - 三格统计中**只有「累计跳过」用 `emphasis = true`**——强调是稀缺资源，三处都强调等于零处强调；
 - 首页不承载关键词编辑（已独立为 `RULES` 页）。
@@ -146,6 +147,7 @@ v4 不是 v3 的「换肤」，而是一次**信息架构重排 + 视觉语言�
 **数据来源**：`container.rulesRepo.keywords()`（仓库层单一事实源）。系统内置词从 `R.array.default_keywords` 读取，用于给行加「系统」标签。
 
 **关键设计决定**：
+
 - **按值删除而非按索引**：列表是搜索过滤后的视图，其下标与仓库下标不是同一套。传索引会让「搜索后删第二条」删掉仓库里的另一条。`removeKeyword(keyword)` 内部 `indexOfFirst` 重新定位。
 - **独立 ViewModel 而非复用 `HomeViewModel`**：两者读写同一份存储，但职责不同——首页只把关键词数量当统计数字，规则页要增删改查。复用会让首页 ViewModel 背上搜索框状态、对话框状态等只属于规则页的字段。
 - **纵向列表行而非 Chip 平铺**：关键词达到几十条时，Chip 平铺会把卡片撑得很高且难以扫读。
@@ -187,6 +189,7 @@ v4 不是 v3 的「换肤」，而是一次**信息架构重排 + 视觉语言�
 **组成**：`PageHeader`（标题「设置」）→ `UserCard`（头像 + 用户名 + Premium 徽章 + 累计跳过 / 已跳过应用数）→ 单张卡内 5 行 `SettingRow`（服务设置 / 云端同步 / 隐私与安全 / 语言设置 / 关于我们）→ **行内展开区**。
 
 **「行内展开」而非「跳二级页」的取舍**：
+
 - 设计稿每行带 `>`，暗示进入下一层；
 - 本实现改为行内展开（同一时刻只展开一项），理由是：本应用全部设置项共用同一个 `SettingsViewModel` 与同一份状态，为「云端同步」单独开一个 NavHost 目的地会引入**第二份状态来源**；
 - 静止态与设计稿完全一致（用户卡 + 五行），展开态是设计稿未覆盖的补充。

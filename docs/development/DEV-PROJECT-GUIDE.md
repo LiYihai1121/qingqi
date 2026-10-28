@@ -26,9 +26,9 @@
 | 项 | 值 |
 | --- | --- |
 | 已发布版本 | `v1.1.0`（客户端 `versionName = 1.1`、`versionCode = 19`；服务端 `1.1.0`） |
-| 客户端代码量 | 57 个 Kotlin 文件 / 10,946 行 |
-| 服务端代码量 | 14 个 TS 文件 / 1,765 行 |
-| 测试规模 | 客户端 287 项（35 文件）、服务端 97 项（4 文件） |
+| 客户端代码量 | 66 个 Kotlin 文件 / 10,955 行（`src/main`） |
+| 服务端代码量 | 15 个 TS 文件 / 1,879 行 |
+| 测试规模 | 客户端 288 项（35 文件，含 15 个契约守护）、服务端 97 项（4 文件） |
 | 规则协议版本 | schema 2（选择器通道随规则下发） |
 | 构建产物 | Debug APK 可构建；Release 由 CI 用 Secrets 签名 |
 
@@ -107,7 +107,7 @@
 
 ### 3.1 整体架构
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │ 客户端（Android，单 Activity + Compose）        │
 │  presentation ── platform ── data ── domain    │
@@ -203,7 +203,7 @@
 
 **① 跳过链路（客户端内，最高频）**
 
-```
+```text
 AccessibilityEvent
   → SkipAdService：节流去抖（同包 500ms 内只处理一次）
   → RulesRepository.ruleSetFor(pkg)：合并全局 + 应用专属规则（LRU 64 缓存）
@@ -215,7 +215,7 @@ AccessibilityEvent
 
 **② 规则同步链路**
 
-```
+```text
 JobScheduler（每 12h / 跨重启持久化）
   → SyncClient.fetchRules(If-None-Match: hash)
   → 304 → 直接返回（缓存有效）
@@ -226,7 +226,7 @@ JobScheduler（每 12h / 跨重启持久化）
 
 **③ 上报链路**
 
-```
+```text
 每次跳过 → 内存队列（当前无持久化）→ 批量 POST /api/v1/reports/batch（≤50 条）
   → 服务端按到达时间归日 → 按天分片落盘 → 汇总缓存置空
 ```
@@ -330,7 +330,7 @@ data class RuleSet(
 
 | 工具 | 版本 | 用途 |
 | --- | --- | --- |
-| JDK | 21 | Gradle 与 Android 构建 |
+| JDK | 17+（CI 固定 17；本机 21 实测可用） | Gradle 与 Android 构建 |
 | Gradle | 9.6+（wrapper 管理） | 构建 |
 | Android SDK | `compileSdk 37` / `targetSdk 35` / `minSdk 26` | 编译与运行 |
 | Build Tools | 36.0.0 | 打包 |
@@ -344,10 +344,10 @@ data class RuleSet(
 | 构建 | AGP | 9.4.1 |
 | 构建 | Kotlin（Compose 编译器插件） | 2.4.21 |
 | UI | Compose BOM | 2026.09.00 |
-| UI | activity-compose / lifecycle / navigation-compose | 1.9.3 / 2.8.7 / 2.10.2 |
+| UI | activity-compose / lifecycle / navigation-compose | 1.13.0 / 2.11.0 / 2.10.2 |
 | 安全 | androidx.security.crypto | 1.1.0 |
-| 网络 | OkHttp | 5.5.0 |
-| 测试 | JUnit / MockWebServer / org.json | 4.13.2 / 5.5.0 / 20260814 |
+| 网络 | OkHttp | 5.5.1 |
+| 测试 | JUnit / MockWebServer / org.json | 4.13.2 / 5.5.1 / 20260814 |
 | 静态检查 | ktlint（插件 / CLI） | 14.2.0 / 1.8.0 |
 
 > **禁止在模块 `build.gradle.kts` 里硬编码版本号**，一律走 version catalog。升级前先核对镜像 `maven-metadata`（见 [DEV-ENVIRONMENT.md](DEV-ENVIRONMENT.md)）。
@@ -358,7 +358,7 @@ data class RuleSet(
 # 1. 客户端
 cd client
 ./gradlew assembleDebug        # 产物：app/build/outputs/apk/debug/app-debug.apk
-./gradlew testDebugUnitTest    # 287 项单测
+./gradlew testDebugUnitTest    # 288 项单测
 ./gradlew ktlintCheck          # 静态检查
 
 # 2. 服务端
@@ -366,7 +366,7 @@ cd server
 bun install
 ADMIN_TOKEN=dev-token bun start   # 打开 http://localhost:3210/admin，用该 token 登录
 bun test                          # 97 项
-bun run typecheck                 # tsc --noEmit
+bun run typecheck                 # bun x tsc --noEmit
 ```
 
 **常见卡点**：
@@ -376,7 +376,7 @@ bun run typecheck                 # tsc --noEmit
 | 写接口全返回 `503` | 未配置 `ADMIN_TOKEN` | 这是设计行为，设置该 env 后重启 |
 | 手机装不上 | 手机已装 debug 签名版或旧密钥版本 | 卸载 `com.qingqi.adskip` 后重装 |
 | `assembleRelease` 直接失败 | 未配置签名且未声明 `adskip.unsignedRelease` | 本机调试用 `assembleDebug`；正式签名走 CI Secrets |
-| `bun run typecheck` 报错 | 未 `bun install`（`tsc` 来自 devDependencies） | 先 `bun install` |
+| `bun run typecheck` 报 `run bun install --force` | Bun 1.4.x 生成的 `.bin/tsc` 垫片无法定位包根（TS 7 原生二进制） | 脚本已改为 `bun x tsc --noEmit`；若仍失败执行 `bun install --force` |
 
 ### 6.4 门禁命令（提交前必跑）
 
@@ -450,7 +450,7 @@ cd server && bun test && bun run typecheck
 
 | 套件 | 数量 | 位置 |
 | --- | --- | --- |
-| 客户端单测 + 契约 | **287 项 / 35 文件** | `client/app/src/test/` |
+| 客户端单测 + 契约 | **288 项 / 35 文件** | `client/app/src/test/` |
 | 服务端单测 + 冒烟 + 契约 | **97 项 / 4 文件** | `server/test/` |
 | 真机验收 | 计划已写，**尚未实测** | [TOP30-REAL-DEVICE-ACCEPTANCE.md](../testing/TOP30-REAL-DEVICE-ACCEPTANCE.md) |
 | 稳定性测试 | 方案已写（S1–S6） | [STABILITY-TEST-PLAN.md](../testing/STABILITY-TEST-PLAN.md) |

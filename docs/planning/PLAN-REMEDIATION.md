@@ -117,7 +117,7 @@
 
 ### 6.0 依赖关系
 
-```
+```text
 阶段 0（止血）──┬──> 阶段 1（可信数据）──> 阶段 3（可运营）
                 ├──> 阶段 2（可验证）──────┘
                 ├──> 阶段 4（可治理，持续）
@@ -253,7 +253,7 @@
 
 **数据流（事件上行）**：
 
-```
+```text
 跳过事件 → 队列(seq++) → 批量≤50 → HTTPS+pin → 限流(IP+device双桶)
         → 幂等(epoch+seq 高水位) → 归日(clamp ts → STATS_TZ 日键)
         → 分片写入(tmp+rename) → 汇总缓存失效
@@ -261,7 +261,7 @@
 
 **数据流（规则下行）**：
 
-```
+```text
 客户端 If-None-Match(hash) → 服务端比对 rules.hash
   → 命中 304（零正文）
   → 未命中 200 + gzip + ETag + X-Rules-Signature
@@ -284,25 +284,30 @@
 ### 7.3 关键模块设计
 
 **M1 上报可靠性**（阶段 1）
+
 - 队列：环形缓冲，容量 2000 / 时限 7 天，溢出丢最旧；出队条件 = 2xx 且 `ok===true`。
 - 错误分类：`2xx` 出队；`400/413/415/422` **出队**（毒丸，否则卡死整队）；`401/403` 出队并标记配置错误；`408/429/5xx/网络` 保留并退避。
 - 幂等：`(deviceId, epoch)` 为身份，`seq` 单调；`seq<=lastSeq` 丢弃，`seq===lastSeq+1` 推进，`seq>lastSeq+1` 接受但不推进（空洞合法）。
 - 归日：`clamp(ts, now-7d, now+5min)`，日键经 `STATS_TZ` 求值，只允许写保留窗口内分片。
 
 **M2 传输层**（阶段 3）
+
 - 压缩仅对 `application/json` 且 >1 KiB；`Vary: Accept-Encoding`；ETag 基于未压缩 body。
 - 退避：`min(base×2^attempt, 15min) × (0.5+rand×0.5)`，`Retry-After` 作下界。
 - 分页：`summary?limit=50`（上限 200）+ `appsTotal`；全量走 admin-only `/stats/apps`。
 
 **M3 配置与生命周期**（阶段 4）
+
 - `GET /api/v1/config` 与规则同密钥同签名头；客户端同样失败关闭。
 - 版本闸门：`X-Client-Version-Code` 缺失即放行（失败开放，见 G1）；软段返回 `upgradeHint`，硬段返回 426。
 
 **M4 可观测**（阶段 4）
+
 - 日志固定字段：`duplicates` / `gaps` / `clamped` / `rate_limited` / `queue_depth`。
 - 指标三类：请求量（按路由/状态）、限频命中、规则条数与版本。
 
 **M5 契约守卫**（阶段 4）
+
 - `ApiDocContractTest`：`API.md` 中的 `SCREAMING_CASE` 必须在 `config.ts` 的 `process.env.*` 集合内。
 - `DocsPathContractTest`：文档中被反引号包裹的仓库路径必须存在（豁免 `▲` 行）。
 - `BrandContractTest`：`docs/**/*.md` 的 H1 与 `rootProject.name` 不得含 `LEGACY_BRAND`。
