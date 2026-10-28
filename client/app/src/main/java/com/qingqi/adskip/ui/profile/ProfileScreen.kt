@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -31,9 +33,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,21 +72,7 @@ import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 /** 可展开的设置分组。同一时刻只展开一个，避免页面被无限拉长。 */
 private enum class SettingSection { SERVICE, CLOUD, PRIVACY, LANGUAGE, ABOUT }
 
-/**
- * 「我的」页（v4 设计稿，页面标题为「设置」）。
- *
- * 版式：用户卡 → 五行设置项。与 v3 的差别是本页从「四个区块 + 内嵌全部设置」
- * 收敛为**一条索引**：v3 把权限清单、统计、全部设置项、关于信息全部铺在一屏，
- * 结果是首屏要滑很久才能看到「语言设置」这类高频项。
- *
- * **为什么是「行内展开」而不是「跳到二级页」**：设计稿的每一行都带 `>`，
- * 暗示进入下一层。本实现改为行内展开——原因是本应用的全部设置项
- * 共用同一个 [SettingsViewModel] 与同一份状态，为「云端同步」单独开一个
- * NavHost 目的地会引入第二份状态来源；行内展开让「设置」始终只有一屏状态。
- * 静止态与设计稿一致（用户卡 + 五行），展开态是设计稿未覆盖的补充。
- *
- * 无障碍设置入口仍经 `device/KeepAliveNavigator`（UI 不自行拼 Intent）。
- */
+/** 设置索引与详情共享 ViewModel；返回键先回索引，避免内容在长列表底部展开。 */
 @Composable
 fun ProfileScreen(
     messenger: Messenger,
@@ -93,7 +82,10 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf<SettingSection?>(null) }
+    var expanded by rememberSaveable { mutableStateOf<SettingSection?>(null) }
+
+    val scrollState = rememberLazyListState()
+    LaunchedEffect(expanded) { scrollState.scrollToItem(0) }
 
     // 每次回到前台都重读：统计可能已变化，且用户可能刚跳去系统无障碍设置改了开关。
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -149,59 +141,76 @@ fun ProfileScreen(
         }
     }
 
+    BackHandler(enabled = expanded != null) { expanded = null }
     Column(modifier = Modifier.fillMaxSize()) {
-        PageHeader(title = stringResource(R.string.profile_title))
+        PageHeader(
+            title = stringResource(
+                when (expanded) {
+                    SettingSection.SERVICE -> R.string.profile_row_service
+                    SettingSection.CLOUD -> R.string.profile_row_cloud
+                    SettingSection.PRIVACY -> R.string.profile_row_privacy
+                    SettingSection.LANGUAGE -> R.string.profile_row_language
+                    SettingSection.ABOUT -> R.string.profile_row_about
+                    null -> R.string.profile_title
+                },
+            ),
+            onBack = if (expanded != null) ({ expanded = null }) else null,
+            backLabel = stringResource(R.string.action_back),
+        )
 
         LazyColumn(
+            state = scrollState,
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding(),
             contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            item { UserCard(totalSkips = state.totalSkips, activeApps = state.activeAppCount) }
+            if (expanded == null) {
+                item { UserCard(totalSkips = state.totalSkips, activeApps = state.activeAppCount) }
 
-            item {
-                SectionCard(contentPadding = PaddingValues(vertical = Spacing.xs)) {
-                    SettingRow(
-                        icon = AdSkipIcons.Settings,
-                        title = stringResource(R.string.profile_row_service),
-                        subtitle = stringResource(R.string.profile_row_service_desc),
-                        onClick = { expanded = expanded.toggle(SettingSection.SERVICE) },
-                    )
-                    RowDividerThin()
-                    SettingRow(
-                        icon = AdSkipIcons.Server,
-                        title = stringResource(R.string.profile_row_cloud),
-                        subtitle = stringResource(R.string.profile_row_cloud_desc),
-                        onClick = { expanded = expanded.toggle(SettingSection.CLOUD) },
-                    )
-                    RowDividerThin()
-                    SettingRow(
-                        icon = AdSkipIcons.Shield,
-                        title = stringResource(R.string.profile_row_privacy),
-                        subtitle = stringResource(R.string.profile_row_privacy_desc),
-                        onClick = { expanded = expanded.toggle(SettingSection.PRIVACY) },
-                    )
-                    RowDividerThin()
-                    SettingRow(
-                        icon = AdSkipIcons.Globe,
-                        title = stringResource(R.string.profile_row_language),
-                        subtitle = stringResource(settings.language.labelRes()),
-                        onClick = { expanded = expanded.toggle(SettingSection.LANGUAGE) },
-                    )
-                    RowDividerThin()
-                    SettingRow(
-                        icon = AdSkipIcons.Info,
-                        title = stringResource(R.string.profile_row_about),
-                        subtitle = state.versionDisplay.ifBlank { stringResource(R.string.profile_value_unknown) },
-                        onClick = { expanded = expanded.toggle(SettingSection.ABOUT) },
-                    )
+                item {
+                    SectionCard(contentPadding = PaddingValues(vertical = Spacing.xs)) {
+                        SettingRow(
+                            icon = AdSkipIcons.Settings,
+                            title = stringResource(R.string.profile_row_service),
+                            subtitle = stringResource(R.string.profile_row_service_desc),
+                            onClick = { expanded = expanded.toggle(SettingSection.SERVICE) },
+                        )
+                        RowDividerThin()
+                        SettingRow(
+                            icon = AdSkipIcons.Server,
+                            title = stringResource(R.string.profile_row_cloud),
+                            subtitle = stringResource(R.string.profile_row_cloud_desc),
+                            onClick = { expanded = expanded.toggle(SettingSection.CLOUD) },
+                        )
+                        RowDividerThin()
+                        SettingRow(
+                            icon = AdSkipIcons.Shield,
+                            title = stringResource(R.string.profile_row_privacy),
+                            subtitle = stringResource(R.string.profile_row_privacy_desc),
+                            onClick = { expanded = expanded.toggle(SettingSection.PRIVACY) },
+                        )
+                        RowDividerThin()
+                        SettingRow(
+                            icon = AdSkipIcons.Globe,
+                            title = stringResource(R.string.profile_row_language),
+                            subtitle = stringResource(settings.language.labelRes()),
+                            onClick = { expanded = expanded.toggle(SettingSection.LANGUAGE) },
+                        )
+                        RowDividerThin()
+                        SettingRow(
+                            icon = AdSkipIcons.Info,
+                            title = stringResource(R.string.profile_row_about),
+                            subtitle = state.versionDisplay.ifBlank { stringResource(R.string.profile_value_unknown) },
+                            onClick = { expanded = expanded.toggle(SettingSection.ABOUT) },
+                        )
+                    }
                 }
             }
 
-            item {
-                AnimatedVisibility(visible = expanded == SettingSection.SERVICE) {
+            if (expanded == SettingSection.SERVICE) {
+                item {
                     PermissionCard(
                         items = state.permissionItems,
                         readyCount = state.permissionReadyCount,
@@ -210,14 +219,14 @@ fun ProfileScreen(
                 }
             }
 
-            item {
-                AnimatedVisibility(visible = expanded == SettingSection.CLOUD) {
-                    SettingsContent(messenger)
+            if (expanded == SettingSection.CLOUD) {
+                item {
+                    SettingsContent(messenger, viewModel = settingsViewModel)
                 }
             }
 
-            item {
-                AnimatedVisibility(visible = expanded == SettingSection.PRIVACY) {
+            if (expanded == SettingSection.PRIVACY) {
+                item {
                     SectionCard {
                         Text(
                             text = stringResource(R.string.profile_privacy_hint),
@@ -228,8 +237,8 @@ fun ProfileScreen(
                 }
             }
 
-            item {
-                AnimatedVisibility(visible = expanded == SettingSection.LANGUAGE) {
+            if (expanded == SettingSection.LANGUAGE) {
+                item {
                     SectionCard(contentPadding = PaddingValues(vertical = Spacing.xs)) {
                         LanguageMode.entries.forEach { mode ->
                             LanguageOptionRow(
@@ -242,8 +251,8 @@ fun ProfileScreen(
                 }
             }
 
-            item {
-                AnimatedVisibility(visible = expanded == SettingSection.ABOUT) {
+            if (expanded == SettingSection.ABOUT) {
+                item {
                     AboutCard(state = state, vendorName = viewModel::vendorName)
                 }
             }
@@ -254,13 +263,7 @@ fun ProfileScreen(
 /** 展开/收起切换：点已展开的那一行则收起。 */
 private fun SettingSection?.toggle(target: SettingSection): SettingSection? = if (this == target) null else target
 
-/**
- * 用户卡：头像 + 本地身份文案 + 使用概览。
- *
- * 头像用「底衬 + 人像图形」而不是位图：本应用没有账号体系、也就没有头像来源，
- * 引入网络图片会与「本地优先、隐私可控」直接冲突。同理，用户名只展示「本地用户」
- * 中性身份，不展示设计稿残留的假用户名与会员徽章。
- */
+/** 产品概览与真实使用统计；不展示虚构账号或会员信息。 */
 @Composable
 private fun UserCard(totalSkips: Int, activeApps: Int) {
     SectionCard {
@@ -273,7 +276,7 @@ private fun UserCard(totalSkips: Int, activeApps: Int) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = AdSkipIcons.Profile,
+                    imageVector = AdSkipIcons.Shield,
                     contentDescription = null,
                     modifier = Modifier.size(UiSizes.rowIcon),
                     tint = MaterialTheme.colorScheme.primary,

@@ -36,28 +36,13 @@ import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.UiSizes
 import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 
-/**
- * 首次启动引导页（v4 设计稿）。
- *
- * 内容自上而下：品牌标识 → 应用名 → 一句价值主张 → 插图 → 四条卖点 → 页码点 → 开始使用。
- *
- * 为什么需要它（v3 之前没有引导页）：应用的核心能力是「开启无障碍服务」，
- * 而这个开关**藏在系统设置的深层页面里**——没有前置解释时，用户第一次打开只会看到
- * 「服务未开启」和一个跳转按钮，不知道自己为什么要授权一个无障碍服务。
- * 引导页把「它做什么、为什么安全、数据在哪」在授权之前讲清楚。
- *
- * 实现说明：
- * - 插图是**几何拼贴**（圆角方块 + 徽标）而不是位图，与图标库同属一套几何语言，
- *   也不引入图片资源与压缩/密度适配问题；
- * - 背景渐变用 `Brand05 → 白` 的竖向渐变：设计稿是浅蓝到白的过渡，
- *   取值全部来自色板，不写色值字面量。
- */
+/** 单屏引导：解释用途后再进入首页授权；全部颜色跟随全局主题。 */
 @Composable
 fun OnboardingScreen(onStart: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Brand10, Brand05, MaterialTheme.colorScheme.surface)))
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -69,7 +54,7 @@ fun OnboardingScreen(onStart: () -> Unit) {
             modifier = Modifier
                 .size(UiSizes.statusShield)
                 .clip(MaterialTheme.shapes.large)
-                .background(Brand50),
+                .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -135,7 +120,7 @@ private fun OnboardingIllustration() {
             modifier = Modifier
                 .size(width = UiSizes.illustrationBackWidth, height = UiSizes.illustrationBackHeight)
                 .clip(MaterialTheme.shapes.medium)
-                .background(Brand20)
+                .background(MaterialTheme.colorScheme.primaryContainer)
                 .padding(Spacing.md),
             contentAlignment = Alignment.Center,
         ) {
@@ -157,7 +142,7 @@ private fun OnboardingIllustration() {
                 icon = AdSkipIcons.Shield,
                 size = UiSizes.tileIcon,
                 glyphSize = UiSizes.tileGlyph,
-                containerColor = Brand50,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
             Spacer(Modifier.width(Spacing.sm))
@@ -184,7 +169,7 @@ private fun OnboardingPoint(text: String) {
             imageVector = AdSkipIcons.Check,
             contentDescription = null,
             modifier = Modifier.size(UiSizes.inlineIcon),
-            tint = Brand50,
+            tint = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.width(Spacing.md))
         Text(

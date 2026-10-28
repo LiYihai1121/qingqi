@@ -1,6 +1,8 @@
 # 客户端 UI v4 设计还原与交互规格（DESIGN-UI-V4）
 
-> 状态：**已实施** — 六个页面、导航重构与契约同步均已落地，`ktlintCheck` / `assembleDebug` / `testDebugUnitTest`（286 项）全部通过。
+> **历史规格，非当前实现依据。** 当前客户端品牌已由 #198 切换为绿色，本轮设计见 [DESIGN-UI-CURRENT.md](DESIGN-UI-CURRENT.md)。下文记录旧蓝色稿，不应据此回退客户端。
+
+> 状态：**已实施（历史）** — 六个页面、导航重构与契约同步均已落地，`ktlintCheck` / `assembleDebug` / `testDebugUnitTest`（286 项）全部通过。
 > 最后更新：2026-10-16。
 > 性质：**设计还原规格 + 交互设计文档**。本文件是 v4 界面（蓝色方案）的唯一落地依据。
 > 范围：客户端表现层（`client/app/src/main/java/com/qingqi/adskip/ui/**`）及与之耦合的导航、文案、契约测试。不含业务引擎与服务端。
