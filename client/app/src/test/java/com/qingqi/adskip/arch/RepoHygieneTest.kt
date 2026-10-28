@@ -34,6 +34,7 @@ class RepoHygieneTest {
             ".worktrees", // 本项目约定的 worktree 落点
             ".agents", // 通用 Agent 产物目录
             ".cursor", // Cursor 本机工程状态
+            ".dsh", // 本机技能安装目录
         )
         val missing = required.filterNot { dir -> patterns.any { it == dir } }
         assertTrue(
@@ -51,6 +52,8 @@ class RepoHygieneTest {
     fun `gitignore covers runtime data and key material`() {
         val patterns = gitignorePatterns()
         val required = listOf(
+            "server/.*.log",
+            "server/.*.err",
             "server/data", // 规则/统计运行数据与备份（含真实应用包名）
             ".env", // 环境变量秘密
             "local.properties", // 签名密钥与 SDK 路径
@@ -196,6 +199,7 @@ class RepoHygieneTest {
             ".idea",
             ".vscode",
             ".cursor",
+            ".dsh",
             "captures",
             ".tools",
             "bin",
