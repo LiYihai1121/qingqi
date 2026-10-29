@@ -6,28 +6,38 @@
 
 ## 目录
 
-- [Unreleased](#unreleased)
+- [1.2.0](#120---2026-10-29)
 - [1.1.0](#110---2026-10-19)
 - [1.0.1](#101---2026-10-16)
 - [1.0.0](#100---2026-10-13)
 
-## [Unreleased]
+## [1.2.0] - 2026-10-29
 
-### Added
+权限清单补全与功能收敛版本：权限清单新增通知项、整体下线快捷设置磁贴、界面主色回归薄荷绿；同时完成客户端五层包结构重组与协作/文档归一化。无协议或数据形态变更，`versionCode` 自 `19` 递增至 `20`。
+
+### Added (1.2.0)
 
 - **「服务设置」补充通知权限项**：权限清单新增「通知（服务守护提醒）」一项，读 `NotificationManager.areNotificationsEnabled()` 的系统真值，按「就绪 / 需要处理 / 无法自动确认」三态呈现。此前清单只声明了 `POST_NOTIFICATIONS` 却没有任何入口能查它，用户授权与否无从得知——而 Android 13+ 未授权时「服务守护」的通知会被系统**静默丢弃**，表现为「跳过莫名失效」。「去设置」在未授权时先弹系统运行时授权弹窗，已授权则直达本应用通知设置页。
+- **行为分析平台的设计与开发计划（文档）**：新增 `DESIGN-TELEMETRY-ANALYTICS.md`（目标 / 埋点事件 / 指标口径 / 数据模型 / ADR / 风险）与 `PLAN-TELEMETRY-ANALYTICS.md`（WBS / 排期 / 测试 / CI / 部署 / 分工），并登记到文档地图。本期仅立项，未含代码实现。
 
-### Removed
+### Removed (1.2.0)
 
 - **删除快捷设置磁贴（Quick Settings Tile）**：整体下线该功能，包括 `device/SkipTileService.kt`、`device/QuickTileLogic.kt`、磁贴图标、`AndroidManifest.xml` 中的 `TileService` 注册与 `BIND_QUICK_SETTINGS_TILE` 权限、权限清单中的「快捷设置磁贴」项，以及相关文案、单测与文档引用。理由是磁贴的「是否已添加」系统无公开查询 API，在权限清单里只能停在「无法自动确认」；而它提供的「点一下开关」与首页状态盾牌卡重复。**影响**：已在快捷设置中添加过磁贴的用户，升级后该磁贴失效（需从系统快捷设置中移除残留项）。
 
-### Changed
+### Changed (1.2.0)
 
 - **界面主色回归薄荷绿**：品牌色由 v4 科技蓝（`#3D7DF6`）切回与落地页一致的薄荷绿（主色 `#1D7C43` / 标识色 `#57E08E`）。同步更新 `Color.kt` 品牌阶梯与中性色（转绿调）、深色方案、快捷瓦片（品牌绿 / 琥珀 / 紫）、启动器图标背景渐变（`#57E08E → #2FA968`）与窗口导航栏色（`#176336`）。无协议或数据形态变更。
 - **落地页版本号写死为 `1.1.0`**：`server/public/index.html` 不再输出 `{{APP_VERSION}}` 占位符文本。
 - **落地页路线图对齐重置后版本序列**：时间线由重置前的 `v1.0 / v2.x / v3.0 / v3.1+` 改为真实的 `v1.0.0 / v1.0.1 / v1.1.0 / v1.2`，内容与 `CHANGELOG` 三段记录一致；当前版本节点加品牌绿光晕强调。
 - **依赖与工具链维护**：OkHttp `5.5.0 → 5.5.1`、activity-compose `1.9.3 → 1.13.0`、lifecycle `2.8.7 → 2.11.0`（均为当前稳定版；AGP 9.5.0 / Kotlin 2.5.0-Beta 等预发布版未采用）。`ktlintCheck` / `assembleDebug` / `testDebugUnitTest` 全绿，Compose 版本仍由 BOM 统一约束。`bun run typecheck` 改由 `bun x tsc` 调用，修复 Bun 1.4.x 生成的 `.bin/tsc` 垫片无法定位包根导致的门禁假红。
 - **规划文档版本序列分区**：`ROADMAP.md` 新增「重置后版本序列」小节，历史代际章节归入「重置前历史代际（归档，不再更新）」；`ROADMAP-ADS.md` 里程碑表中未交付项的发布编号改为「待定」，历史草案编号降为追溯线索。两份文档不再混读 `1.x` 与 `3.x`。
+- **客户端包结构按五层重组**：源码由「按技术分层 + 顶层散落」整理为 `core/`（common·events·locale·storage）、`domain/engine/`（纯 Kotlin）、`data/{local,remote,repository,sync,model}/`、`platform/{accessibility,device}/`、`presentation/{navigation,designsystem,feature,common}/`、`di/`（组合根）。跨包依赖方向由 `ArchitectureBoundaryTest` 机器强制，包移动不改变任何运行时行为与协议。
+- **导航与主题驱动呈现统一**：底部导航目的地与路由收敛为单一事实源，页面配色改为全部走主题令牌（禁止硬编码色值），由 `UiContractTest` / `ColorSchemeContractTest` 守护。
+- **协作规范与文档归一化**：新增 `DEV-PROJECT-GUIDE.md` 与 `DESIGN-TECH-SOLUTION.md` 两份团队入口并互相声明分工与冲突裁决；`AGENT-WORKFLOW.md` 补充「认领板按 `git worktree list` 重建」「结构类测试必须 `--rerun-tasks --no-build-cache` 否则拿到假绿」「他人已 `git add` 时改用独立 worktree 提交」三条实证条款；引入 `markdownlint-cli2` 文档门禁（CI job `Docs Lint`）与根 `.markdownlint-cli2.jsonc` 规则集。
+
+### Fixed (1.2.0)
+
+- **点击防护加固与异步计数保持**：`SafetyGuard` 补充高频事件下的重复点击拦截用例；统计计数在异步落盘未完成时不再被后续读取清零（此前快速连续跳过可能少计）。无协议变更。
 
 ## [1.1.0] - 2026-10-19
 
