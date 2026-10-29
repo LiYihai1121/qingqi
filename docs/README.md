@@ -20,9 +20,6 @@ docs/
 │   ├── ROADMAP.md                 版本序列（唯一事实源）
 │   ├── ROADMAP-ADS.md             里程碑 / 周次 / 出口条件
 │   ├── DESIGN-PHASE1-SELECTOR.md  L1 技术设计与步骤 A–F
-│   ├── testing/                  真机验收计划与证据模板
-│   │   ├── TOP30-REAL-DEVICE-ACCEPTANCE.md
-│   │   └── STABILITY-TEST-PLAN.md      稳定性测试方案（S1–S6 场景/KPI/环境清单）与执行记录
 │   ├── DESIGN-ADS-FILTERING.md    L2/L3/L4 分层边界与 Phase 0 决策提案
 │   ├── DESIGN-ARCH-REVIEW.md      整体架构评审与技术设计（含 P1/P2 落地修复规格）
 │   ├── DESIGN-BUILD-FRAMEWORK.md  构建框架工程化（version catalog / build-logic / 模块拆分）
@@ -43,6 +40,10 @@ docs/
 │   ├── DESIGN-TELEMETRY-ANALYTICS.md  行为分析平台设计（目标 / 埋点 / 指标 / 数据模型 / ADR / 风险）
 │   ├── PLAN-TELEMETRY-ANALYTICS.md    行为分析平台开发计划（WBS / 排期 / 测试 / CI / 部署 / 分工）
 │   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
+├── testing/           真机验收计划与证据模板
+│   ├── TOP30-REAL-DEVICE-ACCEPTANCE.md
+│   ├── STABILITY-TEST-PLAN.md      稳定性测试方案（S1–S6 场景/KPI/环境清单）与执行记录
+│   └── YOUKU-SKIP-DIAGNOSIS.md     优酷跳过失败诊断方案（TOP30 #18 配套，待真机执行）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
 ```
 
@@ -64,6 +65,7 @@ docs/
 | 查看行为分析平台的排期、WBS、测试与部署方案 | [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
 | 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
+| 排查某 App 真机「广告未能跳过」（首发优酷，TOP30 #18） | [testing/YOUKU-SKIP-DIAGNOSIS.md](testing/YOUKU-SKIP-DIAGNOSIS.md)（待真机执行） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
 | 审查广告治理分层、L2/L3/L4 决策提案与放行条件 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md)（提案未获批准） |
 | 评审整体架构现状、关键模块契约与待修复项落地设计 | [planning/DESIGN-ARCH-REVIEW.md](planning/DESIGN-ARCH-REVIEW.md) |

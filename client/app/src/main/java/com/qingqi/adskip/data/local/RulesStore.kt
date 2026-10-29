@@ -37,6 +37,9 @@ interface RulesStore {
     /** 某应用的云端选择器表达式。 */
     fun pkgSelectors(pkg: String): List<String>
 
+    /** 某应用的包级手势放权开关（云端下发，默认关）。 */
+    fun pkgGestureFallback(pkg: String): Boolean
+
     /** 某应用是否被用户/云端禁用（命中即整包放行）。 */
     fun isPackageDisabled(pkg: String): Boolean
 
@@ -67,6 +70,8 @@ data class CloudPkgRule(
     val viewIds: List<String> = emptyList(),
     val disabled: Boolean = false,
     val selectors: List<String> = emptyList(),
+    /** 包级手势放权：广告 SDK 自绘树无可点击节点时允许坐标手势兜底（默认关） */
+    val gestureFallback: Boolean = false,
 )
 
 /** [RulesStore] 的生产实现：落在 [Prefs]（EncryptedSharedPreferences）上。 */
@@ -83,6 +88,8 @@ class PrefsRulesStore(private val context: Context) : RulesStore {
     override fun pkgViewIds(pkg: String): List<String> = Prefs.getPkgViewIds(context, pkg)
 
     override fun pkgSelectors(pkg: String): List<String> = Prefs.getPkgSelectors(context, pkg)
+
+    override fun pkgGestureFallback(pkg: String): Boolean = Prefs.getPkgGestureFallback(context, pkg)
 
     override fun isPackageDisabled(pkg: String): Boolean = Prefs.isPackageDisabled(context, pkg)
 

@@ -5,6 +5,12 @@ export interface AppRule {
   viewIds: string[];
   selectors: string[];
   disabled: boolean;
+  /**
+   * 包级手势放权：广告 SDK 自绘触摸树（如优酷 xadsdk）整棵无 clickable 节点，
+   * 客户端可点击路径护栏必然拒绝。开启后客户端放行该包「无可点击路径」的
+   * 引擎已确认目标，以坐标手势点击；其余护栏语义不变。默认 false。
+   */
+  gestureFallback: boolean;
 }
 
 /** v1 规则体（下发到客户端的核心结构） */

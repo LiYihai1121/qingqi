@@ -13,6 +13,12 @@ data class RuleSet(
     /** 第三通道：已编译选择器（上游加载时编译一次；解析失败的条目已在上游丢弃） */
     val selectors: List<SelectorAst> = emptyList(),
     val disabled: Boolean = false,
+    /**
+     * 包级手势放权：广告 SDK 自绘触摸树（如优酷 xadsdk）整棵无 clickable 节点，
+     * 可点击路径校验必然拒绝。开启后护栏放行该包「无可点击路径」的引擎已确认目标，
+     * 由坐标手势点击目标自身 bounds；其余护栏语义不变。默认 false。
+     */
+    val gestureFallback: Boolean = false,
     val schemaVersion: Int = SCHEMA_VERSION,
 ) {
     val isEmpty: Boolean

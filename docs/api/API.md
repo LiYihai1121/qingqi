@@ -39,10 +39,12 @@
 可选 `If-Match: <当前 hash>`（与当前接口返回的 hash 原样比较）；不匹配返回 `412`，不会写盘或递增版本。`*` 表示允许覆盖当前规则。不带该头的旧管理端保持原行为。管理后台在加载规则时保存 hash，发布携带该值；冲突时保留草稿并提示重新加载比较。v0 发布接口同样支持，v0 规则读取与发布响应新增 `hash`。
 
 ```json
-{ "keywords": ["跳过"], "viewIds": ["skip"], "selectors": ["[vid$=\":id/skip_view\"]"], "packages": { "com.x": { "keywords": ["..."], "viewIds": ["..."], "selectors": ["..."], "disabled": false } } }
+{ "keywords": ["跳过"], "viewIds": ["skip"], "selectors": ["[vid$=\":id/skip_view\"]"], "packages": { "com.x": { "keywords": ["..."], "viewIds": ["..."], "selectors": ["..."], "disabled": false, "gestureFallback": false } } }
 ```
 
 校验：包名须匹配 `^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$`、关键词 ≤12 字、总条目 ≤2000、应用数 ≤2000。响应 `{"ok":true,"version":N,"hash":"sha256:..."}`
+
+`packages.*.gestureFallback` 为**纯增量字段**（默认 `false`，仅接受布尔）：包级手势放权。广告 SDK 自绘触摸树（如优酷 xadsdk）整棵无 `clickable` 节点，客户端「可点击路径」护栏必然拒绝、坐标兜底不执行。开启后客户端仅放行该包「无可点击路径」的引擎已确认目标（以目标自身 bounds 为手势落点），黑名单/合法性/敏感系统界面护栏语义不变。旧客户端不识别此字段并忽略之。
 
 ### 选择器校验的两端分工
 
