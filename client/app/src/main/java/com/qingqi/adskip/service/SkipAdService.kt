@@ -43,7 +43,6 @@ class SkipAdService : AccessibilityService() {
     companion object {
         const val ACTION_SERVICE_STATE = "com.qingqi.adskip.SERVICE_STATE"
         const val ACTION_SKIPPED = "com.qingqi.adskip.SKIPPED"
-        const val ACTION_REQUEST_SHUTDOWN = "com.qingqi.adskip.REQUEST_SHUTDOWN"
         const val ACTION_EXPORT_SNAPSHOT = "com.qingqi.adskip.EXPORT_SNAPSHOT"
 
         /**
@@ -78,25 +77,6 @@ class SkipAdService : AccessibilityService() {
             serviceClassName = SkipAdService::class.java.name,
             processSignal = running,
         ) == AccessibilityStatus.ON
-
-        /**
-         * 请求关闭当前运行中的服务（由快捷磁贴下发），内部走 `disableSelf()`——
-         * 与用户在系统设置里关掉开关等价，会正常回调 [onDestroy] 完成清理与状态广播。
-         *
-         * @return 是否已成功投递关闭请求
-         */
-        fun requestShutdown(context: Context): Boolean {
-            if (!running) return false
-            return try {
-                context.sendBroadcast(
-                    Intent(ACTION_REQUEST_SHUTDOWN).setPackage(context.packageName),
-                )
-                true
-            } catch (e: Exception) {
-                LogRing.w("Service", "requestShutdown failed: ${e.message}")
-                false
-            }
-        }
     }
 
     private val engine = SkipRuleEngine()
@@ -104,20 +84,6 @@ class SkipAdService : AccessibilityService() {
     private lateinit var rulesRepo: RulesRepository
     private lateinit var statsRepo: StatsRepository
     private lateinit var syncClient: SyncClient
-
-    /**
-     * 快捷磁贴的关闭请求接收端（进程内、定向投递）。
-     *
-     * 用广播而非持有 Service 实例的静态引用：`device/` 层只需调用 companion 的
-     * [requestShutdown]，不必反向依赖本类的实例状态，避免跨包持有 Service 造成泄漏。
-     */
-    private val shutdownReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != ACTION_REQUEST_SHUTDOWN) return
-            LogRing.d("Service", "shutdown requested by quick tile")
-            disableSelf()
-        }
-    }
 
     private val snapshotReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -170,7 +136,6 @@ class SkipAdService : AccessibilityService() {
         }
     }
 
-    private val shutdownHandle = ReceiverHandle(this, shutdownReceiver, ACTION_REQUEST_SHUTDOWN)
     private val snapshotHandle = ReceiverHandle(this, snapshotReceiver, ACTION_EXPORT_SNAPSHOT)
 
     override fun onServiceConnected() {
@@ -182,7 +147,6 @@ class SkipAdService : AccessibilityService() {
         syncClient = container.syncClient
         running = true
         AppEvents.setServiceRunning(true)
-        shutdownHandle.register()
         snapshotHandle.register()
         // P0-2：服务连上即武装守护巡检——失效时通知引导恢复（MIUI 回置开关场景）
         AccessibilityWatchdogJob.arm(this)
@@ -196,7 +160,6 @@ class SkipAdService : AccessibilityService() {
         LogRing.d("Service", "onDestroy")
         running = false
         AppEvents.setServiceRunning(false)
-        shutdownHandle.unregister()
         snapshotHandle.unregister()
         sendBroadcast(Intent(ACTION_SERVICE_STATE).setPackage(packageName).putExtra(EXTRA_RUNNING, false))
         // 强制落盘待写统计

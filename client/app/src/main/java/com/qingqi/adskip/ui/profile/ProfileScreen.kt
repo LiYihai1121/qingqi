@@ -1,7 +1,12 @@
 package com.qingqi.adskip.ui.profile
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -88,13 +93,24 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val settings by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val tileLabel = stringResource(R.string.tile_label)
     var expanded by remember { mutableStateOf<SettingSection?>(null) }
 
     // 每次回到前台都重读：统计可能已变化，且用户可能刚跳去系统无障碍设置改了开关。
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.refreshAccessibilityStatus()
         viewModel.refreshStats()
+    }
+
+    // 通知权限的系统运行时授权（Android 13+）。
+    //
+    // 为什么不在 App 内自建「请求通知权限」按钮，而是复用权限清单里的「去设置」：
+    // 授权弹窗只能由系统呈现，且用户拒绝后再请求会有一段冷却期；
+    // 因此清单这一行先尝试弹窗，未授予时退到系统通知设置页，两条路都通。
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) {
+        // 结果可能仍是「未授予」：重读系统真值，让清单显示真实状态而非乐观值。
+        viewModel.refreshAccessibilityStatus()
     }
 
     val onOpenPermission: (String) -> Unit = { key ->
@@ -118,8 +134,17 @@ fun ProfileScreen(
                 messenger.show(context.getString(res, vendorName))
             }
 
-            PermissionKeys.QUICK_TILE -> {
-                messenger.show(context.getString(R.string.settings_tile_manual, tileLabel))
+            PermissionKeys.NOTIFICATION -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    // 尚未授予：先走系统运行时授权弹窗（一步到位），
+                    // 而不是把用户丢到系统设置页自己找「通知」开关。
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else if (!KeepAliveNavigator.openNotificationSettings(context)) {
+                    messenger.show(context.getString(R.string.settings_open_failed))
+                }
             }
         }
     }

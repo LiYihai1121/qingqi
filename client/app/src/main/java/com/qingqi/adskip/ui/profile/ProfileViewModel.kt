@@ -13,6 +13,7 @@ import com.qingqi.adskip.core.AppEvents
 import com.qingqi.adskip.device.AccessibilityStatus
 import com.qingqi.adskip.device.BatteryExemption
 import com.qingqi.adskip.device.KeepAliveNavigator
+import com.qingqi.adskip.device.NotificationPermission
 import com.qingqi.adskip.device.PermissionCenter
 import com.qingqi.adskip.device.PermissionItem
 import com.qingqi.adskip.device.Vendor
@@ -42,6 +43,8 @@ class ProfileViewModel(private val container: AppContainer) : ViewModel() {
         val accessibilityStatus: AccessibilityStatus = AccessibilityStatus.UNKNOWN,
         /** 电池优化豁免的有效状态。 */
         val batteryExemption: BatteryExemption = BatteryExemption.UNKNOWN,
+        /** 通知权限的有效状态（Android 13+ 为运行时权限）。 */
+        val notificationPermission: NotificationPermission = NotificationPermission.UNKNOWN,
         /** 权限与系统开关清单（判定见 device/PermissionCenter）。 */
         val permissionItems: List<PermissionItem> = emptyList(),
         /** 清单中已确认就绪的项数。 */
@@ -111,16 +114,18 @@ class ProfileViewModel(private val container: AppContainer) : ViewModel() {
             processSignal = AppEvents.serviceRunningSnapshot,
         )
         val battery = BatteryExemption.detect(container.app)
-        // 磁贴是否已添加无系统查询 API，恒为 UNKNOWN——谎报「未添加」会让已添加的用户
-        // 反复去快捷设置里找，而那边早就有了。
+        // 通知权限：Android 13+ 是运行时权限，未授权时服务守护的通知会被系统静默丢弃，
+        // 用户只看到「跳过莫名失效」。这条此前 App 内没有任何入口能查，属于盲区。
+        val notification = NotificationPermission.detect(container.app)
         val items = PermissionCenter.build(
             accessibility = accessibility,
             battery = battery,
-            tileAdded = false,
+            notification = notification,
         )
         _uiState.value = _uiState.value.copy(
             accessibilityStatus = accessibility,
             batteryExemption = battery,
+            notificationPermission = notification,
             permissionItems = items,
             permissionReadyCount = PermissionCenter.readyCount(items),
         )
