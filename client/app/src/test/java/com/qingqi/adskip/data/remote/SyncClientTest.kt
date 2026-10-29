@@ -377,4 +377,25 @@ class SyncClientTest {
 
         assertEquals(2, server.requestCount)
     }
+
+    @Test
+    fun `parseRulesResponse reads per-package gesture fallback`() {
+        // 安全契约：gestureFallback 默认 false，仅服务端显式下发 true 的包放权
+        val apps = JSONObject()
+        apps.put(
+            "com.youku.phone",
+            JSONObject()
+                .put("keywords", org.json.JSONArray().put("跳过广告"))
+                .put("gestureFallback", true),
+        )
+        apps.put("com.other.app", JSONObject().put("keywords", org.json.JSONArray().put("跳过")))
+        val body = JSONObject()
+            .put("schemaVersion", 2)
+            .put("rules", JSONObject().put("apps", apps))
+            .toString()
+
+        val parsed = SyncClient.parseRulesResponse(body)
+        assertTrue(parsed.pkgRules["com.youku.phone"]!!.gestureFallback)
+        assertFalse(parsed.pkgRules["com.other.app"]!!.gestureFallback)
+    }
 }

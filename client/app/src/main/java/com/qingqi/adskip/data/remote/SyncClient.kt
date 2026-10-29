@@ -138,6 +138,7 @@ object SyncClient {
                         viewIds = rule.optJSONArray("viewIds")?.toStringList() ?: emptyList(),
                         selectors = rule.optJSONArray("selectors")?.toStringList(MAX_SELECTORS) ?: emptyList(),
                         disabled = rule.optBoolean("disabled", false),
+                        gestureFallback = rule.optBoolean("gestureFallback", false),
                     )
                 }
             }
@@ -158,6 +159,7 @@ object SyncClient {
                         viewIds = rule.optJSONArray("viewIds")?.toStringList() ?: emptyList(),
                         selectors = rule.optJSONArray("selectors")?.toStringList(MAX_SELECTORS) ?: emptyList(),
                         disabled = rule.optBoolean("disabled", false),
+                        gestureFallback = rule.optBoolean("gestureFallback", false),
                     )
                 }
             }

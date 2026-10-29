@@ -251,12 +251,19 @@ describe("smoke", () => {
       body: JSON.stringify({
         keywords: ["新词"],
         viewIds: ["skip"],
-        packages: { "com.published.app": { keywords: ["a"], viewIds: [], disabled: false } },
+        packages: {
+          "com.published.app": { keywords: ["a"], viewIds: [], disabled: false, gestureFallback: true },
+        },
       }),
     });
     const j = (await res.json()) as any;
     expect(j.ok).toBe(true);
     expect(typeof j.hash).toBe("string");
+    // 发布 → 下发回环：包级 gestureFallback 必须原样下发
+    const rulesRes = await fetch(`${base}/api/v1/rules/latest`);
+    const rules = (await rulesRes.json()) as any;
+    const shape = rules.rules?.apps?.["com.published.app"] ?? rules.apps?.["com.published.app"];
+    expect(shape.gestureFallback).toBe(true);
   });
 
   it("请求体非 application/json 返回 415", async () => {

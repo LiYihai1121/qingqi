@@ -76,6 +76,21 @@ describe("validate", () => {
     expect(r!.keywords).toContain("跳过");
   });
 
+  it("cleanRules 按包透传 gestureFallback，仅 ===true 视为开启", () => {
+    const r = cleanRules({
+      keywords: [],
+      viewIds: [],
+      packages: {
+        "com.youku.phone": { keywords: ["a"], viewIds: [], gestureFallback: true },
+        "com.other.app": { keywords: ["a"], viewIds: [], gestureFallback: "yes" },
+        "com.third.app": { keywords: ["a"], viewIds: [] },
+      },
+    });
+    expect(r!.packages["com.youku.phone"].gestureFallback).toBe(true);
+    expect(r!.packages["com.other.app"].gestureFallback).toBe(false);
+    expect(r!.packages["com.third.app"].gestureFallback).toBe(false);
+  });
+
   it("非法包名被跳过", () => {
     const r = cleanRules({
       packages: {

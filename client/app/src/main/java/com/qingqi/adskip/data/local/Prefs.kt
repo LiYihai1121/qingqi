@@ -39,6 +39,7 @@ object Prefs {
     private const val PREFIX_PKG_KEYWORDS = "pkg_kw:"
     private const val PREFIX_PKG_VIEW_IDS = "pkg_vid:"
     private const val PREFIX_PKG_SELECTORS = "pkg_sel:"
+    private const val PREFIX_PKG_GESTURE = "pkg_gesture:"
     private const val PREFIX_PKG_COUNT = "pkg_count:"
 
     private const val LOG_CAP = 200
@@ -116,6 +117,9 @@ object Prefs {
     fun getPkgSelectors(context: Context, pkg: String): List<String> =
         sp(context).getStringSet(PREFIX_PKG_SELECTORS + pkg, null)?.toList() ?: emptyList()
 
+    fun getPkgGestureFallback(context: Context, pkg: String): Boolean =
+        sp(context).getBoolean(PREFIX_PKG_GESTURE + pkg, false)
+
     fun isPackageDisabled(context: Context, pkg: String): Boolean =
         sp(context).getStringSet(KEY_DISABLED, emptySet())?.contains(pkg) == true
 
@@ -150,7 +154,7 @@ object Prefs {
         // 旧云端包规则键先在同一次 edit 内全部摘除，再写入新集合，杜绝「旧包残留」
         for (key in prefs.all.keys) {
             if (key.startsWith(PREFIX_PKG_KEYWORDS) || key.startsWith(PREFIX_PKG_VIEW_IDS) ||
-                key.startsWith(PREFIX_PKG_SELECTORS)
+                key.startsWith(PREFIX_PKG_SELECTORS) || key.startsWith(PREFIX_PKG_GESTURE)
             ) {
                 editor.remove(key)
             }
@@ -159,6 +163,7 @@ object Prefs {
             editor.putStringSet(PREFIX_PKG_KEYWORDS + pkg, rule.keywords.toSet())
             editor.putStringSet(PREFIX_PKG_VIEW_IDS + pkg, rule.viewIds.toSet())
             editor.putStringSet(PREFIX_PKG_SELECTORS + pkg, rule.selectors.toSet())
+            editor.putBoolean(PREFIX_PKG_GESTURE + pkg, rule.gestureFallback)
         }
         editor.putStringSet(KEY_DISABLED, disabled.toSet())
         editor.apply()

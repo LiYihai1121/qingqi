@@ -95,9 +95,19 @@ object SafetyGuard {
      * @param pkg 当前应用包名
      * @param allowSelfPackage 仅「模拟开屏广告自测」传 true：浮层在本应用内，
      *   自测态不存在「点自己触发自己」的回环，故放行自身包。默认 false。
+     * @param allowGestureFallback 包级手势放权（云规则 `gestureFallback`，默认 false）：
+     *   广告 SDK 自绘触摸树（优酷 xadsdk 实测 2026-10-29）整棵无 clickable 节点，
+     *   可点击路径校验必然拒绝。开启后仅放行「无可点击路径」这一种拒绝——
+     *   以引擎已确认的目标自身为手势落点（坐标即其 bounds 中心）；
+     *   合法性校验与黑名单仍全部生效。
      * @return true=可以点击, false=被安全护栏拦截
      */
-    fun canClick(node: AdNode, pkg: String, allowSelfPackage: Boolean = false): Boolean {
+    fun canClick(
+        node: AdNode,
+        pkg: String,
+        allowSelfPackage: Boolean = false,
+        allowGestureFallback: Boolean = false,
+    ): Boolean {
         // 防自触发死循环
         if (pkg == SELF_PKG && !allowSelfPackage) return false
 
@@ -115,7 +125,13 @@ object SafetyGuard {
         // （最多 4 层）存在可点击祖先。纯文本行（自身不可点击且无任何可点击
         // 祖先）此前会落入坐标手势兜底、把任意位置的 UI 点掉；广告跳过按钮
         // 均为可点击节点或其容器可点击，正常跳过路径不受影响。
-        val clickTarget = if (node.isClickable) node else node.clickableParent() ?: return false
+        // 例外（包级放权）：自绘触摸树整棵无可点击节点时，放行引擎已确认的
+        // 目标自身作为手势落点——范围收窄在目标 bounds 内，不是任意 UI。
+        val clickTarget = if (node.isClickable) {
+            node
+        } else {
+            node.clickableParent() ?: if (allowGestureFallback) node else return false
+        }
         if (!clickTarget.isVisible || clickTarget.isEditable) return false
         if (clickTarget.boundsWidth() <= 0 || clickTarget.boundsHeight() <= 0) return false
 
