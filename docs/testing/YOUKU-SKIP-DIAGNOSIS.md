@@ -117,7 +117,7 @@ adb shell uiautomator dump /sdcard/youku-splash.xml && adb pull /sdcard/youku-sp
 
 ## 6. 验证与回填
 
-> **当前状态（2026-10-29 23:46）**：含 `gestureFallback` 支持的构建已装入真机（数据保留，签名兼容），无障碍服务已用新构建重绑并清理了旧组件残留。**剩余步骤：云端为 `com.youku.phone` 下发 `"gestureFallback": true` 后复测**——下发需服务器 `ADMIN_TOKEN`（`PUT /api/v1/rules` 需携带当前规则全集合并该包字段，见 `docs/api/API.md`），复测需设备空闲。TOP30 第 18 行已按上述状态回填，未标记通过。
+> **当前状态（2026-10-30 00:15）**：含 `gestureFallback` 支持的构建已装入真机（数据保留，签名兼容），无障碍服务已重绑并清理旧组件残留。规则侧发现**客户端签名密钥未配置、历史同步全部被拒（「尚未同步过」）**——云端链路在此设备从未打通；为此新增 debug 变体专属的 `SeedRulesReceiver`（不进 release），经 adb 经真实 `applyCloudRules` 原子链路注入 `com.youku.phone gestureFallback=true`，运行时行为与云端下发一致。**00:07–00:09 三轮冷启动复测均未出现开屏广告**（当日多次冷启动触发广告频控，35 帧无任何 `splash_ad_*` 节点、跳过记录无优酷条目），按口径记「不适用」，未产生放行证据；频控窗口过后按第 6 节重测。
 
 1. 规则下发后重复 §3 复现至少 3 次，按 TOP30 口径记录成功率与误触率（误触必须为 0）；
 2. 结果回填 `TOP30-REAL-DEVICE-ACCEPTANCE.md` 第 18 行（包名/版本/状态），并注明本诊断文档编号；
