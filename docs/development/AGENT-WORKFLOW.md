@@ -81,6 +81,7 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
+| `codex-server` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/**`、`docs/api/API.md`、`docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md`（本分支条目）、本文件认领行 | 已完成；任务：20261027 后端可靠性整改，未提交，待安全/协议/数据领域评审 |
 | `gzdx` | `.worktrees/gzdx-gitleaks` | `ci/gitleaks-enforce` | `.gitleaks.toml`、`.github/workflows/ci.yml`、`SECURITY.md`、`client/app/src/test/.../arch/ProjectStructureTest.kt`、`AGENT-WORKFLOW.md`（认领板自身） | 进行中 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 | `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |

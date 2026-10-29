@@ -405,13 +405,14 @@ async function confirmPublish() {
   const newRules = collectRules();
   const res = await fetch('/api/rules', {
     method: 'PUT',
-    headers: authHeaders(),
+    headers: authHeaders(rules && rules.hash ? { 'If-Match': rules.hash } : {}),
     body: JSON.stringify(newRules),
   });
   const data = await res.json();
   if (data.ok) {
     rules = newRules;
     rules.version = data.version;
+    rules.hash = data.hash;
     $('rules-meta').textContent = `版本 v${rules.version} ｜ 刚刚发布`;
     toast('规则已发布，客户端下次同步生效');
   } else if (res.status === 401) {
@@ -419,6 +420,8 @@ async function confirmPublish() {
     $('login-overlay').classList.remove('hidden');
   } else if (res.status === 503) {
     toast('服务端未配置 ADMIN_TOKEN');
+  } else if (res.status === 412) {
+    toast('规则已被其他操作修改，请保留当前草稿并重新加载后比较发布');
   } else {
     toast('保存失败：' + (data.error || res.status));
   }

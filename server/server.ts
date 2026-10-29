@@ -2,11 +2,12 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { isIP } from "node:net";
-import { config } from "./src/config";
-import { handleApi } from "./src/api";
-import { withCors, errorJson } from "./src/utils/httpUtil";
-import { cleanupOldStats, flush } from "./src/storage/store";
-import { recordAccess } from "./src/middleware/accessLog";
+import { config as defaultConfig, type Config } from "./src/config";
+import { createApi } from "./src/api";
+import { createHttpUtils, errorJson } from "./src/utils/httpUtil";
+import { createStore } from "./src/storage/store";
+import { createRateLimiter } from "./src/middleware/rateLimit";
+import { createAccessLog } from "./src/middleware/accessLog";
 import { logger } from "./src/utils/logger";
 export interface StartOptions {
   port?: number;
@@ -14,6 +15,8 @@ export interface StartOptions {
   adminToken?: string;
   apkFile?: string;
   dataDir?: string;
+  config?: Partial<Config>;
+  shutdownTimeoutMs?: number;
 }
 
 function isLoopbackHost(host: string): boolean {
@@ -39,45 +42,19 @@ function readAppVersion(): string {
 const APP_VERSION = readAppVersion();
 
 /** 模块级引用，供优雅停机使用（仅 import.meta.main 场景赋值） */
-let server: Bun.Server<undefined> | null = null;
-
-/**
- * 全响应安全头（含 Bun error() 兜底路径与 OPTIONS 预检）。
- *
- * CSP 里的 script-src 'unsafe-inline' 是**已知取舍**：管理后台
- * public/admin.html 由内联 <script> 与 onclick handler 构成，收紧到
- * 'self' 会直接破坏发布/模拟器入口。frame-ancestors 'none' + X-Frame-Options
- * 已挡住点击劫持；把内联脚本外移后可摘掉 'unsafe-inline'（已列入后续）。
- */
-function applySecurityHeaders(resp: Response): Response {
-  const h = resp.headers;
-  h.set("X-Content-Type-Options", "nosniff");
-  h.set("X-Frame-Options", "DENY");
-  h.set("Referrer-Policy", "no-referrer");
-  h.set(
-    "Content-Security-Policy",
-    [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data:",
-      "connect-src 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-    ].join("; ")
-  );
-  // 仅 TLS 模式下发 HSTS：明文部署发 HSTS 没有意义且会钉死浏览器
-  if (config.TLS_CERT && config.TLS_KEY) {
-    h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  }
-  return resp;
-}
+export type AppServer = Bun.Server<undefined> & { closeGracefully(): Promise<void> };
+let server: AppServer | null = null;
 
 /** 启动服务；明文 HTTP 仅允许 loopback 绑定用于本地开发或反向代理。 */
-export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
+export function startServer(options: StartOptions = {}): AppServer {
+  const config: Config = { ...defaultConfig, ...options.config,
+    TRUSTED_PROXIES: [...(options.config?.TRUSTED_PROXIES ?? defaultConfig.TRUSTED_PROXIES)],
+    CORS_ORIGINS: options.config?.CORS_ORIGINS === undefined ? defaultConfig.CORS_ORIGINS?.slice() ?? null : options.config.CORS_ORIGINS?.slice() ?? null,
+  };
   const port = options.port ?? config.PORT;
   const host = options.host ?? config.HOST;
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("invalid port");
+  if (options.shutdownTimeoutMs !== undefined && (!Number.isFinite(options.shutdownTimeoutMs) || options.shutdownTimeoutMs < 0)) throw new Error("invalid shutdown timeout");
   const hasTlsCert = Boolean(config.TLS_CERT);
   const hasTlsKey = Boolean(config.TLS_KEY);
   if (hasTlsCert !== hasTlsKey) {
@@ -98,21 +75,22 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
     config.BACKUP_DIR = path.join(options.dataDir, "backups");
   }
 
-  if (config.STATS_DIR_CLEANUP_ON_START) cleanupOldStats();
+  const store = createStore(config);
+  const limiter = createRateLimiter(config);
+  const access = createAccessLog();
+  const { handleApi } = createApi(config, store, limiter, access);
+  const { withCors, applySecurityHeaders: secureHeaders } = createHttpUtils(config);
+  const applySecurityHeaders = (response: Response) => { secureHeaders(response.headers); return response; };
+  const { recordAccess } = access;
+  if (config.STATS_DIR_CLEANUP_ON_START) store.cleanupOldStats();
 
   const tlsConfig = hasTlsCert && hasTlsKey
     ? { tls: { cert: Bun.file(config.TLS_CERT), key: Bun.file(config.TLS_KEY) } }
     : {};
 
-  if (!tlsConfig.tls && host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
-    // 明文 + 非回环监听：admin bearer 令牌与规则流量可被同网段嗅探，必须显式知悉
-    logger.warn("plaintext_non_loopback", {
-      impact: "admin_token_and_traffic_cleartext",
-      hint: "配置 TLS_CERT/TLS_KEY 启用 HTTPS，或把 HOST 收到 127.0.0.1",
-    });
-  }
-
-  const server: Bun.Server<undefined> = Bun.serve({
+  let server: Bun.Server<undefined>;
+  try {
+  server = Bun.serve({
     port,
     hostname: host,
     ...tlsConfig,
@@ -167,6 +145,12 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
       );
     },
   });
+
+  } catch (error) {
+    store.dispose();
+    limiter.dispose();
+    throw error;
+  }
 
   async function route(
     req: Request,
@@ -225,17 +209,41 @@ export function startServer(options: StartOptions = {}): Bun.Server<undefined> {
     return withCors(errorJson(404, "not found"), origin);
   }
 
-  return server;
+  let closing: Promise<void> | undefined;
+  return Object.assign(server, {
+    closeGracefully(): Promise<void> {
+      return closing ??= (async () => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            server.stop(false),
+            new Promise<void>(resolve => { timer = setTimeout(resolve, options.shutdownTimeoutMs ?? 10000); }),
+          ]);
+          await server.stop(true);
+          store.flush();
+        } finally {
+          if (timer) clearTimeout(timer);
+          store.dispose();
+          limiter.dispose();
+        }
+      })();
+    },
+  });
 }
 
+let shuttingDown = false;
 function shutdown(signal: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
   logger.info("shutdown", { signal });
-  flush();
-  server?.stop(true);
-  process.exit(0);
+  void server?.closeGracefully().then(() => { process.exitCode = 0; }).catch(error => {
+    logger.error("shutdown_failed", { error: String(error) });
+    process.exitCode = 1;
+  });
 }
 
 if (import.meta.main) {
+  const config = defaultConfig;
   server = startServer();
   const protocol = config.TLS_CERT && config.TLS_KEY ? "https" : "http";
   logger.info("server_started", {

@@ -65,7 +65,7 @@ export interface Config {
 
 export const config: Config = {
   PORT: Number(process.env.PORT ?? 3210),
-  HOST: process.env.HOST ?? "0.0.0.0",
+  HOST: process.env.HOST ?? "127.0.0.1",
   ROOT,
   DATA_DIR: path.join(ROOT, "data"),
   RULES_FILE: path.join(ROOT, "data", "rules.json"),
