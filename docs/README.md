@@ -55,7 +55,7 @@ docs/
 | 我想… | 读 |
 | --- | --- |
 | 了解这是什么、怎么用 | [../README.md](../README.md) |
-| **新人上手 / 团队协作入口**：项目是什么、怎么跑起来、模块怎么分、数据与接口形状、计划与门禁、部署与风险 | [development/DEV-PROJECT-GUIDE.md](development/DEV-PROJECT-GUIDE.md) |
+| **新人上手①（先读）**：项目是什么、怎么跑起来、环境与依赖、部署运维、跨模块数据流、风险 | [development/DEV-PROJECT-GUIDE.md](development/DEV-PROJECT-GUIDE.md) |
 | 了解架构、模块职责、协议与安全模型 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
 | 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
@@ -71,10 +71,10 @@ docs/
 | 了解构建框架演进方案（version catalog / 约定插件 / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) |
 | 了解前后端架构演进方向与技术选型（R1–R3） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) |
 | 评审服务端是否满足移动端要求（上报幂等/归日/压缩/分页/版本闸门/可维护性） | [planning/DESIGN-SERVER-MOBILE-READINESS.md](planning/DESIGN-SERVER-MOBILE-READINESS.md) |
-| **新人接手开发**：术语、需求、架构、模块 DoD、数据模型、接口、难点、计划、验收 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md) |
+| **新人上手②（再读）**：统一术语、需求编号（FR/NFR）、架构、模块 DoD、数据模型、接口、技术难点、验收清单 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md)（已评审基线，与①冲突时以此为准） |
 | 评审分层/模块化重构路线（覆盖率驱动 · 能力层模块边界 · 迁移顺序） | [planning/DESIGN-MODULE-REARCH.md](planning/DESIGN-MODULE-REARCH.md) |
 | 评审客户端 UI 设计、查重构依据与验收门禁 | [planning/DESIGN-UI-REVIEW.md](planning/DESIGN-UI-REVIEW.md) |
-| 查旧版 UI 蓝色设计历史 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
+| 实现/评审当前 UI（v4 蓝色方案）：模块功能、交互流程、边界处理、与设计图的差异 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
 | 查离线缓存与数据同步重设计的实施计划（未评审） | [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) |
 | 评审客户端改造范围、批次顺序与风险，或查合规与市场定位结论 | [planning/PLAN-CLIENT-REFORM.md](planning/PLAN-CLIENT-REFORM.md) |
 | 查手机广告用户痛点的可核对事实（法规条款 / 监管通报 / 调查数据 / 判例 / 厂商能力） | [planning/DESIGN-AD-PAIN-RESEARCH.md](planning/DESIGN-AD-PAIN-RESEARCH.md) |
