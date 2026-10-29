@@ -154,6 +154,8 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
         viewIds: rule.viewIds,
         selectors: rule.selectors,
         disabled: rule.disabled === true,
+        // 包级手势放权必须原样下发，客户端据此决定是否放行无可点击路径的目标。
+        gestureFallback: rule.gestureFallback === true,
       };
       if (rule.disabled === true) disabled.push(pkg);
     }

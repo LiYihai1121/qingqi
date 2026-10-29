@@ -91,7 +91,7 @@ export function createValidator(config: Config = defaultConfig) {
     }
     const packages: Record<
       string,
-      { keywords: string[]; viewIds: string[]; selectors: string[]; disabled: boolean }
+      { keywords: string[]; viewIds: string[]; selectors: string[]; disabled: boolean; gestureFallback: boolean }
     > = Object.create(null);
     let count = 0;
     for (const [pkg, rule] of Object.entries((input as any).packages)) {
@@ -103,6 +103,8 @@ export function createValidator(config: Config = defaultConfig) {
         viewIds: cleanStringList((rule as any).viewIds, config.MAX_VIEWID_RULE_LEN),
         selectors: cleanSelectorList((rule as any).selectors),
         disabled: (rule as any).disabled === true,
+        // 包级手势放权：只有严格的 true 才开启，其余值（"yes"/1/缺省）一律视为关闭。
+        gestureFallback: (rule as any).gestureFallback === true,
       };
       count++;
     }
