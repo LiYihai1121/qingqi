@@ -118,6 +118,7 @@ worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动�
 | `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2 + 新增 `reliability.contract.test.ts`）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`、`docs/development`、`docs/README.md` | 已完成：#209 已吸收其增量，剩余旧包结构描述明确不采纳；工作区仅余 1 项格式化改动待清理 |
+| `wb-top30-acceptance` | `.worktrees/wb-top30-acceptance` | `test/88-real-device-acceptance` | `docs/testing/TOP30-REAL-DEVICE-ACCEPTANCE.md`、本表登记行；本地测试证据放 `.workbuddy-ai/artifacts/`（不入库） | 阻塞：Issue #88；1.2 同签名 Debug 升级及新服务授权完成；自检前台异常作废，等独占确认；正式签名包及其他真机矩阵仍未覆盖 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
