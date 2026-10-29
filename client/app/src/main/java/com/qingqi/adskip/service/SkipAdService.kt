@@ -267,10 +267,11 @@ class SkipAdService : AccessibilityService() {
         if (now - lastScanAt < SCAN_INTERVAL_MS) return
         if (now - (lastClickMap[pkg] ?: 0L) < CLICK_INTERVAL_MS) return
 
+        val root = rootInActiveWindow ?: return
+        // 事件可能来自已经退出的窗口，不能用旧包名的规则处理当前窗口。
+        if (root.packageName?.toString() != pkg) return
         val rules = rulesRepo.ruleSetFor(pkg)
         if (rules.disabled || rules.isEmpty) return
-
-        val root = rootInActiveWindow ?: return
         lastScanAt = now
 
         val rootNode = FrameworkAdNode(root)
@@ -284,6 +285,9 @@ class SkipAdService : AccessibilityService() {
             return
         }
 
+        // 匹配期间也可能发生窗口切换：包名相同但 windowId 改变时同样拒绝旧节点。
+        val activeRoot = rootInActiveWindow ?: return
+        if (activeRoot.packageName?.toString() != pkg || activeRoot.windowId != root.windowId) return
         if (!clickNode(target)) return
 
         lastClickMap[pkg] = now
