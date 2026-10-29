@@ -1,6 +1,6 @@
 # 多 Agent 协作规范（AGENT-WORKFLOW）
 
-> 状态：已生效；最后更新：2026-10-29（认领板按 `git worktree list` 与分支 diff 重建）。
+> 状态：已生效；最后更新：2026-10-29（#209 合入后按 `git worktree list` 重新核对认领板）。
 > 适用范围：任何在本仓库并行工作的 AI Agent 或协作者（人类多分支开发同理）。
 > 摘要见 [AGENTS.md](../../AGENTS.md)；分支/提交/门禁/发版规范见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 
@@ -114,25 +114,32 @@ worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动�
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
+| `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2 + 新增 `reliability.contract.test.ts`）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
-| 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`（9）、`docs/development`（2）、`docs/README.md` | 进行中：2 提交 + 1 未提交，尚未开 PR |
-| `codex` | `.worktrees/codex-click-stats-safety` | `fix/20261027-click-stats-safety` | `client/app`（6）、`docs/development` | 已完成：#203 已合入（squash），工作区待回收 |
-| `codex` | `.worktrees/codex-repo-hygiene` | `ci/201-repo-hygiene` | `.gitignore`、`.vscode/settings.json`、`client/app`（2）、`docs/planning` | 已完成：#204 已合入，工作区待回收 |
-| `wb` | `.worktrees/wb-docs-telemetry` | `docs/telemetry-analytics` | `docs/planning`（2：`PLAN-TELEMETRY-ANALYTICS` / `DESIGN-TELEMETRY-ANALYTICS`）、`docs/diagrams`、`docs/README.md` | 已完成：#202 已合入，工作区待回收 |
-| `DSH` | `.worktrees/agent-199-service-permissions-drop-tile` | `feature/199-service-permissions-drop-tile` | `client/app`（20）、`docs/planning`（5）、`docs/architecture`（2）、`skills/vendor-rom-keepalive`、`docs/testing`、`docs/README.md`、`README.md`、`CHANGELOG.md` | 已完成：#205 已合入，工作区待回收（属主自登记为 `DSH`；目录前缀沿用了迁移时的占位名） |
-| `codex` | `.worktrees/codex-ui-redesign` | `feature/200-client-ui` | `client/app`（9）、`skills/android-compose-design`、`docs/planning`（2）、`docs/diagrams`、`docs/README.md` | 已完成：#206 已合入，工作区待回收 |
-| 集成（本会话） | `.worktrees/refactor-201-package-layering` | `refactor/201-package-layering` | 全仓：五层重组 + 文档归一化 + Markdown 门禁 | 已完成：#207 已合入，工作区待回收 |
-| 本会话 | `.worktrees/docs-claim-board` | `docs/201-claim-board-refresh` | `docs/development/AGENT-WORKFLOW.md`（认领板重建 + 第 6 节验证条款） | 待合并：本 PR |
+| 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`、`docs/development`、`docs/README.md` | 已完成：#209 已吸收其增量，剩余旧包结构描述明确不采纳；工作区仅余 1 项格式化改动待清理 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
+**无工作区的待评审分支**（有独有提交、尚未合入，不占用工作区）：
+
+| 分支 | 状态 |
+| --- | --- |
+| `docs/192-rename-signoff` | 待人工评审：2 个独有提交 |
+| `feature/brand-unify-ads` | 待人工评审：3 个独有提交 |
+| `fix/ui-page-header-layout` | 待人工评审：1 个独有提交 |
+
 **主检出（集成位）**：2026-10-29 已 `git switch main` 归位并保持干净——此前它停在
 `refactor/201-package-layering` 上直接开发，正是本节 2026-10-11 事件记录明令禁止的情形。
 此后主检出只做整合与查看：任何开发先 `git worktree add .worktrees/<agent>-<slug>`，
-合并完成后 `git worktree remove` 回收（当前 6 个已合并工作区待回收，见上表「已完成」行）。
+合并完成后 `git worktree remove` 回收。
 
+> **回收记录（2026-10-29 晚）**：#202–#209 合入后一次性回收 9 个工作区（`agent-199-…`、`codex-click-stats-safety`、
+> `codex-repo-hygiene`、`codex-ui-redesign`、`docs-claim-board`、`refactor-201-package-layering`、
+> `wb-docs-telemetry`、`wb-mobile-functional`、`wb-audit-residuals`）并删除对应 9 个本地分支。
+> 上表剩下的 3 个均因**存在未提交实质改动**而保留——`git worktree remove` 对 dirty 工作区会拒绝，
+> 这是安全网，不要用 `--force` 绕过。
+>
 > **⚠️ 协作事件记录与硬性要求（2026-10-11）**
 >
 > 两个会话同时写入**主检出**（`F:/LocaRepository/qingqi`），造成一次实际冲突：一方的未提交改动
