@@ -117,6 +117,8 @@ adb shell uiautomator dump /sdcard/youku-splash.xml && adb pull /sdcard/youku-sp
 
 ## 6. 验证与回填
 
+> **当前状态（2026-10-29 23:46）**：含 `gestureFallback` 支持的构建已装入真机（数据保留，签名兼容），无障碍服务已用新构建重绑并清理了旧组件残留。**剩余步骤：云端为 `com.youku.phone` 下发 `"gestureFallback": true` 后复测**——下发需服务器 `ADMIN_TOKEN`（`PUT /api/v1/rules` 需携带当前规则全集合并该包字段，见 `docs/api/API.md`），复测需设备空闲。TOP30 第 18 行已按上述状态回填，未标记通过。
+
 1. 规则下发后重复 §3 复现至少 3 次，按 TOP30 口径记录成功率与误触率（误触必须为 0）；
 2. 结果回填 `TOP30-REAL-DEVICE-ACCEPTANCE.md` 第 18 行（包名/版本/状态），并注明本诊断文档编号；
 3. 若结论指向引擎参数（`maxTextLen`/`maxNodes`/护栏语义），先在基线单测中把目标行为写成失败测试，再改实现（契约先行）。
