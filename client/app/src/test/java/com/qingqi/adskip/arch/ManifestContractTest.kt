@@ -25,7 +25,9 @@ class ManifestContractTest {
         val service = readMainSource("platform/accessibility/SkipAdService.kt")
         val ruleGate = service.indexOf("if (rules.disabled || rules.isEmpty) return")
         val matching = service.indexOf("IqiyiSplashRule.findTarget(rootNode, pkg)")
-        val safetyGate = service.indexOf("SafetyGuard.canClick(target, pkg")
+        // 只锚定调用点本身：护栏参数可能随能力扩展而增加（如 gestureFallback），
+        // 断言的契约是「专用匹配发生在护栏与窗口复核之前」，不是某一版参数表。
+        val safetyGate = service.indexOf("SafetyGuard.canClick(")
         val windowGate = service.indexOf("activeRoot.windowId != root.windowId")
         val click = service.indexOf("if (!clickNode(target, preferGesture = iqiyiTarget != null)) return")
         assertTrue(
