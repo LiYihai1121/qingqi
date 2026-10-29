@@ -20,6 +20,27 @@ class ManifestContractTest {
 
     private val manifest: String by lazy { readManifest() }
 
+    @Test
+    fun `iqiyi matching remains inside rule and safety gates`() {
+        val service = readMainSource("platform/accessibility/SkipAdService.kt")
+        val ruleGate = service.indexOf("if (rules.disabled || rules.isEmpty) return")
+        val matching = service.indexOf("IqiyiSplashRule.findTarget(rootNode, pkg)")
+        val safetyGate = service.indexOf("SafetyGuard.canClick(target, pkg")
+        val windowGate = service.indexOf("activeRoot.windowId != root.windowId")
+        val click = service.indexOf("if (!clickNode(target, preferGesture = iqiyiTarget != null)) return")
+        assertTrue(
+            "爱奇艺专用匹配必须遵守禁用/空规则、安全护栏和窗口归属检查",
+            ruleGate >= 0 && ruleGate < matching && matching < safetyGate && safetyGate < windowGate &&
+                windowGate < click,
+        )
+    }
+
+    @Test
+    fun `gesture dispatch has its required accessibility capability`() {
+        val config = File(readManifestFile().parentFile, "res/xml/skip_service_config.xml").readText()
+        assertTrue(config.contains("android:canPerformGestures=\"true\""))
+    }
+
     // ---------- 通知权限 ----------
 
     @Test
@@ -227,11 +248,14 @@ class ManifestContractTest {
         return file.readText()
     }
 
-    private fun readManifest(): String {
+    private fun readManifest(): String = readManifestFile().readText()
+
+    /** 定位清单文件本身：读取同目录下的 `res/` 资源时也需要它的父目录。 */
+    private fun readManifestFile(): File {
         var dir: File? = System.getProperty("user.dir")?.let { File(it) }
         while (dir != null) {
             val candidate = File(dir, MANIFEST_RELATIVE_PATH)
-            if (candidate.isFile) return candidate.readText()
+            if (candidate.isFile) return candidate
             dir = dir.parentFile
         }
         error("未定位到 $MANIFEST_RELATIVE_PATH：无法执行清单契约守护")

@@ -20,6 +20,7 @@ import com.qingqi.adskip.data.local.Prefs
 import com.qingqi.adskip.data.remote.SyncClient
 import com.qingqi.adskip.data.repository.RulesRepository
 import com.qingqi.adskip.data.repository.StatsRepository
+import com.qingqi.adskip.domain.engine.IqiyiSplashRule
 import com.qingqi.adskip.domain.engine.SafetyGuard
 import com.qingqi.adskip.domain.engine.SkipRuleEngine
 import com.qingqi.adskip.platform.device.AccessibilityStatus
@@ -238,7 +239,9 @@ class SkipAdService : AccessibilityService() {
         lastScanAt = now
 
         val rootNode = FrameworkAdNode(root)
-        val target = engine.findTarget(rootNode, rules) ?: return
+        val ruleTarget = engine.findTarget(rootNode, rules)
+        val iqiyiTarget = if (ruleTarget == null) IqiyiSplashRule.findTarget(rootNode, pkg) else null
+        val target = ruleTarget ?: iqiyiTarget ?: return
 
         // 安全护栏：点击前复核。自测态浮层在本应用内，显式放行自身包——
         // 否则 canClick 会拦下自检的「跳过」按钮，模拟测试永远点不动。
@@ -251,7 +254,7 @@ class SkipAdService : AccessibilityService() {
         // 匹配期间也可能发生窗口切换：包名相同但 windowId 改变时同样拒绝旧节点。
         val activeRoot = rootInActiveWindow ?: return
         if (activeRoot.packageName?.toString() != pkg || activeRoot.windowId != root.windowId) return
-        if (!clickNode(target)) return
+        if (!clickNode(target, preferGesture = iqiyiTarget != null)) return
 
         lastClickMap[pkg] = now
         val label = appLabel(pkg)
@@ -280,7 +283,9 @@ class SkipAdService : AccessibilityService() {
      * 点击执行：优先沿父链寻找可点击节点执行 ACTION_CLICK；
      * 找不到则按节点中心坐标派发模拟手势。
      */
-    private fun clickNode(node: com.qingqi.adskip.domain.engine.AdNode): Boolean {
+    private fun clickNode(node: com.qingqi.adskip.domain.engine.AdNode, preferGesture: Boolean = false): Boolean {
+        // 爱奇艺开屏按钮会接受 ACTION_CLICK 却不关闭，窄匹配并经护栏确认后直接触摸小型按钮。
+        if (preferGesture) return dispatchNodeGesture(node)
         // 先尝试 ACTION_CLICK（通过 AdNode.click()）
         if (node.click()) return true
 
@@ -288,7 +293,10 @@ class SkipAdService : AccessibilityService() {
         val clickableParent = node.clickableParent()
         if (clickableParent != null && clickableParent.click()) return true
 
-        // 兜底：坐标手势
+        return dispatchNodeGesture(node)
+    }
+
+    private fun dispatchNodeGesture(node: com.qingqi.adskip.domain.engine.AdNode): Boolean {
         val cx = node.centerX()
         val cy = node.centerY()
         val path = Path().apply {
