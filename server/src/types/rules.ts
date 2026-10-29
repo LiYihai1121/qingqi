@@ -60,6 +60,7 @@ export interface StatsDay {
   day: string;
   byApp: Record<string, AppStat>;
   events: SkipEvent[];
+  eventIds?: string[];
 }
 
 /** GET /api/v1/stats/summary 响应 */

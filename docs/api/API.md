@@ -1,4 +1,4 @@
-# 轻启 服务端 API 参考（API）
+# AdSkip 服务端 API 参考（API）
 
 基础地址：`https://<服务器域名>:3210`。云端同步客户端仅接受 HTTPS，并要求配置规则签名密钥和 SHA-256 证书 pin。
 
@@ -7,13 +7,13 @@
 ## 通用约定
 
 - **请求体**：所有带请求体的端点必须显式声明 `Content-Type: application/json`，否则返回 `415`（阻断跨站表单伪造）
-- **请求体上限**：1 MiB（`config.MAX_BODY` 常量，**不支持 env 覆盖**）。超限在协议层被拒绝——keep-alive 连接返回 `413`，冷连接直接断开 socket；超限正文不会进入应用内存
-- **JSON 限制**：键数 ≤ 100、嵌套深度 ≤ 5，越界返回 `400`
+- **请求体上限**：1 MiB（`MAX_BODY`）。超限在协议层被拒绝——keep-alive 连接返回 `413`，冷连接可能直接断开 socket；超限正文不会整体进入应用内存
+- **JSON 限制**：通用端点键数 ≤ 100；规则发布 ≤ `MAX_APPS × 8 + 20`，批量上报 ≤ `MAX_BATCH_EVENTS × 8 + 20`。嵌套深度均 ≤ 5，1 MiB 正文上限仍有效，越界返回 `400` 或 `413`
 - **鉴权**：管理端点需要 `Authorization: Bearer <ADMIN_TOKEN>`；未配置 `ADMIN_TOKEN` 时管理端点返回 `503`；令牌比较为常数时间实现
-- **限流**（内存令牌桶，空闲桶 5 分钟回收）：读 120 次/分/IP、写 10 次/分/IP、上报 30 次/分/deviceId（deviceId 缺失时按 IP）；超限 `429`；批量上报在读体之前先做 IP 级预检
-- **CORS**：配置 `CORS_ORIGINS` 白名单时，命中回显 Origin、不命中不发送该头；未配置时默认 `*`
+- **限流**（内存令牌桶，空闲桶 5 分钟回收）：读 120 次/分/IP、写 10 次/分/IP、v1 上报同时受 IP 与 deviceId 两个桶限制（各 30 次/分）；超限 `429`；批量上报在读体之前先做 IP 级预检
+- **CORS**：配置 `CORS_ORIGINS` 白名单时，命中回显 Origin、不命中不发送该头；未配置时不允许跨域。允许 `If-Match` 请求头，暴露 `ETag` 与 `X-Rules-Signature` 响应头
 - **错误格式**：`{"error": "<信息>"}`
-- **状态码**：`400` 载荷非法 / `401` 未鉴权 / `404` 不存在 / `413` 请求体超限 / `415` 类型错误 / `429` 限流 / `503` 未配置令牌
+- **状态码**：`400` 载荷非法 / `401` 未鉴权 / `404` 不存在 / `412` 发布前置条件冲突 / `413` 请求体超限 / `415` 类型错误 / `429` 限流 / `500` 内部或写盘错误 / `503` 未配置令牌、健康降级或去重容量耗尽
 
 ## v1 协议（当前）
 
@@ -36,6 +36,8 @@
 
 发布规则包（旧包自动备份轮转，保留 5 份）。
 
+可选 `If-Match: <当前 hash>`（与当前接口返回的 hash 原样比较）；不匹配返回 `412`，不会写盘或递增版本。`*` 表示允许覆盖当前规则。不带该头的旧管理端保持原行为。管理后台在加载规则时保存 hash，发布携带该值；冲突时保留草稿并提示重新加载比较。v0 发布接口同样支持，v0 规则读取与发布响应新增 `hash`。
+
 ```json
 { "keywords": ["跳过"], "viewIds": ["skip"], "selectors": ["[vid$=\":id/skip_view\"]"], "packages": { "com.x": { "keywords": ["..."], "viewIds": ["..."], "selectors": ["..."], "disabled": false } } }
 ```
@@ -51,7 +53,7 @@
 | 结构 | 引号个数、方括号个数配平（快检，不校验顺序） | 完整文法：key ∈ `text/desc/vid/click`、运算符 ∈ `= * ^ $`、组合符、最多 4 段 compound |
 | 不过时 | 丢弃该条 | 丢弃该条（静默） |
 
-**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/qingqi/adskip/domain/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
+**服务端是必要不充分的快检，语法权威在客户端。** 两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts`（服务端一侧）与 `client/app/src/test/java/com/qingqi/adskip/engine/SelectorContractTest.kt`（客户端一侧）共同消费；有意判定不同的向量记在夹具的 `divergences` 段并写明原因，防止「有意的差异」被后续改动悄悄抹平。
 
 ### POST /api/v1/rules/test  `[admin]`
 
@@ -69,14 +71,18 @@
 批量补报（读体前先按 IP 预检限流）。`deviceId` 由客户端首次运行时生成并持久化，至少 8 个字符；`ts` 使用 Unix 毫秒时间戳。
 
 ```json
-{ "deviceId": "≥8字符", "events": [ { "pkg": "com.x", "label": "应用友好名（可选，缺失回退 pkg）", "channel": "text|viewId", "ts": 123 } ] }
+{ "deviceId": "≥8字符", "events": [ { "eventId": "可选稳定事件ID", "pkg": "com.x", "label": "应用友好名（可选，缺失回退 pkg）", "channel": "text|viewId|selector", "ts": 123 } ] }
 ```
 
-每个事件可带可选 `label`（应用友好名，≤256 字符）；缺失或为空时服务端回退 `pkg`，保证旧客户端不传 label 也能在统计页显示包名。最多 50 条，非法包名事件被静默跳过。响应 `{"ok":true,"accepted":N}`
+每个事件可带可选 `label`（应用友好名，≤256 字符）；缺失或为空时服务端回退 `pkg`，保证旧客户端不传 label 也能在统计页显示包名。最多 50 条，非法事件被静默跳过；全部无效返回 `400`。
+
+`eventId` 若提供，须匹配 `^[A-Za-z0-9_.:-]{1,128}$`，同一事件重试必须复用。去重键为 `(deviceId, eventId)` 的 SHA-256，和计数一同持久化，重启后仍有效；保留窗口随统计分片清理（默认 90 天），每日最多保存 20000 个新 ID，达到容量后拒绝整批并返回 `503`。未提供 ID 的旧客户端及 v0 上报保持逐次计数，不能保证重试去重；客户端当前尚未生成事件 ID 或实现离线队列。
+
+响应 `{"ok":true,"accepted":N,"duplicates":D}`，`accepted` 只含本次新增事件。成功响应前写入当日分片（临时文件写入、文件 fsync、rename），写入失败返回 `500` 并回滚本批内存计数和 ID；重试可以重新提交。该保证针对进程异常退出，不承诺断电场景的目录元数据持久化。事件按服务端接收日期归档，客户端 `ts` 不决定分片。v0 成功响应也在写盘后返回。
 
 ### GET /api/v1/stats/summary
 
-公开读取接口，不需要管理令牌。
+默认公开读取；`STATS_READ_AUTH=1` 时需要管理令牌。
 
 ```json
 { "total": 0, "today": 0, "byDay": [{"day":"2026-08-30","count":0}], "byApp": [{"pkg":"com.x","label":"X","count":0}], "recent": [] }
@@ -86,7 +92,7 @@
 
 ### GET /api/v1/health
 
-`{"status":"ok","timestamp":"..."}`
+正常返回 `200` 与 `{"status":"ok","timestamp":"..."}`；已观察到的统计写盘失败返回 `503` 与 `status:"degraded"`，后续写入或重试成功后恢复。该接口反映已知故障，不会主动探测磁盘或预先保证可写。
 
 ### GET /api/v1/admin/logs  `[admin]`
 
@@ -120,6 +126,6 @@
 | --- | --- |
 | `GET /` | 产品落地页（服务端把 `{{APP_VERSION}}` 占位符替换为 `server/package.json` 的版本号，避免文案与发布版本漂移） |
 | `GET /admin` | 管理后台（登录 + diff 预览 + 规则模拟器 + 统计看板） |
-| `GET /download` | 下载 APK（`config.APK_FILE`，默认 `server/` 上一级 `AdSkip-latest.apk`） |
+| `GET /download` | 下载 APK（`APK_FILE`，默认仓库根 `AdSkip-latest.apk`） |
 
-`/download` 找不到 APK 时返回 `404`。路径由 `config.APK_FILE` 固定（不读 env）；仅测试可经 `startServer({ apkFile })` 注入。
+`/download` 找不到 APK 时返回 `404`。可通过 `APK_FILE` 环境变量指定绝对路径或相对服务端工作目录的文件路径。

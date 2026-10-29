@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { startServer } from "../server";
+import { startServer, type AppServer } from "../server";
+import { createApi } from "../src/api";
+import { createStore } from "../src/storage/store";
+import { createRateLimiter } from "../src/middleware/rateLimit";
+import { createAccessLog } from "../src/middleware/accessLog";
 import { config } from "../src/config";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-test-"));
@@ -10,7 +15,7 @@ const apkSrc = path.join(import.meta.dir, "..", "..", "AdSkip-latest.apk");
 const apkTest = path.join(tmp, "AdSkip-latest.apk");
 if (fs.existsSync(apkSrc)) fs.copyFileSync(apkSrc, apkTest);
 
-let server: Bun.Server<undefined>;
+let server: AppServer;
 let base: string;
 
 beforeAll(async () => {
@@ -24,8 +29,8 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${server.port}`;
 });
 
-afterAll(() => {
-  server.stop(true);
+afterAll(async () => {
+  await server.closeGracefully();
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -113,23 +118,39 @@ describe("smoke", () => {
   });
 
   it("配置签名密钥后签发并可验签（按原始字节串）", async () => {
-    const { config } = await import("../src/config");
-    const saved = config.RULES_SIGNING_KEY;
-    config.RULES_SIGNING_KEY = "smoke-sign-key";
+    // 这里不能另起一台 Bun.serve：本机 Bun 1.4.3（Windows）同进程第二个实例的
+    // 请求会被第一个实例处理，断言会拿到「无签名」的响应（详见
+    // reliability.contract.test.ts 同名说明）。改为直接构造带密钥的 API 实例，
+    // 校验的契约不变：签名必须覆盖**响应体原文**，且能用同一密钥独立复算。
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-sign-"));
+    const cfg = {
+      ...config,
+      RULES_SIGNING_KEY: "smoke-sign-key",
+      DATA_DIR: dir,
+      RULES_FILE: path.join(dir, "rules.json"),
+      STATS_DIR: path.join(dir, "stats"),
+      BACKUP_DIR: path.join(dir, "backups"),
+    };
+    const store = createStore(cfg);
+    const { handleApi } = createApi(cfg, store, createRateLimiter(cfg), createAccessLog());
     try {
-      const res = await fetch(`${base}/api/v1/rules/latest`);
+      const url = new URL("http://127.0.0.1/api/v1/rules/latest");
+      // 传 url.href 而非 URL 实例：Request 构造器的重载只接受 RequestInfo（string/Request），
+      // 直接传 URL 对象会让 tsc 退化成 Request 重载并报缺少 body 等属性。
+      const res = await handleApi(new Request(url.href), url, { ip: "127.0.0.1" });
       expect(res.status).toBe(200);
+      const body = await res.text();
       const sig = res.headers.get("x-rules-signature");
       expect(sig).not.toBeNull();
-      // 用独立实现复算：签名必须覆盖响应体原文
-      const crypto = await import("node:crypto");
+      // 用独立实现复算：签名对象是响应体原文，不是重新序列化的对象
       const expected = crypto
         .createHmac("sha256", "smoke-sign-key")
-        .update(await res.clone().text(), "utf8")
+        .update(body, "utf8")
         .digest("hex");
       expect(sig).toBe(expected);
     } finally {
-      config.RULES_SIGNING_KEY = saved;
+      store.dispose();
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
