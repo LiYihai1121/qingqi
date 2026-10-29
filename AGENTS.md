@@ -25,6 +25,7 @@
   - `cd client && ./gradlew testDebugUnitTest`
   - `cd server && bun test`
   - `cd server && bun run typecheck`
+  - `npx markdownlint-cli2@0.24.0`（改到 `.md` 或 `.markdownlint-cli2.jsonc` 时必跑；规则集见该配置文件）
 - 提交 PR 前完成自审，说明变更范围、兼容性、风险、验证结果和回滚方案。
 - `main` 与 `release/*` 必须通过 CI 和必要审查后合并；默认使用 Squash Merge。
 - 安全、协议、数据或发布配置变更需要领域负责人审查；紧急修复也必须保留事故记录和回滚点。

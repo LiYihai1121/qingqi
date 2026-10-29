@@ -41,7 +41,7 @@
 
 ### 2.1 客户端
 
-```
+```text
 client/app/src/main/java/com/qingqi/adskip/
 ├── telemetry/                       # 新增：与 core/ 同级，禁止进入 engine/
 │   ├── Telemetry.kt                 # 对外 API：track / flush / setScope
@@ -58,7 +58,7 @@ client/app/src/main/java/com/qingqi/adskip/
 └── data/Prefs.kt                    # 改动：遥测 scope 相关键
 ```
 
-```
+```text
 client/app/src/test/java/com/qingqi/adskip/telemetry/
 ├── TelemetryPrivacyTest.kt          # 红线：断言不引用节点 text/desc
 ├── TelemetryBufferTest.kt           # FIFO、容量上限、持久化
@@ -68,7 +68,7 @@ client/app/src/test/java/com/qingqi/adskip/telemetry/
 
 ### 2.2 服务端
 
-```
+```text
 server/src/
 ├── telemetry/
 │   ├── db.ts                        # bun:sqlite 初始化 + 迁移
@@ -87,7 +87,7 @@ server/src/
 └── config.ts                        # 改动：遥测相关配置项
 ```
 
-```
+```text
 server/test/
 ├── telemetry.contract.test.ts       # 白名单 + schema_ver
 ├── telemetry.ingest.test.ts         # 幂等 / 乱序归日 / 拒绝未知字段
@@ -99,7 +99,7 @@ server/data/telemetry/               # 运行时产物，不入库
 
 ### 2.3 看板
 
-```
+```text
 server/public/
 ├── admin.html                       # 改动：新增「洞察」入口
 └── insight.html                     # 新增：行为分析看板
@@ -190,7 +190,7 @@ server/public/
 
 ### 3.3 依赖与关键路径
 
-```
+```text
 T-001/002/003（字典与隐私）
         ↓
 T-010~013（客户端 SDK 核心）──┐

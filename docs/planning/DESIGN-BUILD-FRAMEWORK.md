@@ -38,7 +38,10 @@
 
 ### 3.1 Version catalog
 
-新建 `client/gradle/libs.versions.toml`，收编当前散落的全部版本：
+新建 `client/gradle/libs.versions.toml`，收编当前散落的全部版本。
+
+> ⚠️ 下方 TOML 是**阶段 B 提案时的快照**（2026-09-28，AGP 8.7.3 时代），此后版本已多次升级。
+> 当前实际版本**只以 `client/gradle/libs.versions.toml` 为准**，本文不再同步版本号，避免第二份真相。
 
 ```toml
 [versions]

@@ -6,11 +6,13 @@ metadata:
   workflow: feature-branch
 ---
 
+# 厂商 ROM 保活与系统导航（vendor-rom-keepalive）
+
 ## 规范唯一事实源（此处不复述规范）
 
 | 关注点 | 事实源 |
 | --- | --- |
-| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`、`NotificationPermission.kt`） |
+| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/platform/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`、`NotificationPermission.kt`） |
 | 厂商标签与 UI 映射 | `ui/VendorLabels.kt` |
 | `<queries>` 可见性声明与 manifest 契约 | `AndroidManifest.xml`；`ManifestContractTest` |
 | 目录落点 | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md) 第 2.2 节 |

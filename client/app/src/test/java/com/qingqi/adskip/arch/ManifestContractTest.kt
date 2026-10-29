@@ -1,6 +1,6 @@
 package com.qingqi.adskip.arch
 
-import com.qingqi.adskip.device.VendorKeepAlive
+import com.qingqi.adskip.platform.device.VendorKeepAlive
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -8,7 +8,7 @@ import java.io.File
 /**
  * 清单契约守护测试：把「代码里的系统入口」与「`AndroidManifest.xml` 的声明」绑在一起校验。
  *
- * 背景：`device/VendorKeepAlive.kt` 的保活入口依赖 `PackageManager` 解析外部包，
+ * 背景：`platform/device/VendorKeepAlive.kt` 的保活入口依赖 `PackageManager` 解析外部包，
  * 而 Android 11（API 30）起未在 `<queries>` 声明的包**不可见**——
  * 漏声明不会编译报错、不会崩，只会让跳转静默失败（最难排查的一类故障）。
  * 同样，`POST_NOTIFICATIONS` 漏声明时，用户连运行时授权弹窗都收不到，
@@ -38,7 +38,7 @@ class ManifestContractTest {
         // 磁贴功能已整体删除。清单里残留注册会让系统仍把本应用列为可用磁贴，
         // 而代码里已无 TileService —— 用户点了会跳到一个不存在的组件。
         assertTrue(
-            "清单仍在注册快捷磁贴服务（功能已删除，请连同 device/SkipTileService.kt 一并移除）",
+            "清单仍在注册快捷磁贴服务（功能已删除，请连同 platform/device/SkipTileService.kt 一并移除）",
             !manifest.contains("SkipTileService"),
         )
         assertTrue(
@@ -55,7 +55,7 @@ class ManifestContractTest {
         assertTrue(
             "以下保活入口包未在 AndroidManifest.xml 的 <queries> 中声明，Android 11+ 将无法解析：\n" +
                 missing.joinToString("\n") +
-                "\n（入口表见 device/VendorKeepAlive.kt，契约见本测试）",
+                "\n（入口表见 platform/device/VendorKeepAlive.kt，契约见本测试）",
             missing.isEmpty(),
         )
     }
@@ -79,7 +79,7 @@ class ManifestContractTest {
 
     @Test
     fun `every broadcast is restricted to this app`() {
-        val service = readMainSource("service/SkipAdService.kt")
+        val service = readMainSource("platform/accessibility/SkipAdService.kt")
         // 按「整段调用」而非按行匹配：sendBroadcast(\n  Intent(...)\n) 会跨行，
         // 逐行判断会把 setPackage 在下一行的合法调用误判为违规。
         val calls = broadcastCallSpans(service)
@@ -100,7 +100,7 @@ class ManifestContractTest {
 
     @Test
     fun `boot permission is kept while a persisted job is used`() {
-        val syncSource = readMainSource("sync/SyncJobService.kt")
+        val syncSource = readMainSource("data/sync/SyncJobService.kt")
         assertTrue(
             "未找到 .setPersisted( 调用；若同步调度已改为其他机制，请同步更新本测试与" +
                 "ARCHITECTURE.md 的同步流程图",
@@ -137,7 +137,7 @@ class ManifestContractTest {
 
     @Test
     fun `every dynamic receiver registration requires internal permission`() {
-        val service = readMainSource("service/SkipAdService.kt")
+        val service = readMainSource("platform/accessibility/SkipAdService.kt")
         val all = Regex("""(?<!\w)registerReceiver\(""").findAll(service).count()
         assertTrue("未在 SkipAdService 中找到 registerReceiver 调用", all > 0)
         val guarded = Regex(

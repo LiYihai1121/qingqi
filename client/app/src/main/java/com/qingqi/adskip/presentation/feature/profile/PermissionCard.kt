@@ -1,0 +1,144 @@
+package com.qingqi.adskip.presentation.feature.profile
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.qingqi.adskip.R
+import com.qingqi.adskip.platform.device.PermissionItem
+import com.qingqi.adskip.platform.device.PermissionKeys
+import com.qingqi.adskip.platform.device.PermissionStatus
+import com.qingqi.adskip.presentation.designsystem.component.RowDivider
+import com.qingqi.adskip.presentation.designsystem.component.SectionCard
+import com.qingqi.adskip.presentation.designsystem.component.SectionHint
+import com.qingqi.adskip.presentation.designsystem.component.SectionTitle
+import com.qingqi.adskip.presentation.designsystem.component.StatusDot
+import com.qingqi.adskip.presentation.designsystem.component.TagBadge
+import com.qingqi.adskip.presentation.designsystem.component.TwoLineRow
+import com.qingqi.adskip.presentation.designsystem.theme.Spacing
+import com.qingqi.adskip.presentation.designsystem.theme.StatusColors
+import com.qingqi.adskip.presentation.designsystem.theme.UiSizes
+
+/**
+ * 权限与系统开关清单卡。
+ *
+ * 存在的理由：几类开关（无障碍 / 电池优化 / 通知 / 厂商自启动）此前分散在首页状态环、
+ * 本页无障碍卡片与设置页三处，用户无法一眼看出「到底还差什么才能正常工作」。
+ * 这里把它们收成一张**可核对清单**：每项给出真实状态与直达入口。
+ *
+ * 两条刻意的设计约束（与 device/PermissionCenter 的判定一致）：
+ *
+ * 1. **UNKNOWN 不谎报为「需要处理」**。厂商自启动没有公开查询 API；
+ *    谎报会让用户在系统页反复来回而状态永远不变。故这类项显示
+ *    「无法自动确认，请手动核对」并且**仍然给出入口**——否则「无法确认」会变成死路。
+ *
+ * 2. **本文件不做任何状态判定**，只按 [PermissionItem.status] 取文案与渲染；
+ *    判定全在 `device/PermissionCenter`（纯函数，有 JVM 单测）。
+ *
+ * 本次重构：
+ * - 三态各自有独立颜色（就绪=品牌绿、待处理=琥珀、无法确认=灰），
+ *   旧版把「待处理」与「无法确认」都画成灰色空心环，两种完全不同的结论同色；
+ * - 就绪项的行尾补「完成」徽章：清单里最容易扫读的是「哪几项已经好了」，
+ *   只靠左侧一个小点，用户要从头点到尾才数得出来。
+ *
+ * @param onOpen 各项目的跳转回调，由宿主页注入；失败提示也由宿主负责，卡片自身无副作用。
+ */
+@Composable
+fun PermissionCard(
+    items: List<PermissionItem>,
+    readyCount: Int,
+    onOpen: (key: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (items.isEmpty()) return
+    SectionCard(modifier = modifier) {
+        SectionTitle(stringResource(R.string.permission_section))
+        Spacer(Modifier.height(Spacing.sm))
+        SectionHint(stringResource(R.string.permission_summary, readyCount, items.size))
+        Spacer(Modifier.height(Spacing.md))
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            items.forEachIndexed { index, item ->
+                PermissionRow(item = item, onOpen = onOpen)
+                if (index != items.lastIndex) {
+                    // 对齐状态点之后的文字（点 10dp + 间距 12dp），而不是对齐状态点本身。
+                    RowDivider(startIndent = UiSizes.statusDot + Spacing.md)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(item: PermissionItem, onOpen: (key: String) -> Unit) {
+    // 无障碍行不给行内按钮：宿主页紧随其后就是无障碍卡片，它带同一跳转且有更完整的
+    // 说明文案。同一屏里两个同样标的按钮会让用户以为是两件事。
+    // 行本身仍完整呈现在清单里——状态是清单的职责，入口归无障碍卡片。
+    val showAction = item.actionable && item.key != PermissionKeys.ACCESSIBILITY
+    val ready = item.status == PermissionStatus.READY
+    TwoLineRow(
+        title = stringResource(item.titleRes()),
+        subtitle = stringResource(item.statusTextRes()),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            vertical = Spacing.sm,
+        ),
+        leading = {
+            StatusDot(
+                color = statusColor(item.status),
+                filled = ready,
+            )
+        },
+        trailing = {
+            if (showAction) {
+                TextButton(onClick = { onOpen(item.key) }) {
+                    // 刻意用短文案（permission_open）：本行给标题列 weight(1f)，
+                    // 按钮过长会把标题挤成单字符——实测 "Open Auto-start / Background
+                    // Manager" 让标题只剩约 210px（1080px 屏），读起来是 "B..."。
+                    Text(stringResource(R.string.permission_open))
+                }
+            } else if (ready) {
+                TagBadge(
+                    text = stringResource(R.string.permission_state_ready),
+                    containerColor = StatusColors.onContainer,
+                    contentColor = StatusColors.on,
+                )
+            }
+        },
+    )
+}
+
+/**
+ * 状态 → 颜色。三态三色，这是本卡片最重要的可读性改进：
+ *
+ * 旧版 `StatusDot(ready = …)` 只有两态，`NEEDS_ACTION` 与 `UNKNOWN` 都落到
+ * 「灰色空心环」。两者的用户动作完全不同——前者去点按钮、后者去系统设置里人工核对——
+ * 同一个颜色会把两个不同结论压成一个。
+ */
+@Composable
+private fun statusColor(status: PermissionStatus): androidx.compose.ui.graphics.Color = when (status) {
+    PermissionStatus.READY -> StatusColors.on
+    PermissionStatus.NEEDS_ACTION -> StatusColors.unknown
+    PermissionStatus.UNKNOWN -> MaterialTheme.colorScheme.outline
+}
+
+/** 稳定 key → 本地化标题。判定层不持有资源 id，故映射放在 UI 侧。 */
+private fun PermissionItem.titleRes(): Int = when (key) {
+    PermissionKeys.ACCESSIBILITY -> R.string.permission_accessibility
+    PermissionKeys.BATTERY -> R.string.permission_battery
+    PermissionKeys.NOTIFICATION -> R.string.permission_notification
+    PermissionKeys.VENDOR_KEEPALIVE -> R.string.permission_vendor_keepalive
+    else -> R.string.permission_section
+}
+
+/** 状态 → 本地化描述。UNKNOWN 明确说「无法自动确认」，不冒充「需要处理」。 */
+private fun PermissionItem.statusTextRes(): Int = when (status) {
+    PermissionStatus.READY -> R.string.permission_state_ready
+    PermissionStatus.NEEDS_ACTION -> R.string.permission_state_needs_action
+    PermissionStatus.UNKNOWN -> R.string.permission_state_unknown
+}

@@ -6,6 +6,8 @@ metadata:
   workflow: github-flow
 ---
 
+# 分支治理守卫（branch-guard）
+
 ## 规则唯一事实源（此处不复述规则）
 
 | 关注点 | 规范文件（唯一事实源） |

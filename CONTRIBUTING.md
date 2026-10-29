@@ -305,7 +305,7 @@ git rebase -i --autosquash origin/main
 
 1. 从最新 `main` 创建分支并关联 Issue；
 2. 完成自审，确认无敏感信息、无无关改动和无新增诊断（调试日志、临时代码、被注释掉的大段逻辑都不应进入 PR——**调试日志写到仓库之外**）；
-3. 在本地**自行执行** [AGENTS.md](AGENTS.md)「验证与合并」列出的全部门禁命令（格式与静态检查、Android 构建、JVM 单测、服务端测试、类型检查）——不把验证推给 CI；本机环境见 [docs/development/DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md)；
+3. 在本地**自行执行** [AGENTS.md](AGENTS.md)「验证与合并」列出的全部门禁命令（格式与静态检查、Android 构建、JVM 单测、服务端测试、类型检查、Markdown 文档结构检查）——不把验证推给 CI；本机环境见 [docs/development/DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md)；
 4. 填写变更范围、兼容性、数据影响、风险、验证结果和回滚方案（**这些信息是 squash 后的唯一留存内容**，见 [§5](#5-合并前的提交压缩)）；
 5. 涉及协议、数据、权限、安全或发布配置时，明确请求对应领域负责人审查；
 6. 完成项目更迭时，同步更新 `CHANGELOG.md` 和 [Release list](docs/planning/RELEASE-HISTORY.md#release-list)；发布版本还必须核对 annotated tag、合并提交、GitHub Release 和制品校验和（详见 [每次发布完成后的最小核对清单](#每次发布完成后的最小核对清单)）；涉及规划或文档改动时，按 [docs/README.md](docs/README.md) 声明的事实源顺序同步。
@@ -313,7 +313,7 @@ git rebase -i --autosquash origin/main
 合并规则：
 
 - `main` 和 `release/*` 禁止直接 push、强制推送和删除；
-- 必须通过 CI：`Structure Contract`、`Android Build & Test`（含 `ktlintCheck`、`assembleDebug`、JVM 单测、Release 签名校验）、`Server Tests`（含类型检查）；
+- 必须通过 CI：`Structure Contract`、`Android Build & Test`（含 `ktlintCheck`、`assembleDebug`、JVM 单测、Release 签名校验）、`Server Tests`（含类型检查）、`Docs Lint`（Markdown 结构，规则见根 `.markdownlint-cli2.jsonc`）；
 - 至少 1 名维护者批准；安全、协议或数据变更至少 2 名审批者，其中包含领域负责人；
 - 所有评论解决，旧审批在新增提交后失效；
 - 分支必须基于最新目标分支，合并使用 Squash（`hotfix/*` 例外，见 [§5](#5-合并前的提交压缩)）；合并后自动删除源分支；
@@ -439,6 +439,7 @@ git push origin vX.Y.Z
 ```
 
 版本标签一经推送不得删除或移动；指向非 `main` 提交的 tag 不得补建 Release、不得复用版本号。
+
 - **标签唯一性**：一个提交不得承载多个版本标签（历史反例：v3.0.0 与 v3.0.1 曾指向同一提交，见 [FOLLOW-UP-PROCESS-AUDIT.md](docs/planning/FOLLOW-UP-PROCESS-AUDIT.md) 第 2 节豁免线）。
 - **发布提交同样走 PR**：`chore(release): vX.Y.Z` 的版本 bump 在 `release/vX.Y.Z` 分支提交并经 PR 合入，禁止在主检出直推。
 - **main 历史线性**：合并一律 Squash（每个 main 提交携带 `(#N)`）；本地不得产生进入 main 的 merge commit。
@@ -504,7 +505,7 @@ CI 只能证明「编译通过、逻辑符合契约」，**不能证明「在真
 
 | 内容 | 唯一事实源 |
 | --- | --- |
-| 门禁命令（提交前必须自跑的五条） | [AGENTS.md](AGENTS.md)「验证与合并」 |
+| 门禁命令（提交前必须自跑的六条） | [AGENTS.md](AGENTS.md)「验证与合并」 |
 | 目录/产物/分支名的机器判定规则 | `ProjectStructureTest` / `RepoHygieneTest`（代码即事实源） |
 | 本机工具链、SDK、JDK 与排障步骤 | [docs/development/DEV-ENVIRONMENT.md](docs/development/DEV-ENVIRONMENT.md) |
 | 目录/架构契约的判定细则 | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) 第 2.1/2.2 节 |

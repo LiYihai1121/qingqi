@@ -2,9 +2,10 @@ package com.qingqi.adskip
 
 import android.app.Application
 import android.content.Context
-import com.qingqi.adskip.core.LogRing
-import com.qingqi.adskip.data.Prefs
-import com.qingqi.adskip.sync.SyncJobService
+import com.qingqi.adskip.core.common.LogRing
+import com.qingqi.adskip.data.local.Prefs
+import com.qingqi.adskip.data.sync.SyncJobService
+import com.qingqi.adskip.di.AppContainer
 
 /**
  * Application 入口：初始化 [AppContainer] 手动 DI 容器（组合根）。

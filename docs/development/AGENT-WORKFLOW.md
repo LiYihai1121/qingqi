@@ -65,14 +65,13 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 并行开发期追加两步：`git worktree list` 与认领板（[3.2](#32-认领板)）确认没有他人正在使用同一目录或同一路径，登记后再写第一个文件。
 
-
 ## 3. 所有权：唯一写入者
 
 ### 3.1 文件级认领
 
 - **同一时刻，一个文件只有一个写入者**。开工前在认领板登记「我负责哪些路径」；
 - 需要改别人认领的文件时，**先在认领板发起交接请求**，由对方确认或改由自己接手，不得直接改；
-- 认领粒度建议到目录：例如 `client/app/src/main/java/com/qingqi/adskip/device/`、`server/src/api/`、`docs/planning/`；
+- 认领粒度建议到目录：例如 `client/app/src/main/java/com/qingqi/adskip/platform/device/`、`server/src/api/`、`docs/planning/`；
 - **不允许两个 Agent 在同一分支上工作**（分支与 Agent 一一对应，见第 4 节）。
 
 ### 3.2 认领板
@@ -197,12 +196,10 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 - 本文**不替代** [DEV-ENVIRONMENT.md](DEV-ENVIRONMENT.md)：本机工具链配置仍以它为准；
 - 违反本文任一条时，先修工作区状态（清理副本、补忽略规则、认领文件），再继续开发——**先恢复单一真相，再写代码**。
 
-
 本文不替代流程规范，不制造第二份真相。
-
 
 本次 UI 交接（2026-10-29）：用户明确授权 Codex 接手。
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| Codex | `.worktrees/codex-ui-redesign` | `feature/200-client-ui` | `ui/**`、`res/values*/strings.xml`、`docs/diagrams/ui-preview-v4.html`、`docs/planning/DESIGN-UI-*.md`、`docs/README.md` | 待合并（#200） |
+| Codex | `.worktrees/codex-ui-redesign` | `feature/200-client-ui` | `presentation/**`、`res/values*/strings.xml`、`docs/diagrams/ui-preview-v4.html`、`docs/planning/DESIGN-UI-*.md`、`docs/README.md` | 待合并（#200） |

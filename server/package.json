@@ -9,7 +9,7 @@
     "start": "bun run server.ts",
     "dev": "bun --watch server.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bun x tsc --noEmit"
   },
   "engines": {
     "bun": ">=1.1"

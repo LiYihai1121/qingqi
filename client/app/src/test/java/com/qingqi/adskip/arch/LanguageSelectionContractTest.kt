@@ -20,14 +20,14 @@ import java.io.File
  */
 class LanguageSelectionContractTest {
 
-    private val applier = "client/app/src/main/java/com/qingqi/adskip/device/LocaleApplier.kt"
-    private val modeFile = "client/app/src/main/java/com/qingqi/adskip/device/LanguageMode.kt"
+    private val applier = "client/app/src/main/java/com/qingqi/adskip/platform/device/LocaleApplier.kt"
+    private val modeFile = "client/app/src/main/java/com/qingqi/adskip/platform/device/LanguageMode.kt"
 
     @Test
     fun `language mode covers system chinese and english`() {
         val file = File(repoRoot(), modeFile)
         assertTrue(
-            "应存在 device/LanguageMode.kt：把语言选择建模成可单测的枚举，并给出到 LocaleList 的纯映射。\n" +
+            "应存在 platform/device/LanguageMode.kt：把语言选择建模成可单测的枚举，并给出到 LocaleList 的纯映射。\n" +
                 "当前缺失：${file.path}",
             file.isFile,
         )
@@ -52,7 +52,7 @@ class LanguageSelectionContractTest {
     fun `the platform locale api is guarded by a version check`() {
         val file = File(repoRoot(), applier)
         assertTrue(
-            "应存在 device/LocaleApplier.kt：负责把语言选择落到运行时。\n当前缺失：${file.path}",
+            "应存在 platform/device/LocaleApplier.kt：负责把语言选择落到运行时。\n当前缺失：${file.path}",
             file.isFile,
         )
         val text = stripComments(file.readText())
@@ -113,7 +113,7 @@ class LanguageSelectionContractTest {
     fun `the ui reads and writes the language through the settings facade`() {
         val vm = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/ui/settings/SettingsViewModel.kt",
+            "client/app/src/main/java/com/qingqi/adskip/presentation/feature/settings/SettingsViewModel.kt",
         )
         assertTrue("SettingsViewModel 不存在：${vm.path}", vm.isFile)
         val code = stripComments(vm.readText())

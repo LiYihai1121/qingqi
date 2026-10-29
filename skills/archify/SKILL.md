@@ -319,7 +319,8 @@ Always use `c-mask` instead of hardcoded `fill="#0f172a"` — the mask color its
 - **Inline connectors (message buses):** Place IN the gap between components, not overlapping
 
 **Example vertical layout:**
-```
+
+```text
 Component A: y=70,  height=60  -> ends at y=130
 Gap:         y=130 to y=170   -> 40px gap, place bus at y=140 (20px tall)
 Component B: y=170, height=60  -> ends at y=230

@@ -311,7 +311,7 @@ class ProjectStructureTest {
     @Test
     fun `every route is reachable from the bottom navigation`() {
         // 声明在 Routes.kt，接线在 MainActivity.kt——两侧都要看，才能挡住「声明了但进不去」。
-        val routesSource = readUiSource("Routes.kt")
+        val routesSource = readUiSource("navigation/Routes.kt")
         val navSource = readUiSource("MainActivity.kt")
 
         val declared = ROUTE_CONST_REGEX.findAll(routesSource)
@@ -450,8 +450,11 @@ class ProjectStructureTest {
     @Test
     fun `profile page is implemented under ui profile and wired to navigation`() {
         assertTrue(
-            "「我的」页实现应位于 ui/profile/（与其余四屏同级）",
-            File(File(repoRoot(), "client/app/src/main/java/$BASE_PACKAGE_PATH/ui"), "profile").isDirectory,
+            "「我的」页实现应位于 presentation/feature/profile/（与其余四屏同级）",
+            File(
+                File(repoRoot(), "client/app/src/main/java/$BASE_PACKAGE_PATH/presentation/feature"),
+                "profile",
+            ).isDirectory,
         )
 
         val navSource = readUiSource("MainActivity.kt")
@@ -467,24 +470,24 @@ class ProjectStructureTest {
 
     @Test
     fun `profile page embeds the accessibility entry and the settings content`() {
-        val profile = readUiSource("profile/ProfileScreen.kt")
+        val profile = readUiSource("feature/profile/ProfileScreen.kt")
         assertTrue(
             "「我的」页应内嵌设置内容 SettingsContent(...)，否则移除独立设置页后设置将无处可达",
             profile.contains("SettingsContent("),
         )
         // v4 起无障碍入口移到首页（状态盾牌卡 + 无障碍开关行）：
         // 首页才是「服务开了没有」的答案所在，把入口放在「我的」页要多跳一层。
-        val home = readUiSource("home/HomeScreen.kt")
+        val home = readUiSource("feature/home/HomeScreen.kt")
         assertTrue(
             "首页应提供「打开无障碍设置」入口（KeepAliveNavigator.openAccessibilitySettings）",
             home.contains("KeepAliveNavigator.openAccessibilitySettings"),
         )
         assertTrue(
-            "无障碍跳转须经 device/ 层（KeepAliveNavigator），UI 不得自行拼 Intent",
+            "无障碍跳转须经 platform/device/ 层（KeepAliveNavigator），UI 不得自行拼 Intent",
             profile.contains("KeepAliveNavigator.openAccessibilitySettings"),
         )
 
-        val settings = readUiSource("settings/SettingsScreen.kt")
+        val settings = readUiSource("feature/settings/SettingsScreen.kt")
         assertTrue(
             "设置内容应以 SettingsContent 暴露供「我的」页内嵌",
             settings.contains("fun SettingsContent("),
@@ -599,7 +602,7 @@ class ProjectStructureTest {
 
     /** 读取 `ui/` 源目录下的 Kotlin 源文件。 */
     private fun readUiSource(relative: String): String {
-        val file = File(repoRoot(), "client/app/src/main/java/$BASE_PACKAGE_PATH/ui/$relative")
+        val file = File(repoRoot(), "client/app/src/main/java/$BASE_PACKAGE_PATH/presentation/$relative")
         assertTrue("缺少源码 ${file.path}（或包结构已变更，请同步本测试）", file.isFile)
         return file.readText()
     }
@@ -668,6 +671,7 @@ class ProjectStructureTest {
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
             ".designkit-history-delivery", // 美图设计室 AI设计 CLI（designkit）按 cwd 落的房间历史缓存，不入库
             ".dsh-acl-recovery", // 沙箱 ACL 恢复报告（本机安全策略工具落盘），不入库
+            ".dsh", // 本机 Agent 运行时目录（工具自带 skills 落点），不入库
             ".vscode", // 编辑器共享配置（选择性入库，规则见 VSCODE_SHARED_FILES）
         )
 
@@ -708,6 +712,10 @@ class ProjectStructureTest {
             ".pre-commit-config.yaml", // 预提交钩子配置（代码质量门禁）
             ".secrets.baseline", // detect-secrets 基线文件（允许存在但不强制）
             ".gitleaks.toml", // gitleaks 密钥扫描配置（allowlist 只收窄已核实误报，CI secret-scan job 强制）
+            // Markdown 结构检查配置：同一份文件被 CI 的 Docs Lint job 与 VS Code 的
+            // markdownlint 扩展共用（cli2 格式），因此必须入库——只放本机就会变成
+            // 「编辑器绿的、CI 红的」两份真相。
+            ".markdownlint-cli2.jsonc",
         )
 
         // client/ 白名单：末尾几项为本机生成/被忽略的目录，允许存在但不强制

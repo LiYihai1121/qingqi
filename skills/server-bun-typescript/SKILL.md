@@ -9,6 +9,7 @@ metadata:
 # Bun + TypeScript 服务端（server-bun-typescript）
 
 > **规则指针（唯一事实源，本文不复制正文）**
+>
 > - 服务端结构与入口：`server.ts`、`src/api/`、`src/middleware/`、`src/storage/`、`src/utils/`
 > - 协议契约：[API.md](../../docs/api/API.md)
 > - 双端契约夹具：`server/test/fixtures/selectors.contract.json` ↔ 客户端 `SelectorContractTest`

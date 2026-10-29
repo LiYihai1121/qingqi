@@ -53,7 +53,7 @@
 
 ### 3.1 引擎匹配与安全护栏契约（修正后）
 
-```
+```text
 matches(node, rules): node.isVisible ∧ ¬node.isEditable ∧
     (∃ selector ∈ rules.selectors: SelectorMatcher.matches(selector, node)) ∨
     (text/desc 含关键词，且 text 长度 ≤ maxTextLen) ∨
@@ -81,7 +81,7 @@ canClick(node, pkg, testActive):          ← 新增 testActive 参数
 
 ### 3.3 规则同步契约
 
-```
+```text
 securityGuard(HTTPS-only + 签名密钥 + pins)      ← fail-closed 拒连
   → GET /api/v1/rules/latest  (If-None-Match: hash)
       → 304：仅更新 lastSyncAt
@@ -94,7 +94,7 @@ securityGuard(HTTPS-only + 签名密钥 + pins)      ← fail-closed 拒连
 
 ### 3.4 服务端上报契约
 
-```
+```text
 probeReportIp（读体前 IP 探测，不扣减）→ readBody（协议层 ≤1MiB）→ safeJsonParse
   → cleanBatchReport（deviceId ≥8、事件 ≤50、包名 PKG_RE）→ limitReport（IP 桶 + 设备桶双扣）
   → recordSkip × N（当日 byApp 封顶 2000 → _other）

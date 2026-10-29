@@ -91,7 +91,7 @@ SafetyGuard 安全护栏复核（黑名单/可见性/面积）
 
 防误触：同应用 1.2s 去抖、150ms 全局节流、单次遍历 ≤500 节点、忽略系统 UI、按应用禁用、SafetyGuard 硬编码黑名单。
 
-> 第三通道选择器（`engine/selector/`，类 CSS 子集：`[vid$=":id/skip_view"]`、`[text*="跳过"] > [vid$="id/iv_close"]`、`[desc^="跳过"] + [vid$="id/iv_close"]` 等）已随 `3.1.0` 以规则 `schemaVersion 2` 全链路上线（服务端下发 → 客户端编译求值），按优先级先于文本与 ViewID 通道求值；语法与硬限制（单条 ≤256 字符、每列表 ≤128 条、value ≤64、组合链 ≤4 段）见 [DESIGN-PHASE1-SELECTOR.md](docs/planning/DESIGN-PHASE1-SELECTOR.md)。Top 30 App 规则编写与真机验收（步骤 F）仍在进行，发版节奏见 [ROADMAP.md](docs/planning/ROADMAP.md)。
+> 第三通道选择器（`domain/engine/selector/`，类 CSS 子集：`[vid$=":id/skip_view"]`、`[text*="跳过"] > [vid$="id/iv_close"]`、`[desc^="跳过"] + [vid$="id/iv_close"]` 等）已随 `3.1.0` 以规则 `schemaVersion 2` 全链路上线（服务端下发 → 客户端编译求值），按优先级先于文本与 ViewID 通道求值；语法与硬限制（单条 ≤256 字符、每列表 ≤128 条、value ≤64、组合链 ≤4 段）见 [DESIGN-PHASE1-SELECTOR.md](docs/planning/DESIGN-PHASE1-SELECTOR.md)。Top 30 App 规则编写与真机验收（步骤 F）仍在进行，发版节奏见 [ROADMAP.md](docs/planning/ROADMAP.md)。
 
 ## 工程结构
 
@@ -102,63 +102,39 @@ AdSkip/            # 全栈 monorepo
 ├── docs/          # 文档地图 README.md（规划事实源入口）+ api/ architecture/ development/ planning/ diagrams/
 └── .github/       # CI 工作流
 
-client/app/src/main/java/com/qingqi/adskip/   # Android 客户端源码（Kotlin；engine/ 层零第三方依赖，见 ArchitectureBoundaryTest）
-├── AdSkipApp.kt                    # Application 入口
-├── AppContainer.kt                 # 手动 DI 容器（不引入 Hilt/Koin）
-├── core/                           # 基础设施（时钟/线程/日志/状态总线，可单测）
-│   ├── Clock.kt                    # 时钟注入（确定性判定）
-│   ├── SystemClockAdapter.kt       # 系统时钟适配
-│   ├── LanguagePreferences.kt      # 语言偏好
-│   ├── AppExecutors.kt             # 线程池
-│   ├── LogRing.kt                  # 环形日志（内存 500 条）
-│   └── AppEvents.kt                # 状态总线
-├── ui/                             # 界面层（Compose 单 Activity + Navigation + UiEffect 单向事件）
-│   ├── MainActivity.kt             #   唯一 Activity
-│   ├── Routes.kt                   #   导航路由
-│   ├── Messenger.kt                #   页面消息总线
-│   ├── UiEffect.kt                 #   一次性 UI 事件（sealed interface）
-│   ├── VendorLabels.kt             #   厂商显示名映射
-│   ├── theme/                      #   主题（Color/Spacing/Type）
-│   ├── components/                 #   通用组件（StatusOrb/Common/Feedback）
-│   ├── home/                       #   主页 Screen + ViewModel
-│   ├── apps/                       #   应用管理 Screen + ViewModel
-│   ├── logs/                       #   跳过日志 Screen + ViewModel
-│   ├── profile/                    #   设备与权限 Screen + ViewModel + PermissionCard
-│   └── settings/                   #   云同步设置 Screen + ViewModel
-├── device/                         # 系统集成（ROM 识别与保活、权限、语言）
-│   ├── VendorKeepAlive.kt          #   ROM 识别与厂商保活引导
-│   ├── BatteryExemption.kt         #   电池优化白名单判定
-│   ├── AccessibilityStatus.kt      #   无障碍权限状态判定
-│   ├── NotificationPermission.kt   #   通知权限状态判定
-│   ├── KeepAliveNavigator.kt       #   厂商设置页跳转
-│   ├── PermissionCenter.kt         #   权限引导中心
-│   ├── LanguageMode.kt             #   语言模式（enum）
-│   └── LocaleApplier.kt            #   语言应用
-├── service/                        # Android 框架编排层（薄编排，保证 engine 纯 JVM）
-│   ├── SkipAdService.kt            # 服务层（薄编排：事件/节流/点击/SafetyGuard）
-│   ├── FrameworkAdNode.kt          # 框架适配（包装 AccessibilityNodeInfo；归 service 保 engine 纯 JVM）
-│   └── NodeSnapshot.kt             # 节点树快照导出（≤100 KB，设置页分享）
-├── engine/                         # 纯 JVM：接口/引擎/护栏/规则集（可跑无 Android 单测）
-│   ├── AdNode.kt                   # 节点抽象接口（引擎不依赖框架类）
-│   ├── SafetyGuard.kt              # 安全护栏（黑名单/可见性/面积）
-│   ├── SkipRuleEngine.kt           # 引擎层（纯匹配逻辑，选择器/文本/ViewID 三通道）
-│   ├── RuleSet.kt                  # 规则集模型（schemaVersion 2，含 keywords/viewIds/selectors）
-│   └── selector/                   # 选择器引擎（类 CSS 子集，纯 JVM）
-│       ├── SelectorAst.kt          #   AST（组合符/属性断言/CompoundSelector）
-│       ├── SelectorParser.kt       #   解析器（非法输入返回 null，fail-safe）
-│       └── SelectorMatcher.kt      #   右到左求值（祖先/子/前兄弟关系匹配）
-├── data/                           # 数据与持久化
-│   ├── Prefs.kt                    # 存储原语（SharedPreferences + deviceId + rulesHash + 证书指纹 + 签名密钥）
-│   ├── RulesRepository.kt          # 规则仓库（LruCache 缓存/版本失效/schemaVersion 校验）
-│   ├── ServerEndpoint.kt           # 服务端地址与环境配置
-│   ├── SettingsRepository.kt       # 设置项持久化
-│   └── StatsRepository.kt          # 统计仓库（合批落盘）
-├── net/                            # 网络
-│   └── SyncClient.kt               # 网络层（v1: ETag/304/deviceId/批量补报 + 证书固定 + 规则签名校验）
-└── sync/                           # 定时同步
-    └── SyncJobService.kt           # JobScheduler 定时同步（12 小时，跨重启持久化）
+client/app/src/main/java/com/qingqi/adskip/   # Android 客户端源码（Kotlin；五层分包，边界见 ArchitectureBoundaryTest）
+├── AdSkipApp.kt                    # Application 入口（进程级初始化）
+├── di/AppContainer.kt              # 手动 DI 容器（不引入 Hilt/Koin）
+├── presentation/                   # 界面层（Compose 单 Activity + Navigation + UiEffect 单向事件）
+│   ├── MainActivity.kt             #   唯一 Activity + NavHost + 底部导航
+│   ├── navigation/Routes.kt        #   导航路由（4 个一级 + 2 个二级）
+│   ├── common/                     #   UiEffect / Messenger / 语言与厂商标签映射
+│   ├── designsystem/theme/         #   Color / Type / Spacing / Theme（设计令牌）
+│   ├── designsystem/component/     #   Common / Feedback / StatusOrb（共享组件）
+│   ├── designsystem/icons/         #   AdSkipIcons（自绘图标，不依赖图标库）
+│   └── feature/                    #   home / apps / logs / rules / profile / settings / onboarding
+├── platform/                       # 系统集成层（Android 组件与系统能力，不反向依赖界面）
+│   ├── accessibility/              #   SkipAdService（薄编排）/ FrameworkAdNode / NodeSnapshot
+│   └── device/                     #   ROM 保活 / 权限三态（含通知权限）/ 语言落地
+├── data/                           # 数据层
+│   ├── local/                      #   Prefs / RulesStore / StatsStore（存储原语与唯一写入路径）
+│   ├── remote/SyncClient.kt        #   ETag/304/批量补报 + 证书固定 + HMAC 验签
+│   ├── repository/                 #   Rules / Stats / Settings 仓库（合并·缓存·合批）
+│   ├── sync/SyncJobService.kt      #   JobScheduler 12 小时同步（跨重启持久化）
+│   └── model/ServerEndpoint.kt     #   服务端地址校验
+├── domain/engine/                  # 业务逻辑层（纯 Kotlin，零 Android 依赖，可跑纯 JVM 单测）
+│   ├── AdNode.kt                   #   节点抽象接口（引擎不依赖框架类）
+│   ├── SafetyGuard.kt              #   安全护栏（黑名单/可见性/面积）
+│   ├── SkipRuleEngine.kt           #   三通道匹配（选择器/文本/ViewID）
+│   ├── RuleSet.kt                  #   规则集模型（schemaVersion 2）
+│   └── selector/                   #   AST / Parser / Matcher（类 CSS 子集，右到左求值）
+└── core/                           # 公共层（横切设施，不依赖任何业务包）
+    ├── common/                     #   Clock / SystemClockAdapter / AppExecutors / LogRing
+    ├── events/AppEvents.kt         #   进程内状态总线（Service ↔ UI 的唯一通道）
+    ├── locale/LanguagePreferences.kt
+    └── storage/SecureStore.kt      #   EncryptedSharedPreferences 单一入口
 
-client/app/src/test/java/com/qingqi/adskip/   # JVM 单测（引擎/护栏/选择器/边界与清单契约守护），随门禁运行
+client/app/src/test/java/com/qingqi/adskip/   # JVM 单测（288 项 / 35 文件，含 15 个 arch 契约守护），随门禁运行
 
 server/                             # 后端（Bun + TypeScript，零运行时依赖）
 ├── package.json                    # 零运行时依赖（无 dependencies 字段）
@@ -229,7 +205,7 @@ cd client
 ```bash
 cd server
 bun install
-bun test              # 单元 + 冒烟 + 选择器契约（87 项 / 4 文件）
+bun test              # 单元 + 冒烟 + 选择器契约（97 项 / 4 文件）
 bun run typecheck     # tsc --noEmit
 ```
 

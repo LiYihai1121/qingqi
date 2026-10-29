@@ -52,20 +52,30 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 │           ├── main/
 │           │   ├── java/com/qingqi/adskip/
 │           │   │   ├── AdSkipApp.kt      # 组合根（Application）
-│           │   │   ├── AppContainer.kt   # 依赖注入容器（纯手工，无框架）
-│           │   │   ├── ui/               # Compose 界面层（Screen/ViewModel/UiEffect）
-│           │   │   ├── core/             # 零业务依赖基础件（LogRing/Clock/Executors）
-│           │   │   ├── engine/           # 选择器匹配引擎（纯 JVM 可单测）
-│           │   │   ├── service/          # 无障碍服务 SkipAdService
-│           │   │   ├── device/           # 厂商 ROM 保活/权限判定（入口表 + 三态状态源）
-│           │   │   ├── data/             # 规则/偏好/统计存储（EncryptedSharedPreferences）
-│           │   │   ├── net/              # SyncClient（OkHttp + HMAC 验签 + 证书 pin）
-│           │   │   └── sync/             # 同步编排（SyncJobService）
-│           │   └── res/                  # 资源：values/ values-en/ values-*/ + xml/ + mipmap/
+│           │   │   ├── di/               # AppContainer：手动 DI，唯一装配点
+│           │   │   ├── presentation/     # 界面层（Compose）
+│           │   │   │   ├── MainActivity.kt        # 单 Activity 宿主
+│           │   │   │   ├── navigation/Routes.kt   # 路由唯一事实源
+│           │   │   │   ├── common/                # UiEffect / Messenger / 标签映射
+│           │   │   │   ├── designsystem/          # theme（Color/Type/Spacing）/ component / icons
+│           │   │   │   └── feature/               # home · apps · logs · rules · profile · settings · onboarding
+│           │   │   ├── platform/         # 系统集成层（Android 组件与系统能力）
+│           │   │   │   ├── accessibility/         # SkipAdService / FrameworkAdNode / NodeSnapshot
+│           │   │   │   └── device/                # 保活跳转 / 权限三态（含通知权限）/ 语言落地
+│           │   │   ├── data/             # 数据层
+│           │   │   │   ├── local/                 # Prefs / RulesStore / StatsStore（存储原语）
+│           │   │   │   ├── remote/                # SyncClient（OkHttp + HMAC + 证书 pin）
+│           │   │   │   ├── repository/            # Rules / Stats / Settings 仓库
+│           │   │   │   ├── sync/                  # SyncJobService（JobScheduler 12h）
+│           │   │   │   └── model/                 # ServerEndpoint 等数据层值对象
+│           │   │   ├── domain/           # 业务逻辑层（纯 Kotlin，零 Android）
+│           │   │   │   └── engine/                # SkipRuleEngine / SafetyGuard / AdNode / RuleSet / selector/
+│           │   │   └── core/             # 公共层：common（Clock/Executors/LogRing）/ events / locale / storage
+│           │   └── res/                  # 资源：values/ values-en/ values-night/ + xml/ + drawable/ + mipmap/
 │           │       └── xml/              # network_security_config、无障碍配置
-│           ├── test/java/com/qingqi/adskip/   # JVM 单测（Robolectric/MockWebServer）
-│           │   ├── arch/                 # ★ 四大守护契约测试（边界/Manifest/结构/卫生）
-│           │   └── <package>/            # 与 main 包路对应的业务单测
+│           ├── test/java/com/qingqi/adskip/   # JVM 单测（MockWebServer / 手写 fake）
+│           │   ├── arch/                 # ★ 契约守护测试（边界/Manifest/结构/卫生/UI/文案）
+│           │   └── <layer>/<feature>/    # 与 main 包路一一对应的业务单测
 │           └── androidTest/              # ▲ E2E/仪器化测试（当前为 0）
 │
 ├── server/                               # ===== 服务端（Bun + TypeScript，零运行时依赖）=====
@@ -138,13 +148,44 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 └── server/data/                          # 运行时数据
 ```
 
+## 2.1 客户端五层分包（2026-10-29 重组）
+
+重组前的包是按「实现机制」命名的（`ui/`、`engine/`、`net/`、`sync/`、`service/`、`device/`），
+能看出「用了什么技术」，看不出「属于哪一层、能依赖谁」。重组后按**层**分包，
+依赖方向与 `ARCHITECTURE.md` 第 2.1 节一一对应，并由 `ArchitectureBoundaryTest` 机器强制。
+
+| 层 | 新目录 | 迁移自 | 判断依据 |
+| --- | --- | --- | --- |
+| 界面层 | `presentation/` | `ui/` | Compose Screen / ViewModel / 导航 / 设计系统，只经仓库取数 |
+| 界面层 | `presentation/designsystem/` | `ui/theme/` + `ui/components/` | 设计令牌与共享组件被多个特性页复用，须独立成包 |
+| 界面层 | `presentation/feature/<name>/` | `ui/<name>/` | 按特性纵向切分，新增页面只动一个目录 |
+| 系统集成层 | `platform/accessibility/` | `service/` | Android 组件（AccessibilityService）与框架适配 |
+| 系统集成层 | `platform/device/` | `device/` | 厂商 ROM、权限三态（含通知权限）等系统入口 |
+| 数据层 | `data/local/` | `data/`（存储原语部分） | 直接读写 `EncryptedSharedPreferences` 的实现 |
+| 数据层 | `data/remote/` | `net/` | HTTP 传输与验签，属数据来源而非独立层 |
+| 数据层 | `data/repository/` | `data/`（仓库部分） | 合并/缓存/合批，供界面层消费 |
+| 数据层 | `data/sync/` | `sync/` | 同步调度是数据层职责；合并后消除 `data ↔ sync` 的循环依赖 |
+| 数据层 | `data/model/` | `data/ServerEndpoint.kt` | 数据层值对象，被 remote 与 repository 共用 |
+| 业务逻辑层 | `domain/engine/` | `engine/` | 纯 Kotlin 匹配与安全裁决，是唯一零 Android 依赖的业务层 |
+| 公共层 | `core/{common,events,locale,storage}/` | `core/`（8 个平铺文件） | 按时钟/事件/语言/加密存储拆开，避免「core 什么都装」 |
+| 组合根 | `di/AppContainer.kt` | 根目录 `AppContainer.kt` | DI 装配是横切关注点，不应与 `AdSkipApp` 并列 |
+
+本表同时是**历史文档的路径对照表**：`DESIGN-UI-*`、`PLAN-CLIENT-REFORM`、`DESIGN-PHASE1-SELECTOR` 等
+写于重组前的规划文档仍使用旧路径，阅读时按上表换算即可（它们记录的是当时的决策，不改写历史）。
+
+**两条硬约束**（重组时必须同时满足，否则视为未完成）：
+
+1. **类名与公开签名不变**——只移动位置与改包名，把回归面限制在「引用解析」，可被 288 项单测兜住；
+2. **契约先行**——`ArchitectureBoundaryTest` / `ProjectStructureTest` 与新目录同时更新，
+   让结构调整成为一次显式决策，而不是一次顺手拖拽。
+
 ## 3. 目录职责（SDLC 映射）
 
 | SDLC 阶段 | 目录/文件 | 功能与交付价值 |
 |---|---|---|
 | **需求定义** | `docs/planning/ROADMAP*.md`、`.github/ISSUE_TEMPLATE/`、PR 模板「关联 Issue」 | 版本序列单点事实源 + 需求立项入口，保证「提交 → PR → Issue」可追溯 |
 | **架构设计** | `docs/architecture/`、`docs/api/`、`docs/diagrams/` | 分层边界与协议契约为**可执行事实**：包结构被守护测试强制，API.md 描述路由与协议版本 |
-| **开发实现** | `client/app/src/main/`、`server/src/`、`server/server.ts`、`server/public/` | 客户端按依赖方向分层（ui → service/device/engine，engine/data/net 单向向下）；服务端 api/middleware/storage/utils 单一职责；public 承载管理后台与落地页 |
+| **开发实现** | `client/app/src/main/`、`server/src/`、`server/server.ts`、`server/public/` | 客户端按依赖方向分层（presentation → platform → data → domain，core 横切、di 为组合根）；服务端 api/middleware/storage/utils 单一职责；public 承载管理后台与落地页 |
 | **测试验证** | `client/app/src/test/arch/`（守护契约）、`server/test/`（单元+冒烟+双端契约夹具） | 契约先行的载体：边界/Manifest/结构/卫生四类守护为 required check；`fixtures/selectors.contract.json` 固化双端协议向量 |
 | **构建工程** | `client/gradle/`（version catalog）、`client/build-logic/`、`client/app/build.gradle.kts`、`server/package.json` + `bun.lock` | 依赖版本单点事实源；约定插件消除配置漂移；catalog 被 build-logic 复用，杜绝第二份目录 |
 | **配置管理** | `.editorconfig`（格式）、`client/local.properties` + `server/.env*`（本机，忽略）、`server/tsconfig.json` | 配置即契约：ktlint 以 `.editorconfig` 为唯一根规则；签名密钥只走 CI Secrets |
