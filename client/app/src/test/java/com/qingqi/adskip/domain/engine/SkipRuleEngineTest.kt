@@ -303,4 +303,62 @@ class SkipRuleEngineTest {
         // 小预算（≤ 链深度）截断后不命中，与现有通道共享预算语义一致
         assertNull(SkipRuleEngine(maxNodes = 10).findTarget(deepest, rules))
     }
+
+    // ---------- 优酷开屏场景基线（TOP30 #18 未测；诊断方案见 docs/testing/YOUKU-SKIP-DIAGNOSIS.md） ----------
+    //
+    // 真机报告「优酷开屏未能跳过」后，按快照证据可能落进以下任一形态。
+    // 本节把各形态在当前引擎下的行为锁成基线：真机诊断时哪条红了/绿了，
+    // 即说明该形态需要调整规则或引擎参数，而不是靠猜。
+
+    @Test
+    fun `youku countdown text matches keyword`() {
+        // 优酷开屏典型形态一：跳过按钮带倒计时（「跳过 5」「跳过广告 15s」），
+        // 关键词子串匹配应命中，不要求全等
+        val node = FakeAdNode.node(text = "跳过 5")
+        val rules = RuleSet(keywords = listOf("跳过"), viewIds = emptyList())
+        assertTrue(engine.matches(node, rules))
+    }
+
+    @Test
+    fun `youku countdown text at maxTextLen boundary`() {
+        val rules = RuleSet(keywords = listOf("跳过"), viewIds = emptyList())
+        // 12 字符（默认 maxTextLen）仍参与关键词匹配
+        val atLimit = FakeAdNode.node(text = "跳过广告还有三秒自动关闭")
+        assertTrue(engine.matches(atLimit, rules))
+        // 13 字符起整段跳过，长文案按钮（如聚合了广告主文案）不命中
+        val overLimit = FakeAdNode.node(text = "跳过广告还有三秒后自动关闭")
+        assertFalse(engine.matches(overLimit, rules))
+    }
+
+    @Test
+    fun `youku custom image button matches via viewId`() {
+        // 优酷开屏典型形态二：自绘/图标按钮，无文本，靠 viewId 尾段命中
+        // （规则 "jump"/"skip" 对资源 id 的包含匹配）
+        val node = FakeAdNode.node(text = null, viewId = "com.youku.phone:id/jump_over")
+        val rules = RuleSet(keywords = listOf("跳过"), viewIds = listOf("skip", "jump"))
+        assertTrue(engine.matches(node, rules))
+    }
+
+    @Test
+    fun `youku image button without text or matching viewId misses`() {
+        // 典型形态三（预期失败点）：无文本、viewId 也不含 skip/jump 的自绘按钮
+        // ——三条通道全不命中，真机表现为「无匹配记录」，只能靠快照后补选择器规则
+        val node = FakeAdNode.node(text = null, viewId = "com.youku.phone:id/ad_close_btn")
+        val rules = RuleSet(keywords = listOf("跳过"), viewIds = listOf("skip", "jump"))
+        assertFalse(engine.matches(node, rules))
+    }
+
+    @Test
+    fun `youku splash tree finds image button by viewId channel`() {
+        // 端到端：WebView 文案填充层 + 无文本跳过按钮的混合树上，findTarget 经
+        // ViewID 通道找到目标（101 个节点远在 500 上限内；对比
+        // `max nodes limit respected` 的超预算截断场景）
+        val skipButton = FakeAdNode.node(viewId = "com.youku.phone:id/jump_over")
+        val filler = (1..100).map { FakeAdNode.node(text = "广告文案$it") }
+        val root = FakeAdNode.node(children = listOf(skipButton) + filler)
+        val rules = RuleSet(keywords = listOf("跳过"), viewIds = listOf("skip", "jump"))
+        val result = engine.findTarget(root, rules)
+        assertNotNull(result)
+        assertEquals("com.youku.phone:id/jump_over", result?.viewId)
+    }
 }

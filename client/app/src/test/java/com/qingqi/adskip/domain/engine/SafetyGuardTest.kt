@@ -214,4 +214,26 @@ class SafetyGuardTest {
         val card = FakeAdNode.node(text = "限时秒杀", children = listOf(button))
         assertTrue(SafetyGuard.canClick(card.children().first(), "com.example.app"))
     }
+
+    // ---------- 优酷开屏场景基线（TOP30 #18 未测；诊断方案见 docs/testing/YOUKU-SKIP-DIAGNOSIS.md） ----------
+
+    @Test
+    fun `youku skip button with aggregated landing copy in parent chain blocked`() {
+        // 优酷开屏的跳过按钮常与「立即下载/开通会员」文案同容器，Android 会把
+        // 子节点文案聚合进父容器的 text；父链黑名单命中「下载/开通」即拦——
+        // 这是真机日志出现 `Safety blocked click on pkg=com.youku.phone` 的预期成因
+        val button = FakeAdNode.node(text = "跳过", clickable = true)
+        val adCard = FakeAdNode.node(text = "立即下载体验 立即开通会员", clickable = true, children = listOf(button))
+        assertFalse(SafetyGuard.canClick(adCard.children().first(), "com.youku.phone"))
+    }
+
+    @Test
+    fun `youku landing copy in sibling does not block skip button`() {
+        // 落地文案与跳过按钮是兄弟节点（不在父链上）时不拦截：
+        // 黑名单只查目标自身 + 祖先链，不扩大到同容器兄弟
+        val skipButton = FakeAdNode.node(text = "跳过", clickable = true)
+        val downloadButton = FakeAdNode.node(text = "立即下载", clickable = true)
+        val adCard = FakeAdNode.node(clickable = false, children = listOf(downloadButton, skipButton))
+        assertTrue(SafetyGuard.canClick(adCard.children().last(), "com.youku.phone"))
+    }
 }
