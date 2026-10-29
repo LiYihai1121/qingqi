@@ -277,4 +277,84 @@ class SafetyGuardTest {
             SafetyGuard.canClick(button, "com.eg.android.AlipayGphone", allowGestureFallback = true),
         )
     }
+
+    // ---------- 选择器通道的手势兜底例外（Issue #216：微博开屏无可点击路径） ----------
+
+    /**
+     * 微博开屏实证形态：目标节点自身与整条祖先链都不可点击（触摸挂在广告 View
+     * 的 OnTouchListener 上）。选择器通道命中（人工编写、可审计的规则）时，
+     * 允许坐标手势兜底——clickNode 会落到手势分支按节点中心点击。
+     */
+    @Test
+    fun `selector matched node without click path allowed`() {
+        val node = FakeAdNode.node(text = "跳过", clickable = false, width = 160, height = 52)
+        assertTrue(SafetyGuard.canClick(node, "com.sina.weibo", channel = MatchChannel.SELECTOR))
+    }
+
+    /** 文本/ViewID 通道与未传通道（null）维持原契约：无点击路径不放行。 */
+    @Test
+    fun `text and viewId channels without click path still blocked`() {
+        val node = FakeAdNode.node(text = "跳过", clickable = false)
+        assertFalse(SafetyGuard.canClick(node, "com.example.app", channel = MatchChannel.TEXT))
+        assertFalse(SafetyGuard.canClick(node, "com.example.app", channel = MatchChannel.VIEW_ID))
+        assertFalse(SafetyGuard.canClick(node, "com.example.app", channel = null))
+    }
+
+    /** 例外只放宽「可点击路径」一项：选择器通道命中仍受其余全部硬底线约束。 */
+    @Test
+    fun `selector channel does not weaken other guards`() {
+        // 包级黑名单
+        assertFalse(
+            SafetyGuard.canClick(
+                FakeAdNode.node(text = "跳过", clickable = false),
+                "com.eg.android.AlipayGphone",
+                channel = MatchChannel.SELECTOR,
+            ),
+        )
+        // 敏感系统界面
+        assertFalse(
+            SafetyGuard.canClick(
+                FakeAdNode.node(text = "跳过", clickable = false),
+                "com.android.settings",
+                channel = MatchChannel.SELECTOR,
+            ),
+        )
+        // 敏感词（目标自身）
+        assertFalse(
+            SafetyGuard.canClick(
+                FakeAdNode.node(text = "确认支付", clickable = false),
+                "com.example.app",
+                channel = MatchChannel.SELECTOR,
+            ),
+        )
+        // 敏感词（父链容器文案）
+        val button = FakeAdNode.node(clickable = false)
+        val dialog = FakeAdNode.node(text = "要允许安装此应用吗？", children = listOf(button))
+        assertFalse(SafetyGuard.canClick(dialog.children().first(), "com.example.app", channel = MatchChannel.SELECTOR))
+        // 不可见 / 零面积
+        assertFalse(
+            SafetyGuard.canClick(
+                FakeAdNode.node(text = "跳过", clickable = false, visible = false),
+                "com.example.app",
+                channel = MatchChannel.SELECTOR,
+            ),
+        )
+        assertFalse(
+            SafetyGuard.canClick(
+                FakeAdNode.node(text = "跳过", clickable = false, width = 0),
+                "com.example.app",
+                channel = MatchChannel.SELECTOR,
+            ),
+        )
+    }
+
+    /** 有可点击路径时，选择器通道行为与既有契约一致（照常放行）。 */
+    @Test
+    fun `selector channel with clickable ancestor still allowed`() {
+        val button = FakeAdNode.node(text = "跳过", clickable = false)
+        FakeAdNode.node(clickable = true, children = listOf(button))
+        assertTrue(
+            SafetyGuard.canClick(button, "com.example.app", channel = MatchChannel.SELECTOR),
+        )
+    }
 }

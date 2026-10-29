@@ -18,7 +18,10 @@ package com.qingqi.adskip.domain.engine
  * - 敏感系统界面整包拒绝（授权/安装/设置类界面不参与自动点击）
  * - 合法性校验（必须可见、面积 > 0）
  * - 可点击路径校验（自身可点击，或沿父链存在可点击祖先）——纯文本行不再被
- *   坐标手势兜底误点（2026-10-11 实测：设置页服务行被点落库即此类）
+ *   坐标手势兜底误点（2026-10-11 实测：设置页服务行被点落库即此类）；
+ *   唯一例外：**选择器通道**命中的目标（人工编写、可审计的规则）允许无点击
+ *   路径时走坐标手势兜底——部分广告 SDK（微博开屏，Issue #216）的跳过控件
+ *   整条祖先链都不可点击，只能按坐标点
  */
 object SafetyGuard {
 
@@ -100,6 +103,8 @@ object SafetyGuard {
      *   可点击路径校验必然拒绝。开启后仅放行「无可点击路径」这一种拒绝——
      *   以引擎已确认的目标自身为手势落点（坐标即其 bounds 中心）；
      *   合法性校验与黑名单仍全部生效。
+     * @param channel 目标的命中通道（[SkipRuleEngine.findTarget] 返回）；null 视为
+     *   文本/ViewID 通道，按最严格口径处理。
      * @return true=可以点击, false=被安全护栏拦截
      */
     fun canClick(
@@ -107,6 +112,7 @@ object SafetyGuard {
         pkg: String,
         allowSelfPackage: Boolean = false,
         allowGestureFallback: Boolean = false,
+        channel: MatchChannel? = null,
     ): Boolean {
         // 防自触发死循环
         if (pkg == SELF_PKG && !allowSelfPackage) return false
@@ -125,12 +131,20 @@ object SafetyGuard {
         // （最多 4 层）存在可点击祖先。纯文本行（自身不可点击且无任何可点击
         // 祖先）此前会落入坐标手势兜底、把任意位置的 UI 点掉；广告跳过按钮
         // 均为可点击节点或其容器可点击，正常跳过路径不受影响。
-        // 例外（包级放权）：自绘触摸树整棵无可点击节点时，放行引擎已确认的
+        //
+        // 例外一（包级放权）：自绘触摸树整棵无可点击节点时，放行引擎已确认的
         // 目标自身作为手势落点——范围收窄在目标 bounds 内，不是任意 UI。
+        // 例外二（2026-10-29 微博真机快照实证，Issue #216）：部分广告 SDK 的跳过
+        // 控件（如微博开屏 text="跳过" 的 TextView）自身不可点击，且到根节点的
+        // 整条祖先链都不可点击——触摸由广告 View 的 OnTouchListener 处理，不
+        // 暴露为可点击节点。此类目标只有**选择器通道**命中时才允许坐标手势
+        // 兜底：选择器规则逐条人工编写、快照驱动、可审计，误点面可控；文本/
+        // ViewID 通道（子串匹配、含全局默认规则）维持原契约不放行。
         val clickTarget = if (node.isClickable) {
             node
         } else {
-            node.clickableParent() ?: if (allowGestureFallback) node else return false
+            node.clickableParent()
+                ?: if (allowGestureFallback || channel == MatchChannel.SELECTOR) node else return false
         }
         if (!clickTarget.isVisible || clickTarget.isEditable) return false
         if (clickTarget.boundsWidth() <= 0 || clickTarget.boundsHeight() <= 0) return false

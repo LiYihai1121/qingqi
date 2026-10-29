@@ -239,17 +239,19 @@ class SkipAdService : AccessibilityService() {
         lastScanAt = now
 
         val rootNode = FrameworkAdNode(root)
-        val ruleTarget = engine.findTarget(rootNode, rules)
-        val iqiyiTarget = if (ruleTarget == null) IqiyiSplashRule.findTarget(rootNode, pkg) else null
-        val target = ruleTarget ?: iqiyiTarget ?: return
+        val ruleMatch = engine.findTarget(rootNode, rules)
+        val iqiyiTarget = if (ruleMatch == null) IqiyiSplashRule.findTarget(rootNode, pkg) else null
+        val target = ruleMatch?.target ?: iqiyiTarget ?: return
 
         // 安全护栏：点击前复核。自测态浮层在本应用内，显式放行自身包——
         // 否则 canClick 会拦下自检的「跳过」按钮，模拟测试永远点不动。
+        // channel 传命中通道：选择器命中的目标允许无点击路径时手势兜底（Issue #216）。
         if (!SafetyGuard.canClick(
                 target,
                 pkg,
                 allowSelfPackage = AppEvents.testActive,
                 allowGestureFallback = rules.gestureFallback,
+                channel = ruleMatch?.channel,
             )
         ) {
             // LOW-2：日志只记包名与结果，不记屏幕文本（节点 text/desc 属用户屏幕内容）

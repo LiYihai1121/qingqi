@@ -4,6 +4,18 @@ import com.qingqi.adskip.domain.engine.selector.SelectorMatcher
 import java.util.Locale
 
 /**
+ * 命中通道：目标节点由哪条规则通道命中。
+ *
+ * 护栏据此决定「无可点击路径」时的兜底策略（见 [SafetyGuard.canClick]）：
+ * 选择器通道逐条人工编写、快照驱动、可审计，允许坐标手势兜底；
+ * 文本/ViewID 通道命中时维持原契约不放行。
+ */
+enum class MatchChannel { SELECTOR, TEXT, VIEW_ID }
+
+/** 引擎命中结果：目标节点 + 命中通道。 */
+data class MatchResult(val target: AdNode, val channel: MatchChannel)
+
+/**
  * 跳过规则引擎（纯匹配逻辑）。
  *
  * v2.2 改造：依赖 [AdNode] 抽象而非 [android.view.accessibility.AccessibilityNodeInfo]，
@@ -23,8 +35,8 @@ class SkipRuleEngine(
     private val minViewIdLen: Int = 3,
 ) {
 
-    /** 深度优先遍历，返回第一个命中规则的目标节点；未命中返回 null。 */
-    fun findTarget(root: AdNode, rules: RuleSet): AdNode? {
+    /** 深度优先遍历，返回第一个命中规则的目标节点及其通道；未命中返回 null。 */
+    fun findTarget(root: AdNode, rules: RuleSet): MatchResult? {
         if (rules.isEmpty || rules.disabled) return null
         val stack = ArrayDeque<AdNode>()
         stack.addLast(root)
@@ -32,7 +44,8 @@ class SkipRuleEngine(
         while (stack.isNotEmpty() && steps < maxNodes) {
             val node = stack.removeLast()
             steps++
-            if (matches(node, rules)) return node
+            val channel = channelOf(node, rules)
+            if (channel != null) return MatchResult(node, channel)
             for (child in node.children()) {
                 stack.addLast(child)
             }
@@ -41,13 +54,16 @@ class SkipRuleEngine(
     }
 
     /** 判断单个节点是否命中规则。 */
-    fun matches(node: AdNode, rules: RuleSet): Boolean {
-        if (!node.isVisible) return false
-        if (node.isEditable) return false
+    fun matches(node: AdNode, rules: RuleSet): Boolean = channelOf(node, rules) != null
+
+    /** 求值单节点的命中通道：按 选择器 → 文本 → ViewID 顺序，未命中返回 null。 */
+    private fun channelOf(node: AdNode, rules: RuleSet): MatchChannel? {
+        if (!node.isVisible) return null
+        if (node.isEditable) return null
 
         // 通道一：选择器规则（类 CSS 子集；解析已在上游完成，热路径零解析）
         for (selector in rules.selectors) {
-            if (SelectorMatcher.matches(selector, node)) return true
+            if (SelectorMatcher.matches(selector, node)) return MatchChannel.SELECTOR
         }
 
         // 通道二：文本 / 内容描述
@@ -57,7 +73,7 @@ class SkipRuleEngine(
             if (candidate.isNullOrEmpty() || candidate.length > maxTextLen) continue
             val lower = candidate.lowercase(Locale.ROOT)
             for (kw in rules.keywords) {
-                if (candidate.contains(kw) || lower.contains(kw.lowercase(Locale.ROOT))) return true
+                if (candidate.contains(kw) || lower.contains(kw.lowercase(Locale.ROOT))) return MatchChannel.TEXT
             }
         }
 
@@ -66,9 +82,11 @@ class SkipRuleEngine(
         if (id != null) {
             val lower = id.lowercase(Locale.ROOT)
             for (rule in rules.viewIds) {
-                if (rule.length >= minViewIdLen && lower.contains(rule.lowercase(Locale.ROOT))) return true
+                if (rule.length >= minViewIdLen && lower.contains(rule.lowercase(Locale.ROOT))) {
+                    return MatchChannel.VIEW_ID
+                }
             }
         }
-        return false
+        return null
     }
 }

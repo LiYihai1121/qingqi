@@ -136,7 +136,8 @@ class SkipRuleEngineTest {
         val rules = RuleSet(keywords = listOf("跳过"), viewIds = emptyList())
         val result = engine.findTarget(root, rules)
         assertNotNull(result)
-        assertEquals("跳过", result?.text)
+        assertEquals("跳过", result?.target?.text)
+        assertEquals(MatchChannel.TEXT, result?.channel)
     }
 
     @Test
@@ -219,7 +220,8 @@ class SkipRuleEngineTest {
         )
         val result = engine.findTarget(root, rules)
         assertNotNull(result)
-        assertEquals("com.example:id/banner", result?.viewId)
+        assertEquals("com.example:id/banner", result?.target?.viewId)
+        assertEquals(MatchChannel.SELECTOR, result?.channel)
     }
 
     @Test
@@ -270,7 +272,8 @@ class SkipRuleEngineTest {
         // 栈式 DFS 子节点逆序出栈：selectorOnly 先被测得、命中即返回（通道内 ①→②→③ 同序）
         val hit = engine.findTarget(root, rules)
         assertNotNull(hit)
-        assertEquals("com.example:id/skip_btn", hit?.viewId)
+        assertEquals("com.example:id/skip_btn", hit?.target?.viewId)
+        assertEquals(MatchChannel.SELECTOR, hit?.channel)
     }
 
     @Test
@@ -359,6 +362,38 @@ class SkipRuleEngineTest {
         val rules = RuleSet(keywords = listOf("跳过"), viewIds = listOf("skip", "jump"))
         val result = engine.findTarget(root, rules)
         assertNotNull(result)
-        assertEquals("com.youku.phone:id/jump_over", result?.viewId)
+        assertEquals("com.youku.phone:id/jump_over", result?.target?.viewId)
+    }
+
+    // ---------- 微博开屏快照同构树（Issue #216，2026-10-29 D1 真机快照） ----------
+
+    /**
+     * 微博开屏的跳过控件：text="跳过" 的 TextView，自身与整条祖先链全部不可点击
+     * （触摸由广告 View 的 OnTouchListener 处理，不暴露为可点击节点）。
+     * 引擎须以**选择器通道**命中该节点——护栏据此允许坐标手势兜底。
+     */
+    @Test
+    fun `weibo splash skip node matched via selector channel`() {
+        // 按真机快照逐层同构：FrameLayout → LinearLayout → content → RelativeLayout
+        // → FrameLayout → FrameLayout(skip 区) → TextView(跳过)
+        var node: FakeAdNode = FakeAdNode.node(text = "跳过", clickable = false, width = 160, height = 52)
+        node = FakeAdNode.node(clickable = false, children = listOf(node))
+        node = FakeAdNode.node(clickable = false, children = listOf(node))
+        node = FakeAdNode.node(viewId = "android:id/content", clickable = false, children = listOf(node))
+        node = FakeAdNode.node(clickable = false, children = listOf(node))
+        node = FakeAdNode.node(clickable = false, children = listOf(node))
+        val root = FakeAdNode.node(clickable = false, children = listOf(node))
+
+        // 微博专属规则（seed 下发）：精确 text 前缀，匹配真实快照中的「跳过」
+        val rules = RuleSet(
+            keywords = listOf("跳过"),
+            viewIds = emptyList(),
+            selectors = listOf(sel("[text=\"跳过\"]")),
+        )
+        val result = engine.findTarget(root, rules)
+        assertNotNull(result)
+        assertEquals("跳过", result?.target?.text)
+        // 关键契约：命中通道必须是选择器（同节点也满足文本通道，但选择器优先）
+        assertEquals(MatchChannel.SELECTOR, result?.channel)
     }
 }

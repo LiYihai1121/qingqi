@@ -483,6 +483,32 @@ describe("seed rules fallback", () => {
     }
   });
 
+  /**
+   * 仓库真实种子（seed/rules.json）的契约：微博开屏专属规则必须以 v1 形状
+   * （rules.apps）入库——兼容层不读 legacy packages 的条目，v0 形状会把
+   * 包规则静默丢弃（Issue #216）。
+   */
+  it("仓库种子含微博开屏专属选择器规则（v1 形状）", () => {
+    const savedRulesFile = config.RULES_FILE;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-seed-"));
+    config.RULES_FILE = path.join(tmp, "missing-rules.json");
+    try {
+      _resetRulesCacheForTests();
+      const r = getRules();
+      const weibo = r.rules.apps["com.sina.weibo"];
+      expect(weibo).toBeDefined();
+      expect(weibo.disabled).toBe(false);
+      expect(weibo.selectors).toContain('[text="跳过"]');
+      expect(weibo.selectors).toContain('[desc="跳过"]');
+      // legacy 别名与 v1 同引用：管理后台 legacy 形状编辑不丢包规则
+      expect(r.packages["com.sina.weibo"]).toBe(weibo);
+    } finally {
+      config.RULES_FILE = savedRulesFile;
+      _resetRulesCacheForTests();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("运行时文件损坏时回退种子", () => {
     const savedRulesFile = config.RULES_FILE;
     const savedSeedFile = config.SEED_RULES_FILE;

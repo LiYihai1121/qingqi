@@ -1,16 +1,31 @@
 {
-  "keywords": [
-    "跳过",
-    "跳過",
-    "skip",
-    "跳过广告",
-    "关闭广告"
-  ],
-  "viewIds": [
-    "skip",
-    "jump"
-  ],
-  "packages": {},
-  "version": 3,
-  "updatedAt": "2026-08-21T15:04:32.982Z"
+  "schemaVersion": 2,
+  "version": 4,
+  "updatedAt": "2026-10-29T00:00:00.000Z",
+  "rules": {
+    "globalKeywords": [
+      "跳过",
+      "跳過",
+      "skip",
+      "跳过广告",
+      "关闭广告"
+    ],
+    "globalViewIds": [
+      "skip",
+      "jump"
+    ],
+    "globalSelectors": [],
+    "apps": {
+      "com.sina.weibo": {
+        "keywords": [],
+        "viewIds": [],
+        "selectors": [
+          "[text=\"跳过\"]",
+          "[desc=\"跳过\"]"
+        ],
+        "disabled": false
+      }
+    },
+    "disabled": []
+  }
 }
