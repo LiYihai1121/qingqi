@@ -117,7 +117,34 @@ adb shell uiautomator dump /sdcard/youku-splash.xml && adb pull /sdcard/youku-sp
 
 ## 6. 验证与回填
 
-> **当前状态（2026-10-30 00:15）**：含 `gestureFallback` 支持的构建已装入真机（数据保留，签名兼容），无障碍服务已重绑并清理旧组件残留。规则侧发现**客户端签名密钥未配置、历史同步全部被拒（「尚未同步过」）**——云端链路在此设备从未打通；为此新增 debug 变体专属的 `SeedRulesReceiver`（不进 release），经 adb 经真实 `applyCloudRules` 原子链路注入 `com.youku.phone gestureFallback=true`，运行时行为与云端下发一致。**00:07–00:09 三轮冷启动复测均未出现开屏广告**（当日多次冷启动触发广告频控，35 帧无任何 `splash_ad_*` 节点、跳过记录无优酷条目），按口径记「不适用」，未产生放行证据；频控窗口过后按第 6 节重测。
+> **当前状态（2026-10-30 00:22–00:40，Mi 9 / Android 11 / 优酷 11.2.19）**：
+> 上一轮记的「广告频控」结论**不成立**。复测发现优酷处于 `enabled=3`（DISABLED_USER），
+> `monkey` 与 `am start` 都拉不起来——35 帧空树是应用根本没启动，不是频控。
+> 本轮 `pm enable` 恢复后重新验证；同时设备上的包建于 `SeedRulesReceiver` 提交之前
+> （00:06:51 安装，接收器 00:14 才提交），故上一轮「已注入」的说法当时并不成立，
+> 现已重装含接收器的 debug 包并重新注入。无障碍服务也曾被系统回置为 `null`，已重绑。
+>
+> 结果：注入 `com.youku.phone` 的 `gestureFallback=true` 后共冷启动 9 次，可确认最终
+> 状态的 6 次**全部停在 `com.youku.kuflix.RootPageActivity` 首页**。其中 1 次取得完整
+> 证据链：帧内出现 `xadsdk_splash_ad_root_view` 广告树与右上角「3 跳过广告」按钮，
+> 同帧底部出现本应用 Toast「轻启: 已跳过 优酷视频 的开屏广告」，随后前台切到首页。
+> 其余各次广告约在启动后 5.5s 才出现，抓帧窗口未覆盖点击时刻，未取得 Toast 证据。
+> 误触 0（未出现广告素材跳转、商店/支付页或非关闭控件被点击）。
+>
+> 结论：`gestureFallback` 对优酷开屏有效；有效证据仅 1 次，按口径记为**部分通过
+> （1/3 有效试次）**，不宣称达标。补齐 2 次证据只需在广告出现后再抓 3~5 帧。
+>
+> 复现命令（本轮实际使用）：
+>
+> ```bash
+> adb shell pm enable com.youku.phone
+> adb install -r client/app/build/outputs/apk/debug/app-debug.apk
+> adb shell settings put secure enabled_accessibility_services \
+>   com.qingqi.adskip/com.qingqi.adskip.platform.accessibility.SkipAdService
+> adb shell am broadcast -n com.qingqi.adskip/com.qingqi.adskip.debug.SeedRulesReceiver
+> adb shell am force-stop com.youku.phone && adb shell am start -n com.youku.phone/.ActivityWelcome
+> # 注意：Git Bash 必须 export MSYS_NO_PATHCONV=1，否则 /sdcard/... 会被改写成 Windows 路径
+> ```
 
 1. 规则下发后重复 §3 复现至少 3 次，按 TOP30 口径记录成功率与误触率（误触必须为 0）；
 2. 结果回填 `TOP30-REAL-DEVICE-ACCEPTANCE.md` 第 18 行（包名/版本/状态），并注明本诊断文档编号；
