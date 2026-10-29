@@ -21,8 +21,8 @@ metadata:
 ## 开工前自检
 
 1. 读 `ui/theme/` 现有 token——颜色、字体、间距**一律走 theme**，禁止在 Composable 内硬编码色值/字号/dp 魔数；
-2. 图标只用 `material-icons-core` 集合（依赖选择理由见 `client/app/build.gradle.kts` 注释，勿擅自引入 extended 图标库）；
-3. 新屏幕优先复用 `ui/components/` 既有组件与 `ScreenHeader` 模式（由 `ScreenHeaderContractTest` 固化）；
+2. 图标只用 `ui/theme/icons/AdSkipIcons.kt`，以 `UiContractTest` 为准；不要引入 Material 图标或第二套图标库。
+3. 新屏幕优先复用 `ui/components/` 既有组件与 `PageHeader` / `AppHeader` 模式（由 `ScreenHeaderContractTest` 固化）；
 4. 注意 targetSdk 刻意留在 35 的决策（`build-logic` 约定插件注释）：Android 16 强制 edge-to-edge 等行为变更与 UI 改动耦合，升级前先在 PR 说明归因。
 
 ## 提交前自检

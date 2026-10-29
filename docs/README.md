@@ -40,6 +40,8 @@ docs/
 
 > 根级不在 `docs/` 下的文档：`skills/README.md` 是**随仓库版本控制的 Agent 技能**的开发规范（`skills/` 目录挂载于根 `kilo.json`），见 [../skills/README.md](../skills/README.md)。
 
+当前客户端设计入口：[DESIGN-UI-CURRENT.md](planning/DESIGN-UI-CURRENT.md)。浏览器预览：[交互原型](diagrams/ui-preview-v4.html)（演示数据，非原生截图）。
+
 ## 阅读顺序
 
 | 我想… | 读 |
@@ -61,7 +63,7 @@ docs/
 | 了解前后端架构演进方向与技术选型（R1–R3） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) |
 | 评审分层/模块化重构路线（覆盖率驱动 · 能力层模块边界 · 迁移顺序） | [planning/DESIGN-MODULE-REARCH.md](planning/DESIGN-MODULE-REARCH.md) |
 | 评审客户端 UI 设计、查重构依据与验收门禁 | [planning/DESIGN-UI-REVIEW.md](planning/DESIGN-UI-REVIEW.md) |
-| 实现/评审当前 UI（v4 蓝色方案）：模块功能、交互流程、边界处理、与设计图的差异 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
+| 查旧版 UI 蓝色设计历史 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
 | 查离线缓存与数据同步重设计的实施计划（未评审） | [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) |
 | 配置本机开发环境 | [development/DEV-ENVIRONMENT.md](development/DEV-ENVIRONMENT.md) |
 | 查某版本发布到哪个提交、哪个 tag | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |

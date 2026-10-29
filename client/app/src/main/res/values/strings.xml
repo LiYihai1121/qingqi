@@ -140,7 +140,7 @@
     <string name="vendor_generic">其他系统（通用入口）</string>
 
     <!-- 我的（Profile） -->
-    <string name="nav_profile">我的</string>
+    <string name="nav_profile">设置</string>
     <string name="profile_title">设置</string>
     <string name="profile_version_label">应用版本</string>
     <string name="profile_android_label">系统版本</string>
@@ -179,12 +179,12 @@
     <string name="nav_rules">规则</string>
     <string name="home_open_settings">设置</string>
     <string name="home_accessibility_service">无障碍服务</string>
-    <string name="home_accessibility_granted">已授权</string>
-    <string name="home_accessibility_pending">未授权</string>
+    <string name="home_accessibility_granted">已开启 · 前往系统设置</string>
+    <string name="home_accessibility_pending">前往系统设置开启</string>
     <string name="home_test_title">模拟广告测试</string>
     <string name="home_test_desc">测试广告效果，确保正常工作</string>
     <string name="home_test_action">立即测试</string>
-    <string name="home_stats_title">今日统计</string>
+    <string name="home_stats_title">使用概览</string>
     <string name="home_stats_more">查看更多</string>
     <string name="home_status_protected">已保护您的用机体验</string>
     <string name="rules_title">关键词管理</string>
@@ -213,12 +213,12 @@
     <string name="logs_empty_title">暂无跳过记录</string>
     <string name="logs_clear_confirm_title">清空全部记录？</string>
     <string name="logs_clear_confirm_message">清空后无法恢复，但可在提示条内撤销。</string>
-    <string name="profile_local_user">本地用户</string>
-    <string name="profile_local_only_hint">数据仅保存在本机</string>
+    <string name="profile_local_user">轻启</string>
+    <string name="profile_local_only_hint">规则与服务由你掌控</string>
     <string name="profile_row_service">服务设置</string>
     <string name="profile_row_service_desc">无障碍 · 保活 · 权限</string>
-    <string name="profile_row_cloud">云端同步</string>
-    <string name="profile_row_cloud_desc">规则备份 · 设备同步</string>
+    <string name="profile_row_cloud">同步与高级设置</string>
+    <string name="profile_row_cloud_desc">服务器 · 同步 · 运行选项</string>
     <string name="profile_row_privacy">隐私与安全</string>
     <string name="profile_row_privacy_desc">数据隐私 · 权限说明</string>
     <string name="profile_row_language">语言设置</string>

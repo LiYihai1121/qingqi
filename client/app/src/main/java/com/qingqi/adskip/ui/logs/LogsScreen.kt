@@ -44,15 +44,6 @@ import com.qingqi.adskip.ui.components.EmptyState
 import com.qingqi.adskip.ui.components.PageHeader
 import com.qingqi.adskip.ui.components.SegmentedTabs
 import com.qingqi.adskip.ui.components.rememberAppLabel
-import com.qingqi.adskip.ui.theme.Brand40
-import com.qingqi.adskip.ui.theme.Brand70
-import com.qingqi.adskip.ui.theme.Brand90
-import com.qingqi.adskip.ui.theme.LogsDarkBackground
-import com.qingqi.adskip.ui.theme.LogsDarkOnSurface
-import com.qingqi.adskip.ui.theme.LogsDarkOnSurfaceVariant
-import com.qingqi.adskip.ui.theme.LogsDarkOutline
-import com.qingqi.adskip.ui.theme.LogsDarkSurface
-import com.qingqi.adskip.ui.theme.LogsDarkSurfaceHigh
 import com.qingqi.adskip.ui.theme.Spacing
 import com.qingqi.adskip.ui.theme.StatusColors
 import com.qingqi.adskip.ui.theme.UiSizes
@@ -61,20 +52,7 @@ import com.qingqi.adskip.ui.theme.icons.AdSkipIcons
 /** 时间范围筛选（设计稿的「全部 / 今天 / 近 7 天 / 近 30 天」）。 */
 private enum class LogsRange { ALL, TODAY, WEEK, MONTH }
 
-/**
- * 跳过记录（v4 设计稿，**单页深色**）。
- *
- * 为什么这一页反过来用深色：设计稿把它做成深底——记录是「已发生事实」的流水，
- * 深底能让时间线与结果文字形成高对比、长时间扫读更省力，也与其余页面的
- * 「浅色配置界面」形成角色区分（一层是改配置，一层是看历史）。
- *
- * 实现方式：用局部 `darkColorScheme` 覆盖 [MaterialTheme]，而不是给每个组件手写颜色。
- * 这样 [PageHeader]、[SegmentedTabs] 等既有组件都自动取到深色前景，
- * 无需为「深色页」再造一套组件——否则同一组件会有两套着色逻辑，迟早不同步。
- *
- * 保留 v3 的两个操作（分享 / 清空）：设计稿没有画它们，但它们是这一页仅有的
- * 两个真实功能入口，删掉等于功能缺失。降级处理成标题右侧的两个图标按钮。
- */
+/** 记录页遵循全局主题，保留筛选、分享、清空确认与撤销。 */
 @Composable
 fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factory = LogsViewModel.Factory)) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,99 +72,95 @@ fun LogsScreen(messenger: Messenger, viewModel: LogsViewModel = viewModel(factor
         }
     }
 
-    LogsDarkSurfaceTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LogsDarkBackground),
-        ) {
-            PageHeader(
-                title = stringResource(R.string.logs_title),
-                subtitle = stringResource(R.string.logs_retention_note),
-                onAction = {
-                    val text = viewModel.shareText()
-                    if (text == null) {
-                        messenger.show(context.getString(R.string.logs_empty_share))
-                    } else {
-                        context.startActivity(
-                            Intent.createChooser(
-                                Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, text)
-                                },
-                                context.getString(R.string.logs_share_title),
-                            ),
-                        )
-                    }
-                },
-                actionLabel = stringResource(R.string.action_share),
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                item {
-                    SegmentedTabs(
-                        options = LogsRange.entries,
-                        selected = range,
-                        onSelect = { range = it },
-                        labelOf = { option ->
-                            when (option) {
-                                LogsRange.ALL -> stringResource(R.string.logs_filter_all)
-                                LogsRange.TODAY -> stringResource(R.string.logs_filter_today)
-                                LogsRange.WEEK -> stringResource(R.string.logs_filter_week)
-                                LogsRange.MONTH -> stringResource(R.string.logs_filter_month)
-                            }
-                        },
-                        containerColor = LogsDarkSurfaceHigh,
-                        contentColor = LogsDarkOnSurfaceVariant,
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        PageHeader(
+            title = stringResource(R.string.logs_title),
+            subtitle = stringResource(R.string.logs_retention_note),
+            onAction = {
+                val text = viewModel.shareText()
+                if (text == null) {
+                    messenger.show(context.getString(R.string.logs_empty_share))
+                } else {
+                    context.startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            },
+                            context.getString(R.string.logs_share_title),
+                        ),
                     )
                 }
+            },
+            actionLabel = stringResource(R.string.action_share),
+        )
 
-                if (filtered.isEmpty()) {
-                    item {
-                        // 与应用/规则页共用 EmptyState：本页被 LogsDarkSurfaceTheme 覆盖，
-                        // EmptyState 内的 colorScheme 角色会自动解析为深色值。
-                        EmptyState(
-                            title = stringResource(R.string.logs_empty_title),
-                            subtitle = stringResource(R.string.logs_empty_hint),
-                            icon = AdSkipIcons.EmptyLogs,
-                            modifier = Modifier.semantics { heading() },
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            item {
+                SegmentedTabs(
+                    options = LogsRange.entries,
+                    selected = range,
+                    onSelect = { range = it },
+                    labelOf = { option ->
+                        when (option) {
+                            LogsRange.ALL -> stringResource(R.string.logs_filter_all)
+                            LogsRange.TODAY -> stringResource(R.string.logs_filter_today)
+                            LogsRange.WEEK -> stringResource(R.string.logs_filter_week)
+                            LogsRange.MONTH -> stringResource(R.string.logs_filter_month)
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (filtered.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = stringResource(R.string.logs_empty_title),
+                        subtitle = stringResource(R.string.logs_empty_hint),
+                        icon = AdSkipIcons.EmptyLogs,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                }
+            } else {
+                filtered.forEach { entry ->
+                    item(key = "${entry.ts}-${entry.pkg}") {
+                        LogRow(
+                            entry = entry,
+                            time = viewModel.formatTimestamp(entry.ts),
                         )
                     }
-                } else {
-                    filtered.forEach { entry ->
-                        item(key = "${entry.ts}-${entry.pkg}") {
-                            LogRow(
-                                entry = entry,
-                                time = viewModel.formatTimestamp(entry.ts),
-                            )
-                        }
-                    }
+                }
 
-                    item {
-                        // 「清空」是页面级收尾动作，设计稿居中；TextButton 默认只占内容宽度，
-                        // 直接放在 LazyColumn item 里会贴左，看起来像漏排了一行。
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            TextButton(onClick = { confirmClear = true }) {
-                                Icon(
-                                    imageVector = AdSkipIcons.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(UiSizes.inlineIcon),
-                                    tint = StatusColors.off,
-                                )
-                                Spacer(Modifier.width(Spacing.sm))
-                                Text(
-                                    text = stringResource(R.string.logs_clear),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = StatusColors.off,
-                                )
-                            }
+                item {
+                    // 「清空」是页面级收尾动作，设计稿居中；TextButton 默认只占内容宽度，
+                    // 直接放在 LazyColumn item 里会贴左，看起来像漏排了一行。
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        TextButton(onClick = { confirmClear = true }) {
+                            Icon(
+                                imageVector = AdSkipIcons.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(UiSizes.inlineIcon),
+                                tint = StatusColors.off,
+                            )
+                            Spacer(Modifier.width(Spacing.sm))
+                            Text(
+                                text = stringResource(R.string.logs_clear),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = StatusColors.off,
+                            )
                         }
                     }
                 }
@@ -225,7 +199,7 @@ private fun LogRow(entry: StatsRepository.LogEntry, time: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
-            .background(LogsDarkSurface)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -233,13 +207,13 @@ private fun LogRow(entry: StatsRepository.LogEntry, time: String) {
             modifier = Modifier
                 .size(UiSizes.appIcon)
                 .clip(MaterialTheme.shapes.small)
-                .background(LogsDarkSurfaceHigh),
+                .background(MaterialTheme.colorScheme.surfaceContainer),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = appLabel.take(1),
                 style = MaterialTheme.typography.titleMedium,
-                color = LogsDarkOnSurface,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         Spacer(Modifier.width(Spacing.md))
@@ -247,14 +221,14 @@ private fun LogRow(entry: StatsRepository.LogEntry, time: String) {
             Text(
                 text = if (entry.label.isBlank()) appLabel else "$appLabel · ${entry.label}",
                 style = MaterialTheme.typography.bodyLarge,
-                color = LogsDarkOnSurface,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = time,
                 style = MaterialTheme.typography.bodySmall,
-                color = LogsDarkOnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
@@ -275,34 +249,6 @@ private fun LogRow(entry: StatsRepository.LogEntry, time: String) {
             )
         }
     }
-}
-
-/**
- * 记录页专用的深色主题覆盖。
- *
- * 只覆盖本页需要的角色，`primary` 用较亮的 `Brand40`：深底上的 `Brand50`
- * 对比度不足（3.1:1），选中态文字会发灰。
- */
-@Composable
-private fun LogsDarkSurfaceTheme(content: @Composable () -> Unit) {
-    val scheme = darkColorScheme(
-        primary = Brand40,
-        onPrimary = Brand90,
-        primaryContainer = Brand70,
-        onPrimaryContainer = Brand40,
-        background = LogsDarkBackground,
-        onBackground = LogsDarkOnSurface,
-        surface = LogsDarkSurface,
-        onSurface = LogsDarkOnSurface,
-        surfaceVariant = LogsDarkSurfaceHigh,
-        onSurfaceVariant = LogsDarkOnSurfaceVariant,
-        surfaceContainer = LogsDarkSurfaceHigh,
-        surfaceContainerHigh = LogsDarkSurfaceHigh,
-        surfaceContainerLow = LogsDarkSurface,
-        outline = LogsDarkOutline,
-        outlineVariant = LogsDarkOutline,
-    )
-    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 private const val ONE_DAY_MS = 24L * 60 * 60 * 1000
