@@ -95,7 +95,6 @@
                 android:resource="@xml/skip_service_config" />
         </service>
 
-        <!-- 快捷设置磁贴已随 #205 整体移除，本处不再声明 SkipTileService -->
         <!-- 规则同步任务（JobScheduler，三合一替代 AlarmManager 套件） -->
         <service
             android:name=".data.sync.SyncJobService"

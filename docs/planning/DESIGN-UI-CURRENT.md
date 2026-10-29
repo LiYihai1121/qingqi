@@ -28,6 +28,7 @@
 ## 依据与验证
 
 采用 Material 3 的分组、导航与颜色角色思想，不照搬某个品牌页面：
+
 - https://m3.material.io/components/navigation-bar/overview
 - https://developer.android.com/guide/topics/ui/accessibility/views/apps-views
 

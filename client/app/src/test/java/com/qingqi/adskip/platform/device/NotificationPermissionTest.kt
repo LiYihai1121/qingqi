@@ -1,4 +1,4 @@
-package com.qingqi.adskip.device
+package com.qingqi.adskip.platform.device
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

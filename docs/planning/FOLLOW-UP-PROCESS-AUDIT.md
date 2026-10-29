@@ -183,6 +183,7 @@
 | **持续** | 季度复跑（本次逾期 18 天）→ 建议改为**每个 minor 发布前**触发，挂在发布核对清单里 | 挂在发布流程上比挂在日历上可靠——发布是必然发生的事件，季度不是 |
 
 > 复跑方式见本文第 6.1 节的机械扫描项清单；新增扫描项时应同时更新本清单，避免「审计口径」本身漂移。
+>
 ## 2026-10-29 本地分支与工作区整理
 
 本次不改写 main、远端分支或版本标签；本地删除前已生成并校验全分支 Git bundle。
@@ -204,4 +205,3 @@
 先加入缺失目录与日志规则的契约，复现 5 项中 2 项失败；补齐共享忽略、结构白名单与 IDE 排除后，ktlintCheck 和 RepoHygieneTest / ProjectStructureTest 共 21 项全部通过。无运行时边界变化。
 
 分支：`ci/201-repo-hygiene`。复验：`cd client; ./gradlew.bat ktlintCheck testDebugUnitTest --tests "*RepoHygieneTest*" --tests "*ProjectStructureTest*"`。风险：规则尚未合入 main，主检出仍会显示原来的本机产物；不要借此删除技能或正在写入的运行日志。回滚本提交只恢复仓库规则，不影响业务数据。
-

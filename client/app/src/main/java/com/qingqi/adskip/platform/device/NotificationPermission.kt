@@ -1,8 +1,8 @@
-package com.qingqi.adskip.device
+package com.qingqi.adskip.platform.device
 
 import android.app.NotificationManager
 import android.content.Context
-import com.qingqi.adskip.core.LogRing
+import com.qingqi.adskip.core.common.LogRing
 
 /**
  * 通知权限（`POST_NOTIFICATIONS`）的有效状态。
