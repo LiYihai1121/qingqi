@@ -86,8 +86,8 @@ object SafetyGuard {
 
     private const val SELF_PKG = "com.qingqi.adskip"
 
-    /** 父链文案检查深度：覆盖「按钮无标签、敏感文案在父容器」的绕过 */
-    private const val MAX_LABEL_DEPTH = 3
+    /** 自身 + 三层祖先：必须覆盖 clickableParent 可能返回的全部点击容器。 */
+    private const val MAX_LABEL_DEPTH = 4
 
     /**
      * 引擎找到目标后、执行点击前必须通过此检查。
@@ -115,7 +115,9 @@ object SafetyGuard {
         // （最多 4 层）存在可点击祖先。纯文本行（自身不可点击且无任何可点击
         // 祖先）此前会落入坐标手势兜底、把任意位置的 UI 点掉；广告跳过按钮
         // 均为可点击节点或其容器可点击，正常跳过路径不受影响。
-        if (!node.isClickable && node.clickableParent() == null) return false
+        val clickTarget = if (node.isClickable) node else node.clickableParent() ?: return false
+        if (!clickTarget.isVisible || clickTarget.isEditable) return false
+        if (clickTarget.boundsWidth() <= 0 || clickTarget.boundsHeight() <= 0) return false
 
         // 黑名单检查：目标自身 + 父链文本，任一层命中即拦
         var current: AdNode? = node

@@ -151,23 +151,16 @@ object UiSizes {
     val tileGlyph = 24.dp
 
     /** 搜索框高度。 */
-    val searchField = 44.dp
+    val searchField = 56.dp
 
     /** 列表行尾的指示符边长（chevron / 尾部小图标）。 */
     val chevron = 20.dp
 
     /** 分段标签（SegmentedTabs）内单颗胶囊的高度。 */
-    val segmentHeight = 36.dp
+    val segmentHeight = 48.dp
 
-    /**
-     * 卡片阴影高度。
-     *
-     * 设计稿的卡片是「白卡 + 极淡投影」浮在浅灰蓝页面上。M3 自 2023 年起默认
-     * **不用** elevation 表达层级（改走容器色），但设计稿明确带投影，故恢复一档
-     * 最轻的 elevation：2dp 在浅色底上刚好看得见轮廓，再重就会显脏。
-     * 深色模式下由组件侧跳过（黑底上的黑影不可见，只会变成一圈灰边）。
-     */
-    val cardElevation = 2.dp
+    /** 卡片以容器色分组，无额外投影。 */
+    val cardElevation = 0.dp
 
     /** 引导页插图区域高度。 */
     val illustrationHeight = 200.dp

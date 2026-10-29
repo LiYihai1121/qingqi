@@ -88,3 +88,8 @@ client/app/**/bin/
 
 # 本机 ACL 修复工具的审计输出目录（机器本地产物，不入库）
 .acl-recovery/
+
+# 本机技能安装与服务启动日志（源码、锁文件不在此列）
+.dsh/
+server/.*.log
+server/.*.err

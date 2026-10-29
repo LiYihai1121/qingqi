@@ -542,9 +542,9 @@ class ProjectStructureTest {
             .orEmpty()
         assertTrue("未找到任何声明了 strings.xml 的 values*/ 资源目录，无法校验产品品牌", locales.isNotEmpty())
 
-        // 用户可见的品牌位：桌面名、无障碍服务名、快捷磁贴名。
-        // 三者都会出现在系统设置界面里，漏改任意一项就会出现「同一个应用两个名字」。
-        val brandKeys = listOf("app_name", "service_name", "tile_label")
+        // 用户可见的品牌位：桌面名、无障碍服务名。
+        // 两者都会出现在系统设置界面里，漏改任意一项就会出现「同一个应用两个名字」。
+        val brandKeys = listOf("app_name", "service_name")
         // 旧品牌（v3.x 及以前）：改名后不得在任何 locale 的用户可见文案里复活。
         val legacyTokens = listOf("净启动", "AdSkip")
 
@@ -565,7 +565,7 @@ class ProjectStructureTest {
                     LEGACY_BRAND in value ->
                         problems += "$locale/strings.xml：$key 仍含旧品牌「$LEGACY_BRAND」（值：$value）"
                 }
-                // service_name / tile_label 允许带副标题（如「轻启 · 跳过开屏广告」），
+                // service_name 允许带副标题（如「轻启 · 跳过开屏广告」），
                 // 但必须由当前品牌开头，否则系统界面会显示旧名字。
                 if (!value.isNullOrEmpty() && key != "app_name" && !value.startsWith(BRAND)) {
                     problems += "$locale/strings.xml：$key 未以「$BRAND」开头（值：$value）"
@@ -667,6 +667,7 @@ class ProjectStructureTest {
             ".mimosa", // 同族工具目录
             ".workbuddy", // 同族工具目录
             ".workbuddy-ai", // 同族工具目录（WorkBuddy AI 的落点，与 .workbuddy 不同名）
+            ".dsh", // 本机技能安装目录（共享忽略与 IDE 排除）
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
             ".designkit-history-delivery", // 美图设计室 AI设计 CLI（designkit）按 cwd 落的房间历史缓存，不入库
             ".dsh-acl-recovery", // 沙箱 ACL 恢复报告（本机安全策略工具落盘），不入库
@@ -745,7 +746,7 @@ class ProjectStructureTest {
             ".git", "node_modules", "build", ".gradle", ".kotlin", ".idea", ".vscode",
             "captures", ".tools", "signing", "dist", "out", "target", "release", "bin",
             ".mimosa", ".workbuddy", ".workbuddy-ai", ".kilo", ".kilocode", ".worktrees", ".agents",
-            ".cursor", ".designkit-history-delivery", ".dsh-acl-recovery",
+            ".dsh", ".cursor", ".designkit-history-delivery", ".dsh-acl-recovery",
             ".cxx", ".externalNativeBuild", "data",
         )
 

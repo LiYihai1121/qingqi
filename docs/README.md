@@ -40,11 +40,15 @@ docs/
 │   ├── FOLLOW-UP.md               安全加固与技术补充计划（已修复清单 / 待修复 / 里程碑）
 │   ├── FOLLOW-UP-PROCESS-AUDIT.md 流程审计报告（首次 2026-10-11 + 第二次复跑 2026-10-29：SDLC 六阶段）
 │   ├── FOLLOW-UP-DOC-AUDIT.md     文档与技能合规审查（一次性报告，处置后归档）
+│   ├── DESIGN-TELEMETRY-ANALYTICS.md  行为分析平台设计（目标 / 埋点 / 指标 / 数据模型 / ADR / 风险）
+│   ├── PLAN-TELEMETRY-ANALYTICS.md    行为分析平台开发计划（WBS / 排期 / 测试 / CI / 部署 / 分工）
 │   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
 ```
 
 > 根级不在 `docs/` 下的文档：`skills/README.md` 是**随仓库版本控制的 Agent 技能**的开发规范（`skills/` 目录挂载于根 `kilo.json`），见 [../skills/README.md](../skills/README.md)。
+
+当前客户端设计入口：[DESIGN-UI-CURRENT.md](planning/DESIGN-UI-CURRENT.md)。浏览器预览：[交互原型](diagrams/ui-preview-v4.html)（演示数据，非原生截图）。
 
 ## 阅读顺序
 
@@ -56,6 +60,8 @@ docs/
 | 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
 | 知道接下来做什么、按什么顺序做 | [planning/ROADMAP.md](planning/ROADMAP.md) → [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) |
+| 了解行为分析平台的目标、埋点与指标口径、数据模型与选型 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) |
+| 查看行为分析平台的排期、WBS、测试与部署方案 | [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
 | 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
@@ -68,7 +74,7 @@ docs/
 | **新人接手开发**：术语、需求、架构、模块 DoD、数据模型、接口、难点、计划、验收 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md) |
 | 评审分层/模块化重构路线（覆盖率驱动 · 能力层模块边界 · 迁移顺序） | [planning/DESIGN-MODULE-REARCH.md](planning/DESIGN-MODULE-REARCH.md) |
 | 评审客户端 UI 设计、查重构依据与验收门禁 | [planning/DESIGN-UI-REVIEW.md](planning/DESIGN-UI-REVIEW.md) |
-| 实现/评审当前 UI（v4 蓝色方案）：模块功能、交互流程、边界处理、与设计图的差异 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
+| 查旧版 UI 蓝色设计历史 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
 | 查离线缓存与数据同步重设计的实施计划（未评审） | [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) |
 | 评审客户端改造范围、批次顺序与风险，或查合规与市场定位结论 | [planning/PLAN-CLIENT-REFORM.md](planning/PLAN-CLIENT-REFORM.md) |
 | 查手机广告用户痛点的可核对事实（法规条款 / 监管通报 / 调查数据 / 判例 / 厂商能力） | [planning/DESIGN-AD-PAIN-RESEARCH.md](planning/DESIGN-AD-PAIN-RESEARCH.md) |
@@ -104,6 +110,7 @@ docs/
 | 客户端 UI 的**当前**落地规格（v4：六模块功能 / 交互流程 / 边界 / 差异清单） | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) | 表现层的现行事实源；v3 评审记录（DESIGN-UI-REVIEW）保留为历史依据，两者冲突时以本文为准 |
 | 已发布版本链路（tag / 提交 / Release / 制品） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) | CHANGELOG 只记用户可见变更，不复述链路 |
 | 协议与接口 | [api/API.md](api/API.md) + [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)（第 7 节） | DESIGN 只描述增量字段 |
+| 行为埋点事件、指标口径与洞察规则 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) | 排期与人力见 [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 客户端/服务端分层与模块职责 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | README 只给目录树摘要 |
 | 流程规范（分支/提交/门禁/发版） | [CONTRIBUTING.md](../CONTRIBUTING.md) | [AGENTS.md](../AGENTS.md) 为执行摘要 |
 | 多 Agent 并行协作（隔离/所有权/契约/交接） | [development/AGENT-WORKFLOW.md](development/AGENT-WORKFLOW.md) | 本页不复制其条款，仅登记入口；其卫生检查由 `RepoHygieneTest` 强制 |
@@ -130,7 +137,7 @@ docs/
 
 未排期能力见 [planning/ROADMAP.md](planning/ROADMAP.md) 的「候选池」；L2/L3 启动前必须先完成 Phase 0 合规评审（见 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 3 节）。
 
-> **已落地**：系统级体验——下拉快捷磁贴（`TileService`）+ 厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。
+> **已落地**：系统级体验——厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。下拉快捷磁贴（`TileService`）曾随同一版本发布，现已随权限清单重构**整体下线**（见 [CHANGELOG.md](../CHANGELOG.md) Unreleased）。
 
 ## 规划中尚未创建的文档
 

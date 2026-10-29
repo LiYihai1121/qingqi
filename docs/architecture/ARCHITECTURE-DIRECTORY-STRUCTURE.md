@@ -61,7 +61,7 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 │           │   │   │   └── feature/               # home · apps · logs · rules · profile · settings · onboarding
 │           │   │   ├── platform/         # 系统集成层（Android 组件与系统能力）
 │           │   │   │   ├── accessibility/         # SkipAdService / FrameworkAdNode / NodeSnapshot
-│           │   │   │   └── device/                # 保活跳转 / 磁贴 / 权限三态 / 语言落地
+│           │   │   │   └── device/                # 保活跳转 / 权限三态（含通知权限）/ 语言落地
 │           │   │   ├── data/             # 数据层
 │           │   │   │   ├── local/                 # Prefs / RulesStore / StatsStore（存储原语）
 │           │   │   │   ├── remote/                # SyncClient（OkHttp + HMAC + 证书 pin）
@@ -160,7 +160,7 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 | 界面层 | `presentation/designsystem/` | `ui/theme/` + `ui/components/` | 设计令牌与共享组件被多个特性页复用，须独立成包 |
 | 界面层 | `presentation/feature/<name>/` | `ui/<name>/` | 按特性纵向切分，新增页面只动一个目录 |
 | 系统集成层 | `platform/accessibility/` | `service/` | Android 组件（AccessibilityService）与框架适配 |
-| 系统集成层 | `platform/device/` | `device/` | 厂商 ROM、磁贴、权限三态等系统入口 |
+| 系统集成层 | `platform/device/` | `device/` | 厂商 ROM、权限三态（含通知权限）等系统入口 |
 | 数据层 | `data/local/` | `data/`（存储原语部分） | 直接读写 `EncryptedSharedPreferences` 的实现 |
 | 数据层 | `data/remote/` | `net/` | HTTP 传输与验签，属数据来源而非独立层 |
 | 数据层 | `data/repository/` | `data/`（仓库部分） | 合并/缓存/合批，供界面层消费 |
@@ -207,7 +207,7 @@ qingqi/                                   # Monorepo 根：客户端 + 服务端
 
 | # | 缺口 | 建议动作 | 依据 |
 |---|---|---|---|
-| 1 | 无 `client/app/src/androidTest/` | 落地磁贴/保活/跳过主链路 E2E（Maestro 或仪器化） | 测试层缺口：E2E 为 0 |
+| 1 | 无 `client/app/src/androidTest/` | 落地保活/权限/跳过主链路 E2E（Maestro 或仪器化） | 测试层缺口：E2E 为 0 |
 | 2 | 无覆盖率配置 | 客户端 JaCoCo、服务端 `bun test --coverage`，先观测后阈值 | 度量层缺口 |
 | 3 | 无 `client/gradle/verification-metadata.xml` | `--write-verification-metadata sha256` | 供应链完整性 |
 | 4 | 无 `.gitleaks.toml` allowlist | secret-scan 转强制前完成历史扫描 triage | K6 后续 |

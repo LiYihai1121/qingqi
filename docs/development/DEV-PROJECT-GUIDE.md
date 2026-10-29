@@ -172,7 +172,7 @@
 | --- | --- | --- | --- | --- |
 | 界面层 | `presentation/` | 单 Activity、路由、7 个特性页（Screen + ViewModel）、设计令牌与共享组件 | `MainActivity.kt`、`navigation/Routes.kt`、`designsystem/`、`feature/*` | Composable 函数 |
 | 系统集成层 | `platform/accessibility/` | 无障碍服务（薄编排层）、节点适配、快照导出 | `SkipAdService.kt`、`FrameworkAdNode.kt`、`NodeSnapshot.kt` | 系统回调 |
-| 系统集成层 | `platform/device/` | 权限三态、保活引导、磁贴、语言落地 | `AccessibilityStatus.kt`、`KeepAliveNavigator.kt`、`SkipTileService.kt` | 各系统集成点 |
+| 系统集成层 | `platform/device/` | 权限四态（含通知权限）、保活引导、语言落地 | `AccessibilityStatus.kt`、`KeepAliveNavigator.kt`、`NotificationPermission.kt` | 各系统集成点 |
 | 数据层 | `data/local/` | 存储原语与唯一写入路径 | `Prefs.kt`、`RulesStore.kt`、`StatsStore.kt` | `RulesStore.replaceAllRules()` |
 | 数据层 | `data/remote/` | 规则同步、上报、证书 pin、HMAC 验签 | `SyncClient.kt` | `SyncClient.fetchRules()` |
 | 数据层 | `data/repository/` | 规则合并/缓存、统计合批、设置门面 | `RulesRepository.kt`、`StatsRepository.kt`、`SettingsRepository.kt` | `RulesRepository.ruleSetFor(pkg)` |

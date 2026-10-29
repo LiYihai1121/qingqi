@@ -11,33 +11,40 @@ import java.io.File
  * 背景：`platform/device/VendorKeepAlive.kt` 的保活入口依赖 `PackageManager` 解析外部包，
  * 而 Android 11（API 30）起未在 `<queries>` 声明的包**不可见**——
  * 漏声明不会编译报错、不会崩，只会让跳转静默失败（最难排查的一类故障）。
- * 同样，磁贴缺少 `BIND_QUICK_SETTINGS_TILE` 权限或 `QS_TILE` intent-filter 时系统根本不会加载它。
+ * 同样，`POST_NOTIFICATIONS` 漏声明时，用户连运行时授权弹窗都收不到，
+ * 而「服务守护」的通知会被系统静默丢弃。
  *
- * 本测试把上述两条隐式约定升级为 CI 可执行规则，与 `ArchitectureBoundaryTest` 同为纯 JVM 源码扫描。
+ * 本测试把上述隐式约定升级为 CI 可执行规则，与 `ArchitectureBoundaryTest` 同为纯 JVM 源码扫描。
  */
 class ManifestContractTest {
 
     private val manifest: String by lazy { readManifest() }
 
-    // ---------- 快捷磁贴 ----------
+    // ---------- 通知权限 ----------
 
     @Test
-    fun `quick settings tile is declared with binding permission and intent filter`() {
-        val block = tileServiceBlock()
+    fun `the notification permission is declared`() {
+        // 「服务设置」的权限清单把通知列为一项，而通知是 Android 13+ 的运行时权限：
+        // 清单漏声明 POST_NOTIFICATIONS 时，用户连弹窗都收不到，清单那一行永远是「需要处理」，
+        // 而守护通知永远发不出去。
         assertTrue(
-            "磁贴必须声明 BIND_QUICK_SETTINGS_TILE，否则系统无法绑定",
-            block.contains("android.permission.BIND_QUICK_SETTINGS_TILE"),
+            "清单缺少 POST_NOTIFICATIONS 权限声明（服务守护通知依赖它）",
+            manifest.contains("android.permission.POST_NOTIFICATIONS"),
+        )
+    }
+
+    @Test
+    fun `the quick settings tile service is gone from the manifest`() {
+        // 磁贴功能已整体删除。清单里残留注册会让系统仍把本应用列为可用磁贴，
+        // 而代码里已无 TileService —— 用户点了会跳到一个不存在的组件。
+        assertTrue(
+            "清单仍在注册快捷磁贴服务（功能已删除，请连同 platform/device/SkipTileService.kt 一并移除）",
+            !manifest.contains("SkipTileService"),
         )
         assertTrue(
-            "磁贴必须声明 QS_TILE intent-filter，否则不会出现在可添加磁贴列表",
-            block.contains("android.service.quicksettings.action.QS_TILE"),
+            "清单仍声明 BIND_QUICK_SETTINGS_TILE 权限（磁贴功能已删除）",
+            !manifest.contains("BIND_QUICK_SETTINGS_TILE"),
         )
-        assertTrue(
-            "磁贴必须 exported=true（由系统绑定）",
-            Regex("""android:exported\s*=\s*"true"""").containsMatchIn(block),
-        )
-        assertTrue("磁贴需提供图标", block.contains("@drawable/ic_qs_skip"))
-        assertTrue("磁贴需提供本地化标题", block.contains("@string/tile_label"))
     }
 
     // ---------- 包可见性 ----------
@@ -84,7 +91,7 @@ class ManifestContractTest {
                 offenders.joinToString("\n") { "  ${it.replace(Regex("\\s+"), " ")}" } +
                 "\n未收窄的隐式广播可被任意第三方应用注册同名 action 监听。" +
                 "ACTION_SKIPPED 携带用户正在使用的应用名，泄露后果最严重。" +
-                "\n修法：Intent(...).setPackage(packageName)，与 ACTION_REQUEST_SHUTDOWN 保持一致。",
+                "\n修法：Intent(...).setPackage(packageName)，与 ACTION_EXPORT_SNAPSHOT 保持一致。",
             offenders.isEmpty(),
         )
     }
@@ -220,17 +227,6 @@ class ManifestContractTest {
         return file.readText()
     }
 
-    private fun tileServiceBlock(): String {
-        val start = manifest.indexOf(TILE_SERVICE)
-        assertTrue(
-            "清单未注册快捷磁贴服务 $TILE_SERVICE（platform/device/SkipTileService.kt）",
-            start >= 0,
-        )
-        val end = manifest.indexOf("</service>", start)
-        assertTrue("磁贴 <service> 标签未闭合", end > start)
-        return manifest.substring(start, end)
-    }
-
     private fun readManifest(): String {
         var dir: File? = System.getProperty("user.dir")?.let { File(it) }
         while (dir != null) {
@@ -242,7 +238,6 @@ class ManifestContractTest {
     }
 
     private companion object {
-        const val TILE_SERVICE = ".device.SkipTileService"
         const val MANIFEST_RELATIVE_PATH = "src/main/AndroidManifest.xml"
         // 匹配完整的 sendBroadcast(...) 调用体（允许一层嵌套括号），
         // 以便判断 setPackage 是否真的出现在这处调用里。

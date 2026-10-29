@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
@@ -63,13 +66,7 @@ import com.qingqi.adskip.presentation.designsystem.theme.UiSizes
 
 // ==================== 容器 ====================
 
-/**
- * 统一卡片容器：白底 + 16dp 圆角 + 极淡投影。
- *
- * 与 v3 的差别只有两处——容器色由「容器层色阶」改为**纯白**、并恢复 2dp 投影。
- * 设计稿的层次是「浅灰蓝页面 + 白卡片」，靠明度对比而不是靠 M3 的逐级抬亮；
- * 投影则是设计稿明确画出来的（v3 按 M3 2023 规范去掉了阴影）。
- */
+/** 统一卡片容器：通过容器色与留白分组，使用主题圆角与尺寸令牌。 */
 @Composable
 fun SectionCard(
     modifier: Modifier = Modifier,
@@ -119,7 +116,7 @@ fun AppHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.lg, bottom = Spacing.md),
+            .padding(top = Spacing.lg, bottom = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 品牌标识：蓝底圆角方块 + 盾形。
@@ -284,8 +281,8 @@ fun <T> SegmentedTabs(
     labelOf: @Composable (T) -> String,
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
-    selectedContainerColor: Color = MaterialTheme.colorScheme.primary,
-    selectedContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    selectedContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    selectedContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     Row(
@@ -293,6 +290,7 @@ fun <T> SegmentedTabs(
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
             .background(containerColor)
+            .selectableGroup()
             .padding(Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
@@ -301,10 +299,10 @@ fun <T> SegmentedTabs(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(UiSizes.segmentHeight)
+                    .heightIn(min = UiSizes.segmentHeight)
                     .clip(MaterialTheme.shapes.small)
                     .background(if (isSelected) selectedContainerColor else Color.Transparent)
-                    .clickable(role = Role.RadioButton) { onSelect(option) },
+                    .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(option) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -340,7 +338,7 @@ fun SearchField(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(UiSizes.searchField)
+            .heightIn(min = UiSizes.searchField)
             .clip(MaterialTheme.shapes.small)
             .background(containerColor)
             .padding(horizontal = Spacing.md),

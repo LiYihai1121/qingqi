@@ -55,9 +55,9 @@ import com.qingqi.adskip.presentation.common.Messenger
 import com.qingqi.adskip.presentation.common.UiEffect
 import com.qingqi.adskip.presentation.designsystem.component.AppHeader
 import com.qingqi.adskip.presentation.designsystem.component.IconPlate
-import com.qingqi.adskip.presentation.designsystem.component.LabeledSwitch
 import com.qingqi.adskip.presentation.designsystem.component.SectionCard
 import com.qingqi.adskip.presentation.designsystem.component.SectionHint
+import com.qingqi.adskip.presentation.designsystem.component.SettingRow
 import com.qingqi.adskip.presentation.designsystem.component.StatTile
 import com.qingqi.adskip.presentation.designsystem.component.TagBadge
 import com.qingqi.adskip.presentation.designsystem.component.rememberAppLabel
@@ -72,21 +72,7 @@ import com.qingqi.adskip.presentation.designsystem.theme.TilePurple
 import com.qingqi.adskip.presentation.designsystem.theme.TilePurpleContainer
 import com.qingqi.adskip.presentation.designsystem.theme.UiSizes
 
-/**
- * 首页（v4 设计稿）。
- *
- * 版式自上而下：品牌头部 → 状态盾牌卡 → 无障碍开关行 → 模拟测试卡 → 三张快捷瓦片 → 今日统计。
- *
- * 与 v3 的结构差别（为什么删掉了原来的「关键词卡」与「区块标签」）：
- *  - 关键词管理在 v4 里是**独立的一级页**（底部导航「规则」），首页不再承载它。
- *    首页出现一个可编辑的关键词列表，会让「首页 = 看状态」这一职责失焦；
- *  - 区块标签（SectionLabel）取消：v4 用「每块一张白卡」表达分组，
- *    卡与卡之间的留白已足够分层，再加标签属于同一信息讲两遍。
- *
- * 服务状态仍是三态（开 / 关 / 无法确认）：设计稿只画了「已开启」一种，
- * 但把 UNKNOWN 画成 OFF 是本项目复现过的真实缺陷（用户会去反复点一个不会生效的开关），
- * 故三态保留，配色分别为绿 / 红 / 琥珀，文案各自不同。
- */
+/** 首页：状态与权限 → 使用概览 → 快捷入口 → 模拟测试。状态由系统真值驱动。 */
 @Composable
 fun HomeScreen(
     messenger: Messenger,
@@ -142,6 +128,7 @@ fun HomeScreen(
                 AppHeader(
                     title = stringResource(R.string.app_name),
                     subtitle = stringResource(R.string.home_subtitle),
+                    modifier = Modifier.padding(bottom = Spacing.sm),
                     trailingIcon = AdSkipIcons.Settings,
                     trailingLabel = stringResource(R.string.home_open_settings),
                     onTrailingClick = onOpenSettings,
@@ -162,65 +149,24 @@ fun HomeScreen(
 
             item {
                 SectionCard(contentPadding = PaddingValues(vertical = Spacing.xs)) {
-                    LabeledSwitch(
+                    SettingRow(
                         title = stringResource(R.string.home_accessibility_service),
                         subtitle = stringResource(
-                            if (state.serviceRunning) {
+                            if (state.accessibilityUnknown) {
+                                R.string.status_unknown
+                            } else if (state.serviceRunning) {
                                 R.string.home_accessibility_granted
                             } else {
                                 R.string.home_accessibility_pending
                             },
                         ),
-                        checked = state.serviceRunning,
                         icon = AdSkipIcons.Shield,
-                        onCheckedChange = {
-                            // 开关不能直接改系统权限，点击即跳系统设置（唯一可行路径）。
+                        onClick = {
+                            // 系统授权使用导航入口，不模拟可以在应用内切换的权限开关。
                             if (!KeepAliveNavigator.openAccessibilitySettings(context)) {
                                 messenger.show(context.getString(R.string.settings_open_failed))
                             }
                         },
-                    )
-                }
-            }
-
-            item {
-                ActionCard(
-                    icon = AdSkipIcons.Rocket,
-                    title = stringResource(R.string.home_test_title),
-                    description = stringResource(R.string.home_test_desc),
-                    actionLabel = stringResource(R.string.home_test_action),
-                    onAction = viewModel::startFakeAdTest,
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                ) {
-                    QuickTile(
-                        icon = AdSkipIcons.Clock,
-                        label = stringResource(R.string.quick_open_logs),
-                        contentColor = TileBrand,
-                        containerColor = TileBrandContainer,
-                        onClick = onOpenLogs,
-                        modifier = Modifier.weight(1f),
-                    )
-                    QuickTile(
-                        icon = AdSkipIcons.Tag,
-                        label = stringResource(R.string.quick_add_keyword),
-                        contentColor = TileAmber,
-                        containerColor = TileAmberContainer,
-                        onClick = onOpenRules,
-                        modifier = Modifier.weight(1f),
-                    )
-                    QuickTile(
-                        icon = AdSkipIcons.Apps,
-                        label = stringResource(R.string.quick_open_apps),
-                        contentColor = TilePurple,
-                        containerColor = TilePurpleContainer,
-                        onClick = onOpenApps,
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -270,6 +216,48 @@ fun HomeScreen(
             }
 
             item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    QuickTile(
+                        icon = AdSkipIcons.Clock,
+                        label = stringResource(R.string.quick_open_logs),
+                        contentColor = TileBrand,
+                        containerColor = TileBrandContainer,
+                        onClick = onOpenLogs,
+                        modifier = Modifier.weight(1f),
+                    )
+                    QuickTile(
+                        icon = AdSkipIcons.Tag,
+                        label = stringResource(R.string.quick_add_keyword),
+                        contentColor = TileAmber,
+                        containerColor = TileAmberContainer,
+                        onClick = onOpenRules,
+                        modifier = Modifier.weight(1f),
+                    )
+                    QuickTile(
+                        icon = AdSkipIcons.Apps,
+                        label = stringResource(R.string.quick_open_apps),
+                        contentColor = TilePurple,
+                        containerColor = TilePurpleContainer,
+                        onClick = onOpenApps,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            item {
+                ActionCard(
+                    icon = AdSkipIcons.Rocket,
+                    title = stringResource(R.string.home_test_title),
+                    description = stringResource(R.string.home_test_desc),
+                    actionLabel = stringResource(R.string.home_test_action),
+                    onAction = viewModel::startFakeAdTest,
+                )
+            }
+
+            item {
                 SectionHint(
                     text = stringResource(R.string.how_it_works),
                     modifier = Modifier.padding(horizontal = Spacing.xs),
@@ -290,17 +278,7 @@ fun HomeScreen(
     }
 }
 
-/**
- * 状态盾牌卡：同心圆环 + 盾牌 + 结论 + 主行动。
- *
- * 环用「两个同心圆叠放」而不是 `Modifier.border`：间距门禁只放行
- * 0/4/8/12/16/24/32/40 的 dp 字面量，环宽 4dp 无法直接书写，
- * 而「外圈 120 / 内圈 112」两个直径之差恰好是 4dp——既绕开字面量，
- * 又让环宽由尺寸令牌推导出来。
- *
- * 三态同形不同色：形状（盾牌 + 同心环）保持不变，只有颜色与文案变化。
- * 形状编码留给「这是什么控件」，颜色编码留给「现在什么状态」。
- */
+/** 紧凑状态卡：图标与文案共同区分三态；未生效时给出明确的系统设置入口。 */
 @Composable
 private fun StatusShieldCard(running: Boolean, unknown: Boolean, onOpenSettings: () -> Unit) {
     val container = when {
@@ -333,28 +311,13 @@ private fun StatusShieldCard(running: Boolean, unknown: Boolean, onOpenSettings:
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(UiSizes.statusShield)
-                    .clip(CircleShape)
-                    .background(accent),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(UiSizes.statusShieldRing)
-                        .clip(CircleShape)
-                        .background(container),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = AdSkipIcons.Shield,
-                        contentDescription = null,
-                        modifier = Modifier.size(UiSizes.statusShieldGlyph),
-                        tint = accent,
-                    )
-                }
-            }
+            IconPlate(
+                icon = if (unknown) AdSkipIcons.Info else AdSkipIcons.Shield,
+                size = UiSizes.stateIllustration,
+                glyphSize = UiSizes.stateIllustrationIcon,
+                containerColor = container,
+                contentColor = accent,
+            )
             Spacer(Modifier.height(Spacing.md))
             Text(
                 text = title,
@@ -404,8 +367,6 @@ private fun ActionCard(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.width(Spacing.sm))

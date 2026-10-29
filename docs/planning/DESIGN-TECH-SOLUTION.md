@@ -354,7 +354,7 @@ GET /download→ APK（路径固定为 server/ 上一级，缺失返回 404）
 | 项 | 内容 |
 | --- | --- |
 | 职责 | 厂商 ROM 识别、保活引导、权限中心、磁贴 |
-| 对外接口 | `VendorKeepAlive.detect()`、`KeepAliveNavigator.open*()`、`SkipTileService` |
+| 对外接口 | `VendorKeepAlive.detect()`、`KeepAliveNavigator.open*()` |
 | 不做什么 | 不读业务数据、不发起网络 |
 | 关键约束 | Intent 逐级降级；全部不可解析时给出手动路径（不静默失败） |
 | DoD | ① `ManifestContractTest` 绿（`<queries>` 与入口表对齐）；② 纯逻辑部分可在 JVM 单测 |

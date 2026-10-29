@@ -153,8 +153,8 @@ private val AdSkipShapes = Shapes(
 private object Radii {
     val XS = 6.dp
     val SM = 10.dp
-    val MD = 16.dp
-    val LG = 20.dp
+    val MD = 20.dp
+    val LG = 24.dp
     val XL = 28.dp
 }
 

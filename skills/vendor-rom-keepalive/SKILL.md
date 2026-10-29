@@ -1,6 +1,6 @@
 ---
 name: vendor-rom-keepalive
-description: Guide for vendor ROM keep-alive and system-navigation work in the device layer - vendor entry tables, degrading permission-navigation flows, `<queries>` visibility, quick tile. Triggers on VendorKeepAlive/KeepAliveNavigator/PermissionCenter/tile/ROM-path tasks; not for engine, UI theme or network changes.
+description: Guide for vendor ROM keep-alive and system-navigation work in the device layer - vendor entry tables, degrading permission-navigation flows, `<queries>` visibility. Triggers on VendorKeepAlive/KeepAliveNavigator/PermissionCenter/permission-state/ROM-path tasks; not for engine, UI theme or network changes.
 metadata:
   audience: android-device-contributors
   workflow: feature-branch
@@ -12,9 +12,8 @@ metadata:
 
 | 关注点 | 事实源 |
 | --- | --- |
-| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/platform/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`） |
+| 厂商入口表与降级跳转实现 | `client/app/src/main/java/com/qingqi/adskip/platform/device/`（`VendorKeepAlive.kt`、`KeepAliveNavigator.kt`、`PermissionCenter.kt`、`BatteryExemption.kt`、`AccessibilityStatus.kt`、`NotificationPermission.kt`） |
 | 厂商标签与 UI 映射 | `ui/VendorLabels.kt` |
-| 快捷磁贴 | `device/SkipTileService.kt`、`device/QuickTileLogic.kt` |
 | `<queries>` 可见性声明与 manifest 契约 | `AndroidManifest.xml`；`ManifestContractTest` |
 | 目录落点 | [ARCHITECTURE.md](../../docs/architecture/ARCHITECTURE.md) 第 2.2 节 |
 
@@ -30,10 +29,10 @@ metadata:
 ## 硬护栏
 
 1. **只引导，不代管**：权限页只能跳转引导用户手动开启；不得伪造/缓存权限状态——无障碍真实状态以 `AccessibilityStatus` 查询为准（契约由 `AccessibilityStatusContractTest` 固化）；
-2. 磁贴状态由 `QuickTileLogic` 纯函数决定，不在 `SkipTileService` 里散落判断——新状态先补 `QuickTileLogicTest`；
+2. 权限状态一律三态（就绪 / 需要处理 / 无法自动确认），判定收敛在 `PermissionCenter` 与各 `*Permission` / `*Status` 纯函数中——新状态先补对应的 JVM 单测，再改 UI；
 3. 厂商文案进 `VendorLabels.kt`，不在屏幕内写死厂商名。
 
 ## 提交前自检
 
-- `cd client && ./gradlew testDebugUnitTest --tests "*Vendor*" --tests "*ManifestContract*" --tests "*QuickTile*" --tests "*AccessibilityStatus*"` 全绿；
+- `cd client && ./gradlew testDebugUnitTest --tests "*Vendor*" --tests "*ManifestContract*" --tests "*Permission*" --tests "*AccessibilityStatus*"` 全绿；
 - 门禁命令全集见 [AGENTS.md](../../AGENTS.md)「验证与合并」。

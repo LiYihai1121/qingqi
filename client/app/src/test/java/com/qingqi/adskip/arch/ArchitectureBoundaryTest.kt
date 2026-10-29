@@ -31,6 +31,21 @@ import java.io.File
  */
 class ArchitectureBoundaryTest {
 
+    @Test
+    fun `service checks window ownership before rules and again before clicking`() {
+        val source = File(sourceRoot(), "platform/accessibility/SkipAdService.kt").readText()
+        val scan = source.substringAfter("private fun trySkip(pkg: String)")
+            .substringBefore("private fun isInDoNotDisturbPeriod")
+        val ownership = scan.indexOf("if (root.packageName?.toString() != pkg) return")
+        val rules = scan.indexOf("rulesRepo.ruleSetFor(pkg)")
+        val windowGuard = "if (activeRoot.packageName?.toString() != pkg || " +
+            "activeRoot.windowId != root.windowId) return"
+        val recheck = scan.indexOf(windowGuard)
+        val click = scan.indexOf("clickNode(target)")
+        assertTrue("事件包必须与实际窗口一致，才能选择规则", ownership >= 0 && ownership < rules)
+        assertTrue("点击前必须再次确认包名及窗口身份", recheck > rules && recheck < click)
+    }
+
     // ---------- domain：纯 JVM，保证引擎测试可在纯 JVM 运行、可拆分 module ----------
 
     @Test

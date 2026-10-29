@@ -36,7 +36,7 @@
 - ✅ 跳过上报服务端（服务端不在线时静默跳过，纯本地照常工作）
 - ✅ 自动同步规则（JobScheduler 每 12 小时，跨重启持久化，无需 BootReceiver）
 - ✅ 免打扰时段与电池优化白名单引导
-- ✅ 下拉磁贴（Quick Tile）+ ROM 适配保活引导
+- ✅ ROM 适配保活引导（自启动 / 后台运行白名单）
 - ✅ 环形日志（内存 500 条，设置页可导出分享）
 - ✅ 中英双语资源（values / values-en）
 
@@ -115,7 +115,7 @@ client/app/src/main/java/com/qingqi/adskip/   # Android 客户端源码（Kotlin
 │   └── feature/                    #   home / apps / logs / rules / profile / settings / onboarding
 ├── platform/                       # 系统集成层（Android 组件与系统能力，不反向依赖界面）
 │   ├── accessibility/              #   SkipAdService（薄编排）/ FrameworkAdNode / NodeSnapshot
-│   └── device/                     #   ROM 保活 / 权限三态 / 磁贴 / 语言落地
+│   └── device/                     #   ROM 保活 / 权限三态（含通知权限）/ 语言落地
 ├── data/                           # 数据层
 │   ├── local/                      #   Prefs / RulesStore / StatsStore（存储原语与唯一写入路径）
 │   ├── remote/SyncClient.kt        #   ETag/304/批量补报 + 证书固定 + HMAC 验签

@@ -183,3 +183,25 @@
 | **持续** | 季度复跑（本次逾期 18 天）→ 建议改为**每个 minor 发布前**触发，挂在发布核对清单里 | 挂在发布流程上比挂在日历上可靠——发布是必然发生的事件，季度不是 |
 
 > 复跑方式见本文第 6.1 节的机械扫描项清单；新增扫描项时应同时更新本清单，避免「审计口径」本身漂移。
+## 2026-10-29 本地分支与工作区整理
+
+本次不改写 main、远端分支或版本标签；本地删除前已生成并校验全分支 Git bundle。
+
+- 清理 1 个路径已不存在的 WorkBuddy worktree 元数据。
+- 删除 7 个已被 main 包含（祖先或 `git cherry` 全部为 `-`）的本地分支：`workbuddy/main-99fbdae9`、`feat/ui-v4-blue`、`fix/185-review-rebased`、`fix/191-cleanup-signoff`、`docs/repo-rename-qingqi`、`feature/archify-skill`、`fix/ui-review-followups`。
+- `docs/192-rename-signoff`、`feature/brand-unify-ads`、`fix/ui-page-header-layout` 仍有非等价提交，保留待人工评审；不能仅凭远端已删除就删本地分支。
+- `fix/20261027-click-stats-safety`、`docs/telemetry-analytics` 各有 1 个 main 外提交，保留。
+- `fix/20261027-server-reliability` 与 `refactor/remove-cloud-sync` 含未提交修改，保留原位；后者与本次 UI 的设置页存在重叠，后续合并必须单独处理。
+- `feature/199-service-permissions-drop-tile` 工作区干净但未合并，保留；它仍在旧 `.agents/worktrees/` 路径，避免破坏外部会话引用，本次不迁移。
+- 主检出的 `ROADMAP-ADS.md` 未提交修改保持原样，禁止 stash/reset 隐藏该工作。
+- `.dsh/` 是本机安装的技能，不是源码垃圾；新增共享忽略、结构白名单与 IDE 排除。服务启动日志使用限定的 `server/.*.log` / `server/.*.err` 模式忽略。
+- 共享 VS Code 配置去除个人 Gradle 缓存盘符，缓存由环境变量提供。
+
+执行顺序：先完成并合入 UI 与卫生分支，再逐个评审上列功能工作区；删除工作区前必须确认 clean、PR 已合并且没有独有提交。不得批量强制删除“名字像旧任务”的分支。
+
+### 验证与交接（Issue #201）
+
+先加入缺失目录与日志规则的契约，复现 5 项中 2 项失败；补齐共享忽略、结构白名单与 IDE 排除后，ktlintCheck 和 RepoHygieneTest / ProjectStructureTest 共 21 项全部通过。无运行时边界变化。
+
+分支：`ci/201-repo-hygiene`。复验：`cd client; ./gradlew.bat ktlintCheck testDebugUnitTest --tests "*RepoHygieneTest*" --tests "*ProjectStructureTest*"`。风险：规则尚未合入 main，主检出仍会显示原来的本机产物；不要借此删除技能或正在写入的运行日志。回滚本提交只恢复仓库规则，不影响业务数据。
+

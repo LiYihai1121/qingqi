@@ -9,6 +9,29 @@ import org.junit.Test
  */
 class SafetyGuardTest {
 
+    @Test
+    fun `sensitive outermost clickable ancestor is blocked`() {
+        val target = FakeAdNode.node(text = "跳过")
+        var current = target
+        repeat(2) { current = FakeAdNode.node(children = listOf(current)) }
+        FakeAdNode.node(text = "确认支付", clickable = true, children = listOf(current))
+        assertFalse(SafetyGuard.canClick(target, "com.example.app"))
+    }
+
+    @Test
+    fun `invisible clickable ancestor is blocked`() {
+        val target = FakeAdNode.node(text = "跳过")
+        FakeAdNode.node(visible = false, clickable = true, children = listOf(target))
+        assertFalse(SafetyGuard.canClick(target, "com.example.app"))
+    }
+
+    @Test
+    fun `empty clickable ancestor is blocked`() {
+        val target = FakeAdNode.node(text = "跳过")
+        FakeAdNode.node(width = 0, clickable = true, children = listOf(target))
+        assertFalse(SafetyGuard.canClick(target, "com.example.app"))
+    }
+
     /**
      * 断言用的是**发布包名**（与 `applicationId` 一致），不是带 `.debug` 后缀的
      * 并行安装包：2026-10-11 的复测曾用不同包名绕过护栏，把「已修复」判成了假阳性。
