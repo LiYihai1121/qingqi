@@ -664,6 +664,7 @@ class ProjectStructureTest {
             ".mimosa", // 同族工具目录
             ".workbuddy", // 同族工具目录
             ".workbuddy-ai", // 同族工具目录（WorkBuddy AI 的落点，与 .workbuddy 不同名）
+            ".dsh", // 本机技能安装目录（共享忽略与 IDE 排除）
             ".cursor", // Cursor 本机工程状态（不入库；缺席白名单会在装了 Cursor 的机器上误红）
             ".designkit-history-delivery", // 美图设计室 AI设计 CLI（designkit）按 cwd 落的房间历史缓存，不入库
             ".dsh-acl-recovery", // 沙箱 ACL 恢复报告（本机安全策略工具落盘），不入库
@@ -737,7 +738,7 @@ class ProjectStructureTest {
             ".git", "node_modules", "build", ".gradle", ".kotlin", ".idea", ".vscode",
             "captures", ".tools", "signing", "dist", "out", "target", "release", "bin",
             ".mimosa", ".workbuddy", ".workbuddy-ai", ".kilo", ".kilocode", ".worktrees", ".agents",
-            ".cursor", ".designkit-history-delivery", ".dsh-acl-recovery",
+            ".dsh", ".cursor", ".designkit-history-delivery", ".dsh-acl-recovery",
             ".cxx", ".externalNativeBuild", "data",
         )
 
