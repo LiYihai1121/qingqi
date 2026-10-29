@@ -20,10 +20,10 @@ class ScreenHeaderContractTest {
 
     /** 底部导航的四个一级页面（与 Routes 一致）。 */
     private val screens = listOf(
-        "home/HomeScreen.kt",
-        "apps/AppsScreen.kt",
-        "logs/LogsScreen.kt",
-        "profile/ProfileScreen.kt",
+        "feature/home/HomeScreen.kt",
+        "feature/apps/AppsScreen.kt",
+        "feature/logs/LogsScreen.kt",
+        "feature/profile/ProfileScreen.kt",
     )
 
     @Test
@@ -39,7 +39,7 @@ class ScreenHeaderContractTest {
         assertTrue(
             "以下一级页面没有页面标题 PageHeader。底部导航切过去后用户没有任何位置锚点，" +
                 "而首屏本就要靠标题说明「这一屏是什么」：\n" +
-                missing.joinToString("\n") { "  ui/$it" },
+                missing.joinToString("\n") { "  presentation/$it" },
             missing.isEmpty(),
         )
     }
@@ -82,11 +82,14 @@ class ScreenHeaderContractTest {
         // 只有对照设计稿才发现页头少了一行。
         // 断言方式：在 PageHeader 的函数块内，subtitle 至少出现两次
         // （参数声明 + 实际使用）；只有声明说明它又被丢了。
-        val file = File(uiRoot(), "components/Common.kt")
-        assertTrue("未找到 components/Common.kt", file.isFile)
+        val file = File(uiRoot(), "designsystem/component/Common.kt")
+        assertTrue(
+            "未找到 presentation/designsystem/component/Common.kt（相对 presentation/ 应为 designsystem/component/Common.kt）",
+            file.isFile,
+        )
         val text = file.readText()
         val start = text.indexOf("fun PageHeader(")
-        assertTrue("components/Common.kt 里找不到 PageHeader 实现", start >= 0)
+        assertTrue("presentation/designsystem/component/Common.kt 里找不到 PageHeader 实现", start >= 0)
         val end = text.indexOf("\n}", start).let { if (it < 0) text.length else it }
         val block = text.substring(start, end)
         val occurrences = Regex("""\bsubtitle\b""").findAll(block).count()
@@ -100,7 +103,7 @@ class ScreenHeaderContractTest {
 
     // ---------- 工具 ----------
 
-    private fun uiRoot(): File = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/ui")
+    private fun uiRoot(): File = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/presentation")
 
     private fun repoRoot(): File {
         var dir: File? = System.getProperty("user.dir")?.let { File(it) }

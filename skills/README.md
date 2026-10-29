@@ -92,7 +92,6 @@ metadata:            # 可选；按需补充
 - **休眠 / 移除**：对应规划域取消、暂停或已实现下线时，从本目录结构与 [docs/README.md](../docs/README.md) 文档地图同步移除，
   在 PR 中说明理由；已移除技能不进回收站保留（历史在 git 中可追溯）。
 
-
 ## 开发一个新技能
 
 1. 从最新 `main` 创建 `feature/<id>-<slug>` 分支（遵循 [CONTRIBUTING.md](../CONTRIBUTING.md) 分支策略）；
@@ -120,4 +119,3 @@ metadata:            # 可选；按需补充
 | 版本序列与开发路线 | [ROADMAP.md](../docs/planning/ROADMAP.md) + [ROADMAP-ADS.md](../docs/planning/ROADMAP-ADS.md) |
 
 > 技能只做「提醒与自检」，不建立第二套流程或隐藏状态；需求、分支、提交、合并与交付仍由仓库既有流程控制。
-

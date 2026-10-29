@@ -3,26 +3,34 @@
 ## 1. 系统全景
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                        Android 客户端                            │
-│                                                                  │
-│  ui/（Jetpack Compose + MVVM）   service/        engine/         │
-│  ├ MainActivity（单 Activity）   SkipAdService   SkipRuleEngine  │
-│  ├ Navigation Compose           （薄编排层）───▶（纯匹配逻辑）    │
-│  │  ├ HomeScreen + VM                │         ├ AdNode（接口）  │
-│  │  ├ AppsScreen + VM                │         ├ SafetyGuard     │
-│  │  ├ LogsScreen + VM                │         └ RuleSet         │
-│  │  └ SettingsScreen + VM            │                           │
-│  │  └ AppEvents（进程内状态总线）      │                          │
-│  │                                    ▼                          │
-│  │                              data/                            │
-│  │                             ├ Prefs（SharedPreferences）      │
-│  │                             ├ RulesRepository（合并/LruCache）│
-│  │                             └ StatsRepository（合批落盘）     │
-│  │                                                                │
-│  └─── AppContainer ──▶ net/SyncClient（v1: ETag/批量）           │
-│        (手动 DI)     └ sync/SyncJobService（JobScheduler）      │
-└──────────────────────────────┬───────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                     Android 客户端（五层，依赖单向向下）               │
+│                                                                       │
+│  presentation/   界面层                                                │
+│   ├ MainActivity · navigation/Routes · common（UiEffect/Messenger）    │
+│   ├ designsystem/  theme（Color/Type/Spacing）· component · icons      │
+│   └ feature/       home · apps · logs · rules · profile · settings ·   │
+│                    onboarding                                         │
+│                              │ StateFlow / UiEffect                   │
+│  platform/        系统集成层  ▼                                        │
+│   ├ accessibility/ SkipAdService · FrameworkAdNode · NodeSnapshot      │
+│   └ device/        KeepAliveNavigator · 权限三态（含通知）              │
+│                              │                                        │
+│  data/            数据层      ▼                                        │
+│   ├ local/       Prefs · RulesStore · StatsStore                       │
+│   ├ remote/      SyncClient（ETag / 批量 / HMAC 验签）                  │
+│   ├ repository/  Rules · Stats · Settings Repository                   │
+│   ├ sync/        SyncJobService（JobScheduler，12h）                   │
+│   └ model/       ServerEndpoint                                        │
+│                              │                                        │
+│  domain/          业务逻辑层   ▼  纯 Kotlin，零 Android 依赖            │
+│   └ engine/      SkipRuleEngine · SafetyGuard · AdNode · RuleSet ·     │
+│                  selector/（AST / Parser / Matcher）                   │
+│                                                                       │
+│  core/  公共层：common（Clock/Executors/LogRing）· events · locale ·   │
+│                 storage（SecureStore）                                 │
+│  di/    组合根：AppContainer（手动 DI，唯一装配点）                     │
+└──────────────────────────────┬───────────────────────────────────────┘
                                │ HTTP（v1 协议）
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
@@ -51,27 +59,31 @@
 ```
 
 > 架构图源文件 [diagrams/adskip-architecture.json](../diagrams/adskip-architecture.json)，浏览器渲染版 [diagrams/adskip-architecture.html](../diagrams/adskip-architecture.html)。
-> 节点匹配有**三条通道**：文本/描述关键词、控件 ViewID、选择器（`engine/selector/`，类 CSS 子集）。分层职责见第 2 节，技术方案见 [DESIGN-PHASE1-SELECTOR.md](../planning/DESIGN-PHASE1-SELECTOR.md)。
+> 节点匹配有**三条通道**：文本/描述关键词、控件 ViewID、选择器（`domain/engine/selector/`，类 CSS 子集）。分层职责见第 2 节，技术方案见 [DESIGN-PHASE1-SELECTOR.md](../planning/DESIGN-PHASE1-SELECTOR.md)。
 
 ## 2. 客户端分层职责
 
-| 层 | 模块 | 职责 | 不做的事 |
+| 层 | 目录 | 职责 | 不做什么 |
 | --- | --- | --- | --- |
-| **ui/** | 4 个 Composable Screen + ViewModel + `UiEffect` | 声明式 UI 与单向数据流状态管理：状态入 `UiState`（StateFlow），一次性事件经 `effects: SharedFlow<UiEffect>` 下发 | 不直接读 SharedPreferences、不碰网络、不依赖 `service/`、`net/`、`sync/`（设置读写经 `data/SettingsRepository`，边界契约见 2.1） |
-| **service/** | SkipAdService + FrameworkAdNode | 事件接收、节流去抖、点击执行、AccessibilityNodeInfo 节点适配 | 不含匹配规则逻辑、不做安全裁决、不依赖 `ui/` |
-| **engine/** | SkipRuleEngine + RuleSet + AdNode + SafetyGuard + selector/ | 纯匹配：文本/ViewID/选择器 三通道（选择器为类 CSS 子集，右到左求值，DESIGN-PHASE1） | 不执行点击、不读存储、不依赖任何 Android 类型 |
-| **data/** | Prefs / RulesRepository / StatsRepository / SettingsRepository | 存储原语 + 领域仓库（合并/LruCache/合批落盘）+ 设置门面（收口 net/sync 委托） | 不感知 UI 与网络格式 |
-| **net/** | SyncClient | HTTP 传输（v1: ETag/304/批量补报） | 不直接改存储键值 |
-| **core/** | AppEvents / AppExecutors / Clock / LogRing | 进程内事件总线、线程域收口、时钟注入、环形日志 | 不含业务逻辑 |
-| **device/** | VendorKeepAlive（纯数据）/ QuickTileLogic（纯逻辑）/ KeepAliveNavigator（跳转出口）/ SkipTileService（快捷磁贴） | 系统级入口：厂商 ROM 识别与自启动/后台管理跳转、下拉磁贴、系统设置页跳转 | 不读业务数据、不发起网络/同步、不依赖 `ui/`（允许依赖 `core/` 与 `service/` 的只读状态查询） |
-| **sync/** | SyncJobService | JobScheduler 周期同步 | 不含同步逻辑（委托 SyncClient） |
+| **界面层** | `presentation/` | `MainActivity`（单 Activity）、`navigation/Routes`（路由唯一事实源）、`common/`（`UiEffect`/`Messenger`/标签映射）、`designsystem/`（`theme`/`component`/`icons`）、`feature/*`（7 个特性页各自 Screen + ViewModel） | 不直接读 SharedPreferences、不碰网络与后台调度、不依赖 `platform/accessibility/`（设置读写经 `data/repository/SettingsRepository`，边界契约见 2.1） |
+| **业务逻辑层** | `domain/engine/` | `SkipRuleEngine` + `RuleSet` + `AdNode` + `SafetyGuard` + `selector/`：三通道匹配、选择器解析与求值、点击前安全裁决 | 不执行点击、不读存储、不依赖任何 Android 类型 |
+| **数据层** | `data/local/` | `Prefs`（原始偏好）、`RulesStore`、`StatsStore`：存储原语与唯一写入路径 | 不感知 UI、不含业务合并逻辑 |
+| **数据层** | `data/remote/` | `SyncClient`：HTTP 传输、ETag/304、批量上报、证书 pin 与 HMAC 验签 | 不直接改存储键值 |
+| **数据层** | `data/repository/` | `RulesRepository`（合并/LruCache）、`StatsRepository`（合批落盘）、`SettingsRepository`（设置门面） | 不感知 UI 与网络格式 |
+| **数据层** | `data/sync/` | `SyncJobService`：JobScheduler 周期同步（12h、跨重启持久化） | 不含同步逻辑（委托 `SyncClient`） |
+| **数据层** | `data/model/` | `ServerEndpoint`：服务端地址校验与规范化 | 不含 IO |
+| **系统集成层** | `platform/accessibility/` | `SkipAdService`、`FrameworkAdNode`、`NodeSnapshot`：事件接收、节流去抖、点击执行、节点适配与快照导出 | 不含匹配规则、不做安全裁决、不依赖 `presentation/` |
+| **系统集成层** | `platform/device/` | `VendorKeepAlive`（纯数据）、`KeepAliveNavigator`（跳转出口）、`AccessibilityStatus`/`BatteryExemption`/`PermissionCenter`/`NotificationPermission`（四态） | 不读业务数据、不发起网络/同步、不依赖 `presentation/`（允许依赖 `core/` 与 `platform/accessibility/` 的只读状态查询） |
+| **公共层** | `core/` | `common/`（`Clock`/`AppExecutors`/`LogRing`）、`events/`（`AppEvents`）、`locale/`（`LanguagePreferences`）、`storage/`（`SecureStore`） | 不含业务逻辑、不依赖任何业务包 |
+| **组合根** | `di/` | `AppContainer`：手动 DI，唯一装配点 | 不承载业务逻辑 |
 
 **关键设计**：
+
 - **MVVM + StateFlow + UiEffect 单向数据流**：ViewModel 通过 `viewModelFactory { initializer { } }` 从 `AppContainer` 取依赖，可回退状态聚合为单一 `UiState` 暴露 `StateFlow`（Compose `collectAsStateWithLifecycle()` 收集）；Toast 等一次性事件统一经 `effects: SharedFlow<UiEffect>` 下发，由 Screen 在 `LaunchedEffect` 中消费，四个页面同一套模式。
 - **AppEvents**：`Service` 层通过 `AppEvents.setServiceRunning()` / `AppEvents.emitSkipped()` 推送状态，ViewModel 通过 `StateFlow` / `SharedFlow` 收集，取代旧架构中 UI 直接注册 `BroadcastReceiver` 的方式；模拟测试标记 `testActive` 同样经 AppEvents 中转，ui 与 service 互不依赖。
 - **RulesRepository.ruleSetFor(pkg)** 是规则的唯一组装点——全局关键词 + 应用专属关键词 + 全局 ViewID + 应用专属 ViewID + 选择器（全局/应用级，`3.0.3` 起）+ 禁用开关，合并为一个不可变的 `RuleSet` 交给引擎。选择器在**合并后才编译**（`SelectorParser.parse`），解析失败的条目在组装期丢弃，不进入 `RuleSet.selectors`。
 - **选择器的两端分工**：服务端只做快检（长度 ≤256、字符白名单、括号引号配平），语法权威在客户端解析器——避免两套文法实现随发布节奏漂移。两端判定相同的向量固化在 `server/test/fixtures/selectors.contract.json`，由 `server/test/selectors.contract.test.ts` 与 `SelectorContractTest.kt` 双端消费；有意判定不同的向量记在 `divergences` 段并写明原因。
-- **系统入口收口**：`device/` 是唯一允许触碰系统设置页与磁贴的层。`KeepAliveNavigator` 做「Intent 组装 + `PackageManager` 可解析性探测 + 逐级降级」，UI 只调用它、不再自行拼 `Intent`；`VendorKeepAlive`（ROM 识别 + 入口表）与 `QuickTileLogic`（磁贴点击决策）是零 Android 依赖的纯数据/纯函数，故可在 JVM 中单测，而 `TileService` 只做 API 落地。
+- **系统入口收口**：`platform/device/` 是唯一允许触碰系统设置页的层。`KeepAliveNavigator` 做「Intent 组装 + `PackageManager` 可解析性探测 + 逐级降级」，UI 只调用它、不再自行拼 `Intent`；`VendorKeepAlive`（ROM 识别 + 入口表）是零 Android 依赖的纯数据，故可在 JVM 中单测。
 
 ### 2.1 边界契约
 
@@ -79,32 +91,35 @@
 由 `client/app/src/test/java/com/qingqi/adskip/arch/ArchitectureBoundaryTest.kt` 在每次
 `testDebugUnitTest`（及 CI 门禁）中扫描源码强制校验，违反即测试失败。
 
-| 包 | 允许依赖 | 禁止依赖（守护测试强制） |
+| 层 | 允许依赖 | 禁止依赖（守护测试强制） |
 | --- | --- | --- |
-| `engine/` | 仅 Kotlin/JDK 与 `engine/` 自身 | `android.*`、`androidx.*`、其他所有 `com.qingqi.adskip.*` |
-| `core/` | Kotlin/JDK/协程、`core/` 自身 | 其他所有 `com.qingqi.adskip.*` |
-| `ui/` | Compose/AndroidX、组合根（`AdSkipApp`/`AppContainer`）、`core/`、`engine/`、`data/` 领域仓库（`RulesRepository`/`StatsRepository`/`SettingsRepository`）、`R` | `service/`、`net/`、`sync/`、`data.Prefs` |
-| `data/` | `engine/`（RuleSet）、`net/`（设置门面委托）、`sync/`（调度委托）、Android SDK | `ui/`、`service/` |
-| `net/` | `data/`、Android SDK、org.json | `ui/`、`service/` |
-| `sync/` | `data/`、`core/`、Android SDK | `ui/`、`service/` |
-| `service/` | `core/`、`data/`、`engine/`、`net/`、组合根 | `ui/` |
-| `device/` | `core/`（LogRing）、`service/`（无障碍真实状态 `isEnabled` 与关闭请求 `requestShutdown`）、Android SDK | `ui/`、`data/`、`net/`、`sync/` |
-| 组合根（`AdSkipApp`/`AppContainer`） | 全部（唯一 DI 装配点） | —（不承载业务逻辑） |
+| `domain/` | 仅 Kotlin/JDK 与 `domain/` 自身 | `android.*`、`androidx.*`、其他所有 `com.qingqi.adskip.*` |
+| `core/` | Kotlin/JDK/协程、Android SDK、`core/` 自身（4 个子包互通） | 其他所有 `com.qingqi.adskip.*` |
+| `presentation/` | Compose/AndroidX、组合根（`AdSkipApp`/`di.AppContainer`）、`core/`、`domain/`、`data/repository`、`data/model`、`platform/device`、`R` | `platform/accessibility/`、`data/local/`、`data/remote/`、`data/sync/` |
+| `data/` | `domain/`（RuleSet）、`core/`、Android SDK、org.json；层内 `local`↔`remote`↔`repository`↔`sync` 互通 | `presentation/`、`platform/` |
+| `data/remote/` | `domain/`、`core/`、`data/local`（签名密钥等偏好）、Android SDK、org.json | `presentation/`、`platform/` |
+| `data/sync/` | `data/local`、`core/`、Android SDK | `presentation/`、`platform/` |
+| `platform/` | `domain/`、`data/`、`core/`、Android SDK | `presentation/` |
+| `platform/accessibility/` | `domain/`、`data/`、`core/`、`platform/device`（状态与保活）、组合根 | `presentation/` |
+| `platform/device/` | `core/`（LogRing）、`platform/accessibility/`（`isEnabled` 只读查询）、Android SDK | `presentation/`、`data/local/`、`data/remote/`、`data/sync/` |
+| 组合根（`AdSkipApp`/`di.AppContainer`） | 全部（唯一 DI 装配点） | —（不承载业务逻辑） |
 
 规则解读：
-- **engine 纯 JVM**：不触碰任何 Android 类型——引擎单测可在纯 JVM 毫秒级运行，也是未来若需拆分 `:engine` module 的前提。
-- **ui 单向取值**：UI 只经 `StateFlow`/`UiEffect` 收状态与事件、经 `AppContainer` 拿仓库；不直连网络、后台调度与原始偏好。`data/SettingsRepository` 是设置页的唯一数据出口（收口 `SyncClient`/`SyncJobService`/`Prefs`）。
-- **core 零业务依赖**：`AppEvents` 初值不再引用 `SkipAdService`，Service 连接时主动写入真实状态；ui/service 双向都只经 core 中转。
+
+- **domain 纯 JVM**：不触碰任何 Android 类型——引擎单测可在纯 JVM 毫秒级运行，也是未来拆分 `:core:engine` module 的前提。
+- **presentation 单向取值**：UI 只经 `StateFlow`/`UiEffect` 收状态与事件、经 `AppContainer` 拿仓库；不直连网络、后台调度与原始偏好。`data/repository/SettingsRepository` 是设置页的唯一数据出口（收口 `SyncClient`/`SyncJobService`/`Prefs`）。
+- **presentation 可用 `platform/device`、不可用 `platform/accessibility`**：系统入口（跳设置页、权限三态）是 UI 的合法依赖；无障碍服务只经 `AppEvents` 向 UI 广播状态，二者不直接引用。
+- **core 零业务依赖**：`AppEvents` 初值不再引用 `SkipAdService`，Service 连接时主动写入真实状态；presentation/platform 双向都只经 core 中转。
 - **组合根兜底**：进程级初始化（如 JobScheduler 周期任务重注册）在 `AdSkipApp.onCreate` 完成，不进 UI 层。
-- **device 单向向下**：`device/` 只允许「读系统状态 + 拉起系统页面」，因此可以依赖 `service/` 的只读查询，但不得反向依赖 `ui/`；磁贴关闭服务走 `SkipAdService.requestShutdown()` 发出的进程内定向广播，而非跨包持有 Service 实例。
+- **platform/device 单向向下**：只允许「读系统状态 + 拉起系统页面」，可依赖 `platform/accessibility/` 的只读查询，但不得反向依赖 `presentation/`，也不得直连存储与网络。
 
-> 另一条由测试守护的隐式约定：保活入口表依赖 Android 11+ 的包可见性，`<queries>` 声明必须与 `device/VendorKeepAlive.kt` 的入口表逐条对齐，
+> 另一条由测试守护的隐式约定：保活入口表依赖 Android 11+ 的包可见性，`<queries>` 声明必须与 `platform/device/VendorKeepAlive.kt` 的入口表逐条对齐，
 > 由 `client/app/src/test/java/com/qingqi/adskip/arch/ManifestContractTest.kt` 校验（漏声明只会让跳转静默失败，不会编译报错）。
-
+>
 > **广播必须收窄到本应用**：所有 `sendBroadcast` 都要带 `setPackage(...)`。
 > `ACTION_SKIPPED` 携带用户正在使用的应用名，未收窄的隐式广播可被任意第三方应用注册同名 action 监听；
 > 同样由 `ManifestContractTest` 强制。
-
+>
 > ⚠️ **`RECEIVE_BOOT_COMPLETED` 不是可清理的残留权限**：同步任务用 `setPersisted(true)` 跨重启恢复，
 > 而 `JobInfo.Builder.setPersisted` 标注了 `@RequiresPermission(RECEIVE_BOOT_COMPLETED)`——
 > 缺少该权限时 `JobScheduler.schedule()` **静默返回 0**，表现为「重启后规则不再自动同步」，无崩溃无日志。
@@ -132,7 +147,7 @@
 > **白名单是刻意收紧的**：确需新增根级条目时，先更新 `ProjectStructureTest` 的
 > `ALLOWED_ROOT_DIRS` / `ALLOWED_ROOT_FILES` 并在 PR 说明理由——让结构调整成为一次显式决策，
 > 而不是一次顺手拖拽。若条目属于本机生成物，正确做法是写入根 `.gitignore` 而非加白名单。
-
+>
 > version catalog 与 build-logic 约定插件（阶段 B）已完成，模块拆分（阶段 C）待排期；
 > 迁移细节、具体坑位与回滚策略见
 > [DESIGN-BUILD-FRAMEWORK.md](../planning/DESIGN-BUILD-FRAMEWORK.md)。
@@ -140,6 +155,7 @@
 ## 3. 数据流
 
 **跳过一次广告：**
+
 ```text
 窗口事件 → SkipAdService（150ms 节流 / 1.2s 去抖，Clock 注入）
         → RulesRepository.ruleSetFor(pkg) 取规则（LruCache 命中）
@@ -169,14 +185,15 @@ SyncJobService / 设置页触发 → SyncClient GET /api/v1/rules/latest
 Doze 模式 → 系统推迟到维护窗口执行
 ```
 
-**系统级入口（快捷磁贴 / 厂商保活引导）：**
+**系统级入口（权限清单 / 厂商保活引导）：**
 
 ```text
-下拉磁贴点击 → QuickTileLogic.decide(SkipAdService.isEnabled(ctx))   // 纯函数决策
-            ├─ 运行中 → SkipAdService.requestShutdown(ctx) → 进程内定向广播
-            │        → SkipAdService.disableSelf() → onDestroy（刷盘 + 状态广播）
-            │        → 磁贴乐观置为「已停止」并在 600ms 后复查系统真实状态
-            └─ 未运行 → KeepAliveNavigator.openAccessibilitySettings() → 系统无障碍设置
+「服务设置」权限清单 → PermissionCenter.build(无障碍, 电池, 通知, 自启动)
+                   → PermissionCard 渲染三态（就绪 / 需要处理 / 无法自动确认）
+「去设置」点击 → KeepAliveNavigator.openAccessibilitySettings()
+               → KeepAliveNavigator.openBatteryOptimizationSettings()
+               → KeepAliveNavigator.openNotificationSettings()   // 通知页优先，退回应用详情
+               → KeepAliveNavigator.openKeepAliveSettings()
 
 设置页「打开自启动/后台管理」→ KeepAliveNavigator.openKeepAliveSettings(ctx)
           → VendorKeepAlive.detect(Build.MANUFACTURER, Build.BRAND)   // 纯数据识别
@@ -263,20 +280,20 @@ Doze 模式 → 系统推迟到维护窗口执行
 
 | 需求 | 改动位置 |
 | --- | --- |
-| 新匹配通道（坐标/图像规则） | `engine/RuleSet` 加字段 + `SkipRuleEngine.matches` 加分支 |
-| 新增 UI 页面 | `ui/` 加 Composable Screen + ViewModel + NavHost 路由 |
+| 新匹配通道（坐标/图像规则） | `domain/engine/RuleSet` 加字段 + `SkipRuleEngine.matches` 加分支 |
+| 新增 UI 页面 | `presentation/feature/<name>/` 加 Screen + ViewModel，并在 `navigation/Routes` + NavHost 注册 |
 | 服务端换数据库 | 只改 `server/src/storage/store.ts` |
 | 新增 API | `src/api/` 加路由文件 + `api/index.ts` 加分发 |
-| 客户端换网络库 | 只改 `net/SyncClient` 内部实现 |
-| 新增安全黑名单词 | `engine/SafetyGuard.DENY_WORDS` |
+| 客户端换网络库 | 只改 `data/remote/SyncClient` 内部实现 |
+| 新增安全黑名单词 | `domain/engine/SafetyGuard.DENY_WORDS` |
 
-> 选择器通道（`3.0.3` 内核）即按上表第一行「新匹配通道」的路径落地：`RuleSet` 增 `selectors` 字段 + `SkipRuleEngine` 增通道分支 + 新增 `engine/selector/` 子包，未改动既有两通道语义。
+> 选择器通道（`3.0.3` 内核）即按上表第一行「新匹配通道」的路径落地：`RuleSet` 增 `selectors` 字段 + `SkipRuleEngine` 增通道分支 + 新增 `domain/engine/selector/` 子包，未改动既有两通道语义。
 
 ## 10. 测试
 
 **客户端：**
 
-- JVM 单测：`cd client && ./gradlew testDebugUnitTest`（引擎匹配 + SafetyGuard 护栏 + 架构边界守护 `ArchitectureBoundaryTest` + 清单契约守护 `ManifestContractTest` + 仓库卫生守护 `RepoHygieneTest` + 厂商识别/磁贴决策 `VendorKeepAliveTest`/`QuickTileLogicTest` + 双端选择器契约 `SelectorContractTest`）
+- JVM 单测：`cd client && ./gradlew testDebugUnitTest`（引擎匹配 + SafetyGuard 护栏 + 架构边界守护 `ArchitectureBoundaryTest` + 清单契约守护 `ManifestContractTest` + 仓库卫生守护 `RepoHygieneTest` + 厂商识别 `VendorKeepAliveTest` + 权限三态判定 `PermissionCenterTest`/`NotificationPermissionTest` + 双端选择器契约 `SelectorContractTest`）
 - 构建验证：`cd client && ./gradlew assembleDebug`
 - 格式与静态检查：`cd client && ./gradlew ktlintCheck`（规则集与行宽的唯一事实源是仓库根 `.editorconfig`；插件应用与版本锁定分别在约定插件与 `client/build.gradle.kts`，版本号一律来自 version catalog）
 

@@ -1168,17 +1168,20 @@ Transport
 ## 39. 最终自检清单
 
 ### 需求
+
 - [ ] 需求全部覆盖
 - [ ] 成功/失败/边界场景已考虑
 - [ ] 未加入无关需求
 
 ### 架构
+
 - [ ] 依赖方向正确
 - [ ] 业务规则不依赖基础设施
 - [ ] 没有不必要的绕层
 - [ ] 模块边界清楚
 
 ### 代码
+
 - [ ] 命名清晰
 - [ ] 函数责任集中
 - [ ] 没有明显重复知识
@@ -1186,24 +1189,28 @@ Transport
 - [ ] 没有不必要抽象
 
 ### 数据与并发
+
 - [ ] 空值/边界处理正确
 - [ ] 并发/竞态已检查
 - [ ] 幂等性已考虑
 - [ ] 数据库查询合理
 
 ### 安全
+
 - [ ] 输入已验证
 - [ ] 权限在可信边界检查
 - [ ] 没有硬编码秘密
 - [ ] 日志没有敏感信息
 
 ### 测试
+
 - [ ] 新功能有测试/验证
 - [ ] Bug 有回归测试
 - [ ] 相关测试通过
 - [ ] 更广范围检查按风险执行
 
 ### 交付
+
 - [ ] format/lint/typecheck/build 适用项通过
 - [ ] diff 已检查
 - [ ] 没有无关文件变化
@@ -1271,4 +1278,4 @@ Delivery
 - Production Reliability：超时、重试、限流、隔离、观测。
 - Pragmatic Engineering：自动化、快速反馈、避免过度工程化。
 
-这些方向与公开的 `agent-rules-books` 项目所采用的规则体系一致，但本文件是重新组织后的独立工作协议。该项目目前将 `full` 定义为 canonical complete source，并覆盖 Clean Architecture、Clean Code、Refactoring、软件设计、可靠性、遗留代码等多类规则。 
+这些方向与公开的 `agent-rules-books` 项目所采用的规则体系一致，但本文件是重新组织后的独立工作协议。该项目目前将 `full` 定义为 canonical complete source，并覆盖 Clean Architecture、Clean Code、Refactoring、软件设计、可靠性、遗留代码等多类规则。

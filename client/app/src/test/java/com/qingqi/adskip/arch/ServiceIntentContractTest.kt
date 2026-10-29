@@ -7,9 +7,9 @@ import java.io.File
 /**
  * Service 广播 action 字面量的单一真值源守护。
  *
- * 背景：`ui/` 层被 [ArchitectureBoundaryTest] 禁止 import `service/`（依赖倒置），
+ * 背景：`ui/` 层被 [ArchitectureBoundaryTest] 禁止 import `platform/accessibility/`（依赖倒置），
  * 因此 SettingsViewModel 触发「导出界面快照」时只能用 action 字符串字面量，
- * 与 `service/SkipAdService.kt` 声明的常量分处两处——字面量一旦漂移，
+ * 与 `platform/accessibility/SkipAdService.kt` 声明的常量分处两处——字面量一旦漂移，
  * 按钮点击后广播无人接收、用户毫无反馈。本契约把「两处必须一致」固化为可执行规则。
  */
 class ServiceIntentContractTest {
@@ -18,7 +18,7 @@ class ServiceIntentContractTest {
     fun `snapshot export action matches the service declaration`() {
         val serviceFile = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/service/SkipAdService.kt",
+            "client/app/src/main/java/com/qingqi/adskip/platform/accessibility/SkipAdService.kt",
         )
         val declared = Regex("""ACTION_EXPORT_SNAPSHOT\s*=\s*"([^"]+)"""")
             .find(serviceFile.readText())
@@ -34,7 +34,7 @@ class ServiceIntentContractTest {
 
         val vm = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/ui/settings/SettingsViewModel.kt",
+            "client/app/src/main/java/com/qingqi/adskip/presentation/feature/settings/SettingsViewModel.kt",
         ).readText()
         assertTrue(
             "SettingsViewModel 触发快照导出时必须使用与 service 声明的常量相同的字面量。\n" +

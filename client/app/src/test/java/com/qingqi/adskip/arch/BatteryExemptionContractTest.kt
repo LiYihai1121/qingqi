@@ -19,16 +19,16 @@ import java.io.File
 class BatteryExemptionContractTest {
 
     private val settingsViewModel =
-        "client/app/src/main/java/com/qingqi/adskip/ui/settings/SettingsViewModel.kt"
+        "client/app/src/main/java/com/qingqi/adskip/presentation/feature/settings/SettingsViewModel.kt"
 
     @Test
     fun `battery exemption is tri-state so a failed query is not reported as not exempt`() {
         val status = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/device/BatteryExemption.kt",
+            "client/app/src/main/java/com/qingqi/adskip/platform/device/BatteryExemption.kt",
         )
         assertTrue(
-            "应存在 device/BatteryExemption.kt：把「已豁免 / 未豁免 / 无法确认」收敛成三态，" +
+            "应存在 platform/device/BatteryExemption.kt：把「已豁免 / 未豁免 / 无法确认」收敛成三态，" +
                 "并让判定逻辑可被 JVM 单测覆盖。当前缺失：${status.path}",
             status.isFile,
         )
@@ -63,7 +63,7 @@ class BatteryExemptionContractTest {
         // 设置内容自己有 ViewModel，因此刷新点落在 SettingsContent 所在的文件里。
         val settings = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/ui/settings/SettingsScreen.kt",
+            "client/app/src/main/java/com/qingqi/adskip/presentation/feature/settings/SettingsScreen.kt",
         )
         assertTrue("SettingsScreen 不存在：${settings.path}", settings.isFile)
         val code = stripComments(settings.readText())

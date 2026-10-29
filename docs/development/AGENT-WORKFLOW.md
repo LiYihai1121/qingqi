@@ -1,6 +1,6 @@
 # 多 Agent 协作规范（AGENT-WORKFLOW）
 
-> 状态：已生效；最后更新：2026-09-28。
+> 状态：已生效；最后更新：2026-10-29（#209 合入后按 `git worktree list` 重新核对认领板）。
 > 适用范围：任何在本仓库并行工作的 AI Agent 或协作者（人类多分支开发同理）。
 > 摘要见 [AGENTS.md](../../AGENTS.md)；分支/提交/门禁/发版规范见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 
@@ -65,6 +65,31 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 并行开发期追加两步：`git worktree list` 与认领板（[3.2](#32-认领板)）确认没有他人正在使用同一目录或同一路径，登记后再写第一个文件。
 
+### 2.4 暂存区污染：他人已 `git add` 时如何提交
+
+`git status --short` 只显示「有没有改动」，**不区分「谁改的」**。当另一个 Agent 已经 `git add` 但还没 `commit` 时，直接 `git commit` 会把他暂存的内容一起提交——这是最隐蔽的串味方式，因为从 `git diff` 看「都是未提交改动」。
+
+**判定**（开工自检追加两条）：
+
+```bash
+git diff --cached --name-only | wc -l   # 非 0 = 暂存区已有内容，未必是你的
+git diff --cached --stat | tail -3      # 纯重命名会显示 0 insertions / 0 deletions
+```
+
+**处置：不要 `git commit`，改用独立 worktree 提交**
+
+```bash
+git worktree add .worktrees/<agent>-<slug> -b <type>/<id>-<slug> HEAD
+# 逐文件复制本次改动（不要 cp -r 整个仓库）
+git -C .worktrees/<agent>-<slug> add <你的路径>
+git -C .worktrees/<agent>-<slug> commit -m "<type>(<scope>): <description>"
+```
+
+worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动放行，**无需** `ADSKIP_ALLOW_MAIN_COMMIT` 逃生口。
+
+**实证（2026-10-29）**：主检出停在 `refactor/201-package-layering`，暂存区已有他人 **85 个文件重命名**（纯移动），工作区另有 **116 项**改动。按上述方式提交文档层 10 个文件后，主检出的分支、暂存区、工作区**全部未被触碰**。
+
+**已知代价**：worktree 的基点是当时的 `HEAD`。若他人改动尚未提交，你的提交里引用的路径或符号可能与他即将提交的不一致（2026-10-29 即出现「文档引用旧包路径、代码已是新包结构」）。**提交前确认基线**，必要时在 PR 说明中标注「依赖某未合入分支」，并在其合入后统一更新引用。
 
 ## 3. 所有权：唯一写入者
 
@@ -72,22 +97,49 @@ git rev-parse --show-toplevel  # 确认工作区根
 
 - **同一时刻，一个文件只有一个写入者**。开工前在认领板登记「我负责哪些路径」；
 - 需要改别人认领的文件时，**先在认领板发起交接请求**，由对方确认或改由自己接手，不得直接改；
-- 认领粒度建议到目录：例如 `client/app/src/main/java/com/qingqi/adskip/device/`、`server/src/api/`、`docs/planning/`；
+- 认领粒度建议到目录：例如 `client/app/src/main/java/com/qingqi/adskip/platform/device/`、`server/src/api/`、`docs/planning/`；
 - **不允许两个 Agent 在同一分支上工作**（分支与 Agent 一一对应，见第 4 节）。
 
 ### 3.2 认领板
 
 并行任务时把下表维护在本节（单 Agent 开发时可整表删除）：
 
+> **重建口径（2026-10-29）**：本表改为由机器事实生成，不再依赖人工口头登记——按 `git worktree list`
+> 与各分支相对 `main` 的 merge-base diff 得出「认领路径 = 该分支实际改动过的顶层目录」
+> （括号内为文件数），「状态」由「是否领先 `main`」+「工作区是否干净」判定。这样表上不会出现
+> 「没登记却在实际改」的盲区，代价是**认领变成事后追认而非事前声明**：事前仍须按 3.1 先登记再动手，
+> 本表负责让「谁在写什么」随时可核对。重建前的两行（`gzdx-gitleaks` / `gzdx-ui-polish`，2026-10-11）
+> 所引工作区已不存在，认领路径也随五层重组失效（`ui/theme/**` → `presentation/designsystem/**`），
+> 故整体替换而非追加。
+
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| `codex-server` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/**`、`docs/api/API.md`、`docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md`（本分支条目）、本文件认领行 | 已完成；任务：20261027 后端可靠性整改，未提交，待安全/协议/数据领域评审 |
-| `gzdx` | `.worktrees/gzdx-gitleaks` | `ci/gitleaks-enforce` | `.gitleaks.toml`、`.github/workflows/ci.yml`、`SECURITY.md`、`client/app/src/test/.../arch/ProjectStructureTest.kt`、`AGENT-WORKFLOW.md`（认领板自身） | 进行中 |
+| `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2 + 新增 `reliability.contract.test.ts`）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
+| 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
+| 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`、`docs/development`、`docs/README.md` | 已完成：#209 已吸收其增量，剩余旧包结构描述明确不采纳；工作区仅余 1 项格式化改动待清理 |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
-| `gzdx` | `.worktrees/gzdx-ui-polish` | `feature/icon-refresh`（PR #131）→ `feature/ui-icon-library` → `feature/ui-detail-polish` → `feature/theme-mode-setting`（同工作区串行） | `client/app/src/main/res/**`（图标/磁贴/strings）、`ui/theme/**`、`ui/MainActivity.kt`、`ui/home/**`、`ui/apps/**`、`ui/logs/**`、`ui/profile/**`、`ui/settings/**`、`ui/components/**`、`core/ThemePreferences.kt`、`data/SettingsRepository.kt`、`client/app/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/app/src/test/java/com/qingqi/adskip/arch/UiContractTest.kt`、本文件认领板行 | 进行中 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
 
+**无工作区的待评审分支**（有独有提交、尚未合入，不占用工作区）：
+
+| 分支 | 状态 |
+| --- | --- |
+| `docs/192-rename-signoff` | 待人工评审：2 个独有提交 |
+| `feature/brand-unify-ads` | 待人工评审：3 个独有提交 |
+| `fix/ui-page-header-layout` | 待人工评审：1 个独有提交 |
+
+**主检出（集成位）**：2026-10-29 已 `git switch main` 归位并保持干净——此前它停在
+`refactor/201-package-layering` 上直接开发，正是本节 2026-10-11 事件记录明令禁止的情形。
+此后主检出只做整合与查看：任何开发先 `git worktree add .worktrees/<agent>-<slug>`，
+合并完成后 `git worktree remove` 回收。
+
+> **回收记录（2026-10-29 晚）**：#202–#209 合入后一次性回收 9 个工作区（`agent-199-…`、`codex-click-stats-safety`、
+> `codex-repo-hygiene`、`codex-ui-redesign`、`docs-claim-board`、`refactor-201-package-layering`、
+> `wb-docs-telemetry`、`wb-mobile-functional`、`wb-audit-residuals`）并删除对应 9 个本地分支。
+> 上表剩下的 3 个均因**存在未提交实质改动**而保留——`git worktree remove` 对 dirty 工作区会拒绝，
+> 这是安全网，不要用 `--force` 绕过。
+>
 > **⚠️ 协作事件记录与硬性要求（2026-10-11）**
 >
 > 两个会话同时写入**主检出**（`F:/LocaRepository/qingqi`），造成一次实际冲突：一方的未提交改动
@@ -100,6 +152,18 @@ git rev-parse --show-toplevel  # 确认工作区根
 > 应迁入 `.worktrees/<agent>-v341/` 后继续，并在此表登记认领。
 >
 > 逃生口 `ADSKIP_ALLOW_MAIN_COMMIT=1` **仅限紧急修复**，且必须在对应 PR 说明中登记原因与时间——逃生口是审计债，不是常规通道。
+>
+> **⚠️ 并发写入与落点漂移（2026-10-29 复核）**
+>
+> - **主检出被当开发区**：`refactor/201-package-layering` 上直接落了 `refactor` / `docs` / `ci` / `build(deps)` 多个提交；
+>   同一天还有两个会话同时写主检出（一个改文档、另一个同时改 `README.md` / `CHANGELOG.md` / 依赖清单），
+>   靠人工分辨 `git status` 归属才避免混提交——正是 3.1「唯一写入者」要防的情形，而认领板当时已失效、拦不住。
+> - **落点漂移**：`.agents/worktrees/feature/199-service-permissions-drop-tile` 既不在 `.worktrees/` 下，
+>   目录名也没有 agent 前缀（2.1 要求 `<agent>-<slug>`）。已 `git worktree move` 迁至
+>   `.worktrees/agent-199-service-permissions-drop-tile`，分支与提交不变；**属主仍未登记**，认领板该行标为「未登记」。
+> - **散落脚本**：`.worktrees/` 根目录曾有 5 个一次性编辑脚本（`finish|polish|refine|rewrite|wire-server.py`，
+>   2026-10-27 由 server-reliability 会话遗留，用绝对路径批量改文件）。已归档到仓库外
+>   `F:\All_Data\Temp\stale-agent-copies\2026-10-29-worktrees-scratch\`（附 `SHA256SUMS`），工作区落点不再混入临时文件。
 
 ### 3.3 文档单写者
 
@@ -141,6 +205,12 @@ git rev-parse --show-toplevel  # 确认工作区根
 - **不要把验证推给 CI 或集成者**：CI 红了要重跑一轮，代价远高于本地自测；
 - 报告验证结果时给出**实际执行的命令与结果数字**（形如「N/N 通过」），不给「应该没问题」；
 - 只跑了子集测试时必须显式说明未跑的部分。
+- **结构类改动必须强制重跑，否则拿到的是假绿**：`ProjectStructureTest` / `RepoHygieneTest` /
+  `ArchitectureBoundaryTest` 是**运行时读仓库文件**的（`repoRoot()` 逐级向上找根），而
+  `testDebugUnitTest` 声明的输入只有 classpath 与资源——改了 `.md`、`.gitignore`、根白名单或工作区布局后，
+  任务会 `FROM-CACHE` 复用旧结果（实测 12s 就"通过"，24 个 task 只执行 1 个）。必须：
+  `./gradlew testDebugUnitTest --tests 'com.qingqi.adskip.arch.*' --rerun-tasks --no-build-cache`
+  （实测 78 用例全绿，约 45s；24 个 task 全部 executed 才算真跑过）。
 
 ## 7. 交接：最小交接信息
 
@@ -152,17 +222,17 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 4. **遗留与风险**：已知未覆盖场景、平台差异、需要真机验证的点；
 5. **建议下一步**：接手方可以直接执行的第一条命令。
 
-示例（磁贴任务收工）：
+示例（设备层权限项收口任务收工）：
 
 ```text
-1. 新增 client/.../device/{VendorKeepAlive,QuickTileLogic,KeepAliveNavigator,SkipTileService}.kt，
-   SkipAdService 增加 isEnabled()/requestShutdown()，AndroidManifest 注册磁贴与 <queries>。
-2. 新增 device/ 层边界（ARCHITECTURE.md 2.1），由 ArchitectureBoundaryTest 守护；
-   新增 ManifestContractTest 守护磁贴注册与 <queries> 覆盖。
-3. assembleDebug 通过；testDebugUnitTest 全绿（新增用例若干）；bun test 全绿；typecheck exit 0。
-4. 入口表为社区经验值，ROM 升级可能失效（已做运行时可解析性探测 + 降级）；
-   未在 MIUI/HarmonyOS 真机验证跳转，磁贴点按关闭为“一键关核心功能”策略，待产品确认。
-5. 在 MIUI 与 HarmonyOS 真机上各跑一次保活跳转，把失败项回报以修表。
+1. 新增 client/.../device/NotificationPermission.kt（三态判定，纯函数可 JVM 单测），
+   PermissionCenter.build 增加 notification 参数，ProfileViewModel 读系统真值后入清单。
+2. 边界未变（device/ 仍不得依赖 ui/data/net/sync），由 ArchitectureBoundaryTest 守护；
+   新增 ManifestContractTest 用例守护 POST_NOTIFICATIONS 声明与「磁贴已从清单移除」。
+3. assembleDebug 通过；testDebugUnitTest 全绿（288 例 / 0 失败）；bun test 全绿；typecheck exit 0。
+4. 通知状态取 NotificationManager.areNotificationsEnabled()：同时覆盖「未授予运行时权限」
+   与「用户授权后又关掉通知」两种情况，比 checkSelfPermission 更贴近用户看到的真实开关。
+5. 在 Android 13+ 真机上验证「未授权 → 点去设置 → 弹窗授权 → 清单转为已就绪」。
 ```
 
 ## 8. 冲突裁决
@@ -196,6 +266,10 @@ Agent 之间移交任务或收工时，输出以下五项，缺一项都会让�
 - 本文**不替代** [DEV-ENVIRONMENT.md](DEV-ENVIRONMENT.md)：本机工具链配置仍以它为准；
 - 违反本文任一条时，先修工作区状态（清理副本、补忽略规则、认领文件），再继续开发——**先恢复单一真相，再写代码**。
 
-
 本文不替代流程规范，不制造第二份真相。
 
+本次 UI 交接（2026-10-29）：用户明确授权 Codex 接手。
+
+| Agent | 工作区 | 分支 | 认领路径 | 状态 |
+| --- | --- | --- | --- | --- |
+| Codex | `.worktrees/codex-ui-redesign` | `feature/200-client-ui` | `presentation/**`、`res/values*/strings.xml`、`docs/diagrams/ui-preview-v4.html`、`docs/planning/DESIGN-UI-*.md`、`docs/README.md` | 待合并（#200） |

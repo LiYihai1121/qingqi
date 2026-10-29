@@ -1,5 +1,8 @@
 # 分层与模块化重构技术设计（DESIGN-MODULE-REARCH）
 
+> 状态更新（2026-10-29）：包级**五层重组已完成**（`ui/`→`presentation/`、`engine/`→`domain/engine/`、`net/`→`data/remote/`、`sync/`→`data/sync/`、`service/`→`platform/accessibility/`、`device/`→`platform/device/`）。本文中的旧路径按 [ARCHITECTURE-DIRECTORY-STRUCTURE.md](../architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) 第 2.1 节映射表换算；
+**模块拆分（R1）的目标与顺序不变**——重组只是让拆分点从「包」变成「层」，边界仍由 `ArchitectureBoundaryTest` 强制。
+>
 > 状态：待评审（本文随 feature 分支提交，合并前需领域负责人 review）；最后更新：2026-10-16。
 > 范围：针对「**去广告覆盖率不够**」这一业务目标，评审客户端的**分层与模块化**重构路线，给出技术选型 ADR、目标模块结构、迁移顺序、契约测试清单与回滚策略。
 > 依据：全量源码核对（2026-10-16，`client/app/src/main/java` 97 个 `.kt` / ≈14.6k LOC，`server/src` 14 个 `.ts` / ≈1.6k LOC）与既有文档 [DESIGN-ARCH-EVOLUTION.md](DESIGN-ARCH-EVOLUTION.md)、[DESIGN-BUILD-FRAMEWORK.md](DESIGN-BUILD-FRAMEWORK.md)、[DESIGN-ADS-FILTERING.md](DESIGN-ADS-FILTERING.md)、[ROADMAP-ADS.md](ROADMAP-ADS.md)、[ARCHITECTURE.md](../architecture/ARCHITECTURE.md)。
@@ -104,7 +107,7 @@ client/
 │       └── 权限面：BIND_NOTIFICATION_LISTENER_SERVICE（新，major）
 ├── data/                         # Android library：Prefs / RulesRepository / StatsRepository / SettingsRepository
 ├── net/                          # Android library：SyncClient
-├── device/                       # Android library：VendorKeepAlive / QuickTileLogic / SkipTileService
+├── device/                       # Android library：VendorKeepAlive / KeepAliveNavigator / 权限三态状态源
 └── sync/                         # Android library：SyncJobService
 ```
 

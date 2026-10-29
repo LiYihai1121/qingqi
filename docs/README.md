@@ -14,6 +14,7 @@ docs/
 │   └── ARCHITECTURE-DIRECTORY-STRUCTURE.md  完整目录树与各目录 SDLC 职责映射（目录设计单点事实源）
 ├── development/       开发环境与工具链
 │   ├── DEV-ENVIRONMENT.md
+│   ├── DEV-PROJECT-GUIDE.md      项目开发总览（概述/需求/架构/模块/数据与接口/环境/计划/测试/部署/风险，团队协作入口）
 │   └── AGENT-WORKFLOW.md         多 Agent 协作：隔离 / 所有权 / 契约 / 交接
 ├── planning/          规划与发布记录
 │   ├── ROADMAP.md                 版本序列（唯一事实源）
@@ -26,27 +27,41 @@ docs/
 │   ├── DESIGN-ARCH-REVIEW.md      整体架构评审与技术设计（含 P1/P2 落地修复规格）
 │   ├── DESIGN-BUILD-FRAMEWORK.md  构建框架工程化（version catalog / build-logic / 模块拆分）
 │   ├── DESIGN-ARCH-EVOLUTION.md   架构演进计划（R1 多模块化 / R2 SQLite 存储 / R3 部署）
+│   ├── DESIGN-SERVER-MOBILE-READINESS.md  服务端移动端就绪设计（上报可靠性 / 传输效率 / 生命周期协商 / 可维护性）
+│   ├── DESIGN-TECH-SOLUTION.md    技术方案开发文档（研发交付入口：术语 / 需求 / 架构 / 模块 / 数据与接口 / 难点 / 计划 / 验收 / 风险）
 │   ├── DESIGN-MODULE-REARCH.md    分层与模块化重构技术设计（覆盖率驱动 · 能力层模块化 · ADR）
 │   ├── DESIGN-UI-REVIEW.md        客户端 UI 设计评审与重构方案（问题清单 / 令牌与组件重构 / 验收门禁）
 │   ├── DESIGN-UI-V4.md            客户端 UI v4 设计还原与交互规格（六模块功能 · 交互流程 · 边界 · 差异清单）
+│   ├── DESIGN-AD-PAIN-RESEARCH.md 手机广告用户痛点证据台账（法规 / 监管 / 调查数据 / 司法 / 厂商能力，含来源与可信度标注）
 │   ├── PLAN-OFFLINE-SYNC.md       离线缓存与数据同步整体重设计实施计划（计划书，未评审）
+│   ├── PLAN-CLIENT-REFORM.md      客户端改造计划（模块范围 / 批次 / 风险）与合规、市场定位评估
+│   ├── PLAN-REMEDIATION.md        整改总纲：需求台账 / 结论与分歧 / 分阶段实施 / 技术方案（整合层，不复制专项细节）
 │   ├── ROADMAP-ADS-VERIFY.md      能力边界「不做限制」：外部证据 / 风险评估 / 门禁验证记录
 │   ├── FOLLOW-UP.md               安全加固与技术补充计划（已修复清单 / 待修复 / 里程碑）
+│   ├── FOLLOW-UP-PROCESS-AUDIT.md 流程审计报告（首次 2026-10-11 + 第二次复跑 2026-10-29：SDLC 六阶段）
+│   ├── FOLLOW-UP-DOC-AUDIT.md     文档与技能合规审查（一次性报告，处置后归档）
+│   ├── DESIGN-TELEMETRY-ANALYTICS.md  行为分析平台设计（目标 / 埋点 / 指标 / 数据模型 / ADR / 风险）
+│   ├── PLAN-TELEMETRY-ANALYTICS.md    行为分析平台开发计划（WBS / 排期 / 测试 / CI / 部署 / 分工）
 │   └── RELEASE-HISTORY.md         发布链路（tag / 提交 / Release / 制品）
 └── diagrams/          架构图（adskip-architecture.json 源 + .html 渲染）
 ```
 
 > 根级不在 `docs/` 下的文档：`skills/README.md` 是**随仓库版本控制的 Agent 技能**的开发规范（`skills/` 目录挂载于根 `kilo.json`），见 [../skills/README.md](../skills/README.md)。
 
+当前客户端设计入口：[DESIGN-UI-CURRENT.md](planning/DESIGN-UI-CURRENT.md)。浏览器预览：[交互原型](diagrams/ui-preview-v4.html)（演示数据，非原生截图）。
+
 ## 阅读顺序
 
 | 我想… | 读 |
 | --- | --- |
 | 了解这是什么、怎么用 | [../README.md](../README.md) |
+| **新人上手①（先读）**：项目是什么、怎么跑起来、环境与依赖、部署运维、跨模块数据流、风险 | [development/DEV-PROJECT-GUIDE.md](development/DEV-PROJECT-GUIDE.md) |
 | 了解架构、模块职责、协议与安全模型 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) |
 | 查完整目录树、每个目录的用途与 SDLC 阶段映射 | [architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md](architecture/ARCHITECTURE-DIRECTORY-STRUCTURE.md) |
 | 对接服务端接口 | [api/API.md](api/API.md) |
 | 知道接下来做什么、按什么顺序做 | [planning/ROADMAP.md](planning/ROADMAP.md) → [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) |
+| 了解行为分析平台的目标、埋点与指标口径、数据模型与选型 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) |
+| 查看行为分析平台的排期、WBS、测试与部署方案 | [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 看某项能力的技术设计与实施步骤 | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) |
 | 查看 Top 30 App 的真机验收标准和记录模板 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md)（尚未实测） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
@@ -55,14 +70,21 @@ docs/
 | 查「不做限制」边界变更的证据、风险评估与验证数字 | [planning/ROADMAP-ADS-VERIFY.md](planning/ROADMAP-ADS-VERIFY.md) |
 | 了解构建框架演进方案（version catalog / 约定插件 / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) |
 | 了解前后端架构演进方向与技术选型（R1–R3） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) |
+| 评审服务端是否满足移动端要求（上报幂等/归日/压缩/分页/版本闸门/可维护性） | [planning/DESIGN-SERVER-MOBILE-READINESS.md](planning/DESIGN-SERVER-MOBILE-READINESS.md) |
+| **新人上手②（再读）**：统一术语、需求编号（FR/NFR）、架构、模块 DoD、数据模型、接口、技术难点、验收清单 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md)（已评审基线，与①冲突时以此为准） |
 | 评审分层/模块化重构路线（覆盖率驱动 · 能力层模块边界 · 迁移顺序） | [planning/DESIGN-MODULE-REARCH.md](planning/DESIGN-MODULE-REARCH.md) |
 | 评审客户端 UI 设计、查重构依据与验收门禁 | [planning/DESIGN-UI-REVIEW.md](planning/DESIGN-UI-REVIEW.md) |
 | 实现/评审当前 UI（v4 蓝色方案）：模块功能、交互流程、边界处理、与设计图的差异 | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) |
 | 查离线缓存与数据同步重设计的实施计划（未评审） | [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) |
+| 评审客户端改造范围、批次顺序与风险，或查合规与市场定位结论 | [planning/PLAN-CLIENT-REFORM.md](planning/PLAN-CLIENT-REFORM.md) |
+| 查手机广告用户痛点的可核对事实（法规条款 / 监管通报 / 调查数据 / 判例 / 厂商能力） | [planning/DESIGN-AD-PAIN-RESEARCH.md](planning/DESIGN-AD-PAIN-RESEARCH.md) |
+| 要一条可执行的整改序列（需求台账 / 待决项 / 分歧 / 阶段计划 / 技术方案） | [planning/PLAN-REMEDIATION.md](planning/PLAN-REMEDIATION.md) |
+| 查手机广告用户痛点的证据来源与可信度标注 | [planning/DESIGN-AD-PAIN-RESEARCH.md](planning/DESIGN-AD-PAIN-RESEARCH.md) |
 | 配置本机开发环境 | [development/DEV-ENVIRONMENT.md](development/DEV-ENVIRONMENT.md) |
 | 查某版本发布到哪个提交、哪个 tag | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) |
 | 查安全加固/技术短板跟进计划（已修复清单 / 待修复 / 里程碑） | [planning/FOLLOW-UP.md](planning/FOLLOW-UP.md) |
-| 查开发流程合规审计结论与历史豁免线（2026-10） | [planning/FOLLOW-UP-PROCESS-AUDIT.md](planning/FOLLOW-UP-PROCESS-AUDIT.md) |
+| 查文档与技能的一致性审查结论（漂移清单 / 覆盖缺口 / 修复建议） | [planning/FOLLOW-UP-DOC-AUDIT.md](planning/FOLLOW-UP-DOC-AUDIT.md) |
+| 查开发流程合规审计结论、历史豁免线与 SDLC 六阶段复跑（2026-10-29） | [planning/FOLLOW-UP-PROCESS-AUDIT.md](planning/FOLLOW-UP-PROCESS-AUDIT.md) |
 | 查版本控制与发布管理体系（分支模型/版本号/发布工作流/路线图） | [planning/DESIGN-VERSION-MANAGEMENT.md](planning/DESIGN-VERSION-MANAGEMENT.md) |
 | 了解提交/分支/发布/回滚规范 | [CONTRIBUTING.md](../CONTRIBUTING.md)（执行摘要见 [AGENTS.md](../AGENTS.md)） |
 | 多个 Agent / 多分支并行开发时的隔离与协作 | [development/AGENT-WORKFLOW.md](development/AGENT-WORKFLOW.md) |
@@ -78,13 +100,17 @@ docs/
 | L1 选择器技术方案与步骤 A–F | [planning/DESIGN-PHASE1-SELECTOR.md](planning/DESIGN-PHASE1-SELECTOR.md) | 引用版本号与里程碑编号 |
 | Top 30 真机验收口径、试次记录与放行证据 | [testing/TOP30-REAL-DEVICE-ACCEPTANCE.md](testing/TOP30-REAL-DEVICE-ACCEPTANCE.md) | 只记录实际设备结果，不将模拟器/单测标为真机通过 |
 | L2 DNS、L3 Root、L4 通知治理边界与 Phase 0 决策提案 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md) | 提案不代表正式合规批准；L2/L3 仍禁用 |
-| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单；
-| 架构演进（客户端多模块化 / 服务端存储 / 部署） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) | 引用 ROADMAP 版本号；与 L1–L5 能力里程碑的合并点见其第 7 节 |目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
+| 构建框架演进方案（version catalog / build-logic / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) | 本页不复制其坑位清单 |
+| 架构演进（客户端多模块化 / 服务端存储 / 部署） | [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) | 引用 ROADMAP 版本号；与 L1–L5 能力里程碑的合并点见其第 7 节；目录结构的**已生效**规则见 [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) 第 2.2 节 |
+| 服务端 API 的移动端契约（上报可靠性 / 传输效率 / 生命周期协商 / 服务端可维护性） | [planning/DESIGN-SERVER-MOBILE-READINESS.md](planning/DESIGN-SERVER-MOBILE-READINESS.md) | 客户端队列的存储与调度以 [planning/PLAN-OFFLINE-SYNC.md](planning/PLAN-OFFLINE-SYNC.md) 为准，本文只定协议约束；接口字段最终以 `api/API.md` 与 `server/test/fixtures/api.contract.json` 为准 |
+| 整改的执行序列、需求台账与阶段划分 | [planning/PLAN-REMEDIATION.md](planning/PLAN-REMEDIATION.md) | 整合层：只承载优先级与依赖，细节以 DESIGN-SERVER-MOBILE-READINESS / FOLLOW-UP-DOC-AUDIT / FOLLOW-UP-PROCESS-AUDIT 三份为准 |
+| 研发交付口径：统一术语、模块完成定义（DoD）、测试分层与验收清单 | [planning/DESIGN-TECH-SOLUTION.md](planning/DESIGN-TECH-SOLUTION.md) | 交付入口：架构细节以 ARCHITECTURE.md 为准，接口字段以 API.md 为准，本文只做导航与补充 |
 | 分层/模块化重构路线（覆盖率驱动 · 能力层模块边界） | [planning/DESIGN-MODULE-REARCH.md](planning/DESIGN-MODULE-REARCH.md) | 其为 [planning/DESIGN-ARCH-EVOLUTION.md](planning/DESIGN-ARCH-EVOLUTION.md) 的 R1 动机重述与范围扩展；模块拆分蓝图仍以 [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) 阶段 C 为准 |
 | 客户端 UI 设计规范与本次重构决策（三态状态语义 / 令牌与组件契约） | [planning/DESIGN-UI-REVIEW.md](planning/DESIGN-UI-REVIEW.md) | 表现层（`ui/`）的唯一评审记录；间距与颜色契约由 `UiContractTest` / `ColorSchemeContractTest` 机器强制 |
 | 客户端 UI 的**当前**落地规格（v4：六模块功能 / 交互流程 / 边界 / 差异清单） | [planning/DESIGN-UI-V4.md](planning/DESIGN-UI-V4.md) | 表现层的现行事实源；v3 评审记录（DESIGN-UI-REVIEW）保留为历史依据，两者冲突时以本文为准 |
 | 已发布版本链路（tag / 提交 / Release / 制品） | [planning/RELEASE-HISTORY.md](planning/RELEASE-HISTORY.md) | CHANGELOG 只记用户可见变更，不复述链路 |
 | 协议与接口 | [api/API.md](api/API.md) + [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md)（第 7 节） | DESIGN 只描述增量字段 |
+| 行为埋点事件、指标口径与洞察规则 | [planning/DESIGN-TELEMETRY-ANALYTICS.md](planning/DESIGN-TELEMETRY-ANALYTICS.md) | 排期与人力见 [planning/PLAN-TELEMETRY-ANALYTICS.md](planning/PLAN-TELEMETRY-ANALYTICS.md) |
 | 客户端/服务端分层与模块职责 | [architecture/ARCHITECTURE.md](architecture/ARCHITECTURE.md) | README 只给目录树摘要 |
 | 流程规范（分支/提交/门禁/发版） | [CONTRIBUTING.md](../CONTRIBUTING.md) | [AGENTS.md](../AGENTS.md) 为执行摘要 |
 | 多 Agent 并行协作（隔离/所有权/契约/交接） | [development/AGENT-WORKFLOW.md](development/AGENT-WORKFLOW.md) | 本页不复制其条款，仅登记入口；其卫生检查由 `RepoHygieneTest` 强制 |
@@ -111,7 +137,7 @@ docs/
 
 未排期能力见 [planning/ROADMAP.md](planning/ROADMAP.md) 的「候选池」；L2/L3 启动前必须先完成 Phase 0 合规评审（见 [planning/ROADMAP-ADS.md](planning/ROADMAP-ADS.md) 第 3 节）。
 
-> **已落地**：系统级体验——下拉快捷磁贴（`TileService`）+ 厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。
+> **已落地**：系统级体验——厂商保活/自启动引导（`device/` 层，含 `<queries>` 可见性声明与无障碍真实状态查询）已随 `v3.1.0-rc.1` 预发布、`v3.1.0` 正式版发布（tag `v3.1.0`），见 [planning/ROADMAP.md](planning/ROADMAP.md)。下拉快捷磁贴（`TileService`）曾随同一版本发布，现已随权限清单重构**整体下线**（见 [CHANGELOG.md](../CHANGELOG.md) Unreleased）。
 
 ## 规划中尚未创建的文档
 

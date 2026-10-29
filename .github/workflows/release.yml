@@ -178,7 +178,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          prev_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]+.[0-9]+.[0-9]+' "${RELEASE_TAG}^{commit}^" 2>/dev/null || true)"
+          # `--match` 吃的是 glob 而非正则：写成 'v[0-9]+.[0-9]+.[0-9]+' 时，`+` 与 `[0-9]`
+          # 都按字面/单字符解释，一个 tag 也匹配不到，于是永远走下方「未找到上一版本 tag」
+          # 分支——双轨第二轨（notes-draft.md）自 v1.0.0 起实际从未生效（v1.2.0 发布时发现）。
+          # 排除 `-rc.*` 以保持原意「上一个正式版」：发 rc 时回退到最近的正式 tag。
+          prev_tag="$(git describe --tags --abbrev=0 --match 'v*.*.*' --exclude '*-rc.*' "${RELEASE_TAG}^{commit}^" 2>/dev/null || true)"
           if [ -n "$prev_tag" ] && [ "$prev_tag" != "$RELEASE_TAG" ]; then
             node scripts/generate-changelog.mjs "$prev_tag" "$RELEASE_TAG" > release/notes-draft.md
           else

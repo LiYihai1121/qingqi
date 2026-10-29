@@ -34,13 +34,13 @@ class AccessibilityStatusContractTest {
             readers.size == 1,
         )
 
-        // 查询落在哪一层由依赖规则决定：ui/ 不能 import service/（依赖倒置），
-        // 因此权威查询只能在 device/（device 可被 ui 与 service 双方使用）。
+        // 查询落在哪一层由依赖规则决定：ui/ 不能 import platform/accessibility/（依赖倒置），
+        // 因此权威查询只能在 platform/device/（device 可被 ui 与 service 双方使用）。
         // 这里只固化「唯一」，不固化具体路径，避免把架构约束写死成脆弱的路径断言。
         val reader = readers.first().relativeTo(repoRoot()).path.replace('\\', '/')
         assertTrue(
             "权威查询不应出现在 ui/ 层（ui 只呈现状态，不查系统）：$reader",
-            !reader.startsWith("client/app/src/main/java/com/qingqi/adskip/ui/"),
+            !reader.startsWith("client/app/src/main/java/com/qingqi/adskip/presentation/"),
         )
     }
 
@@ -48,10 +48,10 @@ class AccessibilityStatusContractTest {
     fun `accessibility status never silently reports off when the query fails`() {
         val status = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/device/AccessibilityStatus.kt",
+            "client/app/src/main/java/com/qingqi/adskip/platform/device/AccessibilityStatus.kt",
         )
         assertTrue(
-            "应存在 device/AccessibilityStatus.kt：把「系统真值 / 进程信号 / 查询失败」" +
+            "应存在 platform/device/AccessibilityStatus.kt：把「系统真值 / 进程信号 / 查询失败」" +
                 "三种输入收敛成一个纯函数，使其可被 JVM 单测覆盖。当前缺失：${status.path}",
             status.isFile,
         )
@@ -75,8 +75,8 @@ class AccessibilityStatusContractTest {
         // 首页与「我的」页都渲染服务状态；两处都必须走同一个「有效状态」出口，
         // 否则会出现「首页说开着、我的页说关着」。
         val consumers = listOf(
-            "ui/home/HomeViewModel.kt",
-            "ui/profile/ProfileViewModel.kt",
+            "presentation/feature/home/HomeViewModel.kt",
+            "presentation/feature/profile/ProfileViewModel.kt",
         )
         val offenders = consumers.filter { rel ->
             val file = File(repoRoot(), "client/app/src/main/java/com/qingqi/adskip/$rel")
@@ -98,7 +98,7 @@ class AccessibilityStatusContractTest {
     fun `the declared service class name matches the manifest`() {
         val status = File(
             repoRoot(),
-            "client/app/src/main/java/com/qingqi/adskip/device/AccessibilityStatus.kt",
+            "client/app/src/main/java/com/qingqi/adskip/platform/device/AccessibilityStatus.kt",
         )
         val declared = Regex("""SKIP_AD_SERVICE_CLASS_NAME\s*=\s*"([^"]+)"""")
             .find(status.readText())
@@ -106,7 +106,7 @@ class AccessibilityStatusContractTest {
             ?.get(1)
 
         assertTrue(
-            "AccessibilityStatus 必须声明 SKIP_AD_SERVICE_CLASS_NAME（ui/ 层不能 import service/，" +
+            "AccessibilityStatus 必须声明 SKIP_AD_SERVICE_CLASS_NAME（ui/ 层不能 import platform/accessibility/，" +
                 "只能经此常量告知「查哪个服务」）：\n  ${status.path}",
             declared != null,
         )

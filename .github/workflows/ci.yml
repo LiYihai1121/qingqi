@@ -33,6 +33,25 @@ jobs:
           grep -Fq "## [$server_version]" CHANGELOG.md || { echo "::error::CHANGELOG.md must contain a section for server version $server_version"; exit 1; }
           echo "Version contract OK: server=$server_version Android=$android_version_name versionCode=$android_version_code"
 
+  docs:
+    name: Docs Lint
+    runs-on: ubuntu-latest
+    # 秒级 job，放在最前面：文档结构错误（标题层级断裂、围栏缺语言、表格列数不齐）
+    # 不需要等 Android 构建跑完才知道。
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Lint Markdown docs
+        # 规则集与理由见仓库根 `.markdownlint-cli2.jsonc`（该文件同时被 VS Code 的
+        # markdownlint 扩展读取，本地与 CI 结论一致）。只拦「会改变渲染结果或让读者
+        # 看到错内容」的问题；中文文风类规则（行宽、裸 URL、加粗引导语、列表编号、
+        # 表格列风格）已逐条关闭并写明实测数量与重启条件。
+        #
+        # 版本按精确号 pin 到 0.24.0（对应 markdownlint 0.42.0），与本地
+        # `npx markdownlint-cli2@0.24.0` 同版本；不跟随 latest，避免规则集升级
+        # 让存量文档在无人改动的情况下突然判红。
+        run: npx --yes markdownlint-cli2@0.24.0
+
   structure:
     name: Structure Contract
     runs-on: ubuntu-latest

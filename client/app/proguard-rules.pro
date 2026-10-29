@@ -1,12 +1,12 @@
 # AdSkip ProGuard / R8 规则
 
 # 无障碍服务类名不可被混淆/移除（系统通过反射发现服务）
--keep class com.qingqi.adskip.service.SkipAdService { *; }
--keep class com.qingqi.adskip.sync.SyncJobService { *; }
+-keep class com.qingqi.adskip.platform.accessibility.SkipAdService { *; }
+-keep class com.qingqi.adskip.data.sync.SyncJobService { *; }
 -keep class com.qingqi.adskip.AdSkipApp { *; }
 
-# 引擎接口与模型（保守保留；无反射引用，框架适配 FrameworkAdNode 归属 service 层）
--keep class com.qingqi.adskip.engine.** { *; }
+# 引擎接口与模型（保守保留；无反射引用，框架适配 FrameworkAdNode 归属 platform/accessibility 层）
+-keep class com.qingqi.adskip.domain.engine.** { *; }
 
 # 数据模型
 -keep class com.qingqi.adskip.data.** { *; }

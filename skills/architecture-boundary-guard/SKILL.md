@@ -6,6 +6,8 @@ metadata:
   workflow: feature-branch
 ---
 
+# 架构边界守护（architecture-boundary-guard）
+
 ## 规范唯一事实源（此处不复述规范）
 
 | 关注点 | 事实源 |
