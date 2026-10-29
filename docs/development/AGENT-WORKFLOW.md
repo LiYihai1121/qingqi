@@ -114,6 +114,7 @@ worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动�
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
+| `codex-iqiyi` | `.worktrees/codex-iqiyi-skip` | `fix/217-iqiyi-splash-skip` | `domain/engine/IqiyiSplashRule.kt`、对应测试、`platform/accessibility/SkipAdService.kt` 的爱奇艺匹配接入 | 进行中：#217，独立真机诊断；沿用现有点击护栏 |
 | `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2 + 新增 `reliability.contract.test.ts`）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`、`docs/development`、`docs/README.md` | 已完成：#209 已吸收其增量，剩余旧包结构描述明确不采纳；工作区仅余 1 项格式化改动待清理 |
