@@ -74,6 +74,7 @@ ktlint-cli = { group = "com.pinterest.ktlint", name = "ktlint-cli", version.ref 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 adskip-android-application = { id = "adskip.android.application", version.ref = "adskipPlugins" }

@@ -720,7 +720,8 @@ class ProjectStructureTest {
 
         // client/ 白名单：末尾几项为本机生成/被忽略的目录，允许存在但不强制
         val ALLOWED_CLIENT_ENTRIES = setOf(
-            "app", "gradle",
+            "app", "capability", // L2/L3 隔离原型模块（Issue #84，物理隔离且不被 :app 依赖）
+            "gradle",
             "build-logic", // 复合构建（included build）：托管约定插件，非主构建模块
             "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
             "gradlew", "gradlew.bat", "local.properties",
