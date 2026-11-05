@@ -25,5 +25,9 @@ gradlePlugin {
             id = "adskip.android.application"
             implementationClass = "com.qingqi.adskip.gradle.AdSkipAndroidApplicationPlugin"
         }
+        create("adskipAndroidLibrary") {
+            id = "adskip.android.library"
+            implementationClass = "com.qingqi.adskip.gradle.AdSkipAndroidLibraryPlugin"
+        }
     }
 }

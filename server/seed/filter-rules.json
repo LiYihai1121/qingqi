@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "source": "bundled-prototype-placeholder",
+  "license": "project-own (no third-party rule set bundled)",
+  "version": "0.0.0-prototype",
+  "updatedAt": "2026-11-05",
+  "domains": [],
+  "allowlist": [],
+  "enabledByDefault": false,
+  "phase0Approved": false,
+  "note": "L2 隔离原型占位规则源：Phase 0 合规评审通过前不捆绑任何第三方规则集，默认关闭且不进入发布分支。",
+  "sha256": "d5330fcee5bb70dd6004daef2cfd645977f8b423582995be554aeb67393f58e0"
+}

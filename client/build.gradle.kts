@@ -5,6 +5,8 @@ import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
     alias(libs.plugins.android.application) apply false
+    // L2/L3 隔离原型使用独立 library 模块，同一 AGP 版本在此披露
+    alias(libs.plugins.android.library) apply false
     // ktlint 以 apply false 披露：约定插件会把它应用到各 Android 模块，
     // 而本脚本需要它的 KtlintExtension 类型来锁定 ktlint 本体版本。
     alias(libs.plugins.ktlint) apply false

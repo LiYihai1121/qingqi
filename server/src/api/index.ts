@@ -3,14 +3,16 @@ import { createAuth } from "../middleware/auth";
 import * as defaultLimiter from "../middleware/rateLimit";
 import * as defaultAccess from "../middleware/accessLog";
 import { createRulesApi } from "./rulesApi";
+import { createFilterRulesApi } from "./filterRulesApi";
 import { createStatsApi } from "./statsApi";
 import { createHealthApi } from "./healthApi";
 import * as defaultStore from "../storage/store";
 import { config as defaultConfig, type Config } from "../config";
 
 
-export function createApi(config: Config = defaultConfig, store: ReturnType<typeof defaultStore.createStore> = defaultStore, limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter, access: ReturnType<typeof defaultAccess.createAccessLog> = defaultAccess) {
+export function createApi(config: Config = defaultConfig, store: ReturnType<typeof defaultStore.createStore> = defaultStore, limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter, access: ReturnType<typeof defaultAccess.createAccessLog> = defaultAccess, filterRulesPath?: string) {
   const rulesApi = createRulesApi(config, store, limiter);
+  const filterRulesApi = createFilterRulesApi(config, limiter, filterRulesPath);
   const statsApi = createStatsApi(config, store, limiter);
   const healthApi = createHealthApi(store, limiter);
   const { requireAdmin } = createAuth(config);
@@ -39,6 +41,10 @@ export function createApi(config: Config = defaultConfig, store: ReturnType<type
     }
     if (method === "GET" && p === "/api/v1/stats/summary") {
       return statsApi.summary(req, url, ctx);
+    }
+    if (method === "GET" && p === "/api/v1/filter-rules") {
+      // L2 隔离原型的只读规则源；Phase 0 未批准前客户端不得据此自动启用 VPN
+      return filterRulesApi.latest(req, url, ctx);
     }
     if (method === "GET" && p === "/api/v1/health") {
       return healthApi.health(req, url, ctx);

@@ -94,10 +94,14 @@ jobs:
         # 只跑 arch 包下的守护测试：失败要在几分钟内暴露，而不是等完整 Android 构建跑完。
         # 覆盖 ProjectStructureTest（目录/产物/模块/包结构）、ArchitectureBoundaryTest（包边界）、
         # ManifestContractTest（Manifest 契约）、RepoHygieneTest（仓库卫生）。
+        # 必须限定 :app 作用域：不带项目前缀的 testDebugUnitTest 会把 --tests 过滤器套到所有
+        # 子项目，而 :capability:l2vpn / :capability:l3shake 没有 arch 包，Gradle 会直接报
+        # "No tests found for given includes" 让整个 job 失败（Issue #84 隔离原型引入的回归）。
+        # 能力模块的单测由下面 Android Build & Test 的全量 testDebugUnitTest 覆盖。
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew testDebugUnitTest --tests 'com.qingqi.adskip.arch.*' --no-daemon 2>&1 | tee /tmp/android-contract.log
+          ./gradlew :app:testDebugUnitTest --tests 'com.qingqi.adskip.arch.*' --no-daemon 2>&1 | tee /tmp/android-contract.log
 
       - name: Upload contract logs
         if: always()
