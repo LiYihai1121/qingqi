@@ -112,6 +112,67 @@ class CapabilityIsolationContractTest {
     }
 
     @Test
+    fun `l2 routes only its virtual dns address into the tunnel`() {
+        val service = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/L2DnsVpnService.kt").readText()
+        assertTrue("系统 DNS 必须是专用虚拟地址", service.contains("addDnsServer(cfg.virtualDns)"))
+        assertTrue("TUN 只能路由虚拟 DNS /32", service.contains("addRoute(cfg.virtualDns, 32)"))
+        assertFalse(
+            "不得再把公共解析器地址写死进 addRoute，否则发往该 IP 的非 DNS 流量会被 Unhandled 丢弃",
+            service.contains("addRoute(\"1.1.1.1\""),
+        )
+
+        val config = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/L2VpnConfig.kt")
+        assertTrue("缺少 L2VpnConfig（虚拟 DNS / TUN / 真实上游分离）", config.isFile)
+        val text = config.readText()
+        assertTrue("虚拟 DNS 默认地址缺失", text.contains("DEFAULT_VIRTUAL_DNS = \"10.233.0.1\""))
+        assertTrue("必须禁止虚拟 DNS 与真实上游同址", text.contains("virtualDns != upstreamDns"))
+        assertTrue("必须校验 IPv4 字面量", text.contains("isIpv4Literal"))
+    }
+
+    @Test
+    fun `l2 controller is synchronized across the tunnel pump and the main thread`() {
+        val controller = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/L2VpnController.kt").readText()
+        listOf("snapshot", "isRunning", "requestStart", "onVpnEstablished", "stop", "record").forEach { name ->
+            assertTrue(
+                "$name 必须被 @Synchronized 保护：pump 线程与主线程会同时访问状态机",
+                Regex("""@Synchronized\s*fun\s+$name\s*\(""").containsMatchIn(controller),
+            )
+        }
+    }
+
+    @Test
+    fun `rule source verification recomputes the digest and never auto enables the vpn`() {
+        val verifier = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/FilterRuleSourceVerifier.kt")
+        assertTrue("缺少客户端规则源校验", verifier.isFile)
+        val text = verifier.readText()
+        assertTrue("AUTO_ENABLE_ALLOWED 必须恒为 false", text.contains("AUTO_ENABLE_ALLOWED = false"))
+        assertTrue("客户端必须复算摘要内容，而不是只校验 sha256 的格式", text.contains("FilterRuleDigest.compute(payload)"))
+        assertTrue("载荷必须携带 note 才能复算服务端摘要", text.contains("val note: String"))
+
+        val digest = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/FilterRuleDigest.kt")
+        assertTrue("缺少与服务端对齐的规范化摘要实现", digest.isFile)
+        assertTrue("摘要必须覆盖域名与白名单", digest.readText().contains("jsonArray(payload.domains)"))
+
+        val service = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/L2DnsVpnService.kt").readText()
+        assertTrue("缺少规则源校验注入链路", service.contains("fun applyVerifiedRules"))
+        val injection = service.substringAfter("fun applyVerifiedRules", "").substringBefore("fun configure", "")
+        assertFalse(
+            "注入规则不得顺带触发启动或授权流程",
+            injection.contains("requestStart") || injection.contains("onVpnEstablished"),
+        )
+    }
+
+    @Test
+    fun `server start options expose the prototype rule source path for tests`() {
+        val server = File(repoRoot(), "server/server.ts").readText()
+        assertTrue("StartOptions 缺少 filterRulesPath 注入点", server.contains("filterRulesPath?: string"))
+        assertTrue(
+            "startServer 必须把注入路径透传给 createApi，否则测试无法替换规则源",
+            server.contains("createApi(config, store, limiter, access, options.filterRulesPath)"),
+        )
+    }
+
+    @Test
     fun `l2 rule source keeps provenance metadata`() {
         val rules = File(l2Root(), "src/main/java/com/qingqi/adskip/l2vpn/FilterRuleSet.kt").readText()
         listOf("source", "license", "version", "updatedAt", "sha256").forEach { field ->
@@ -171,6 +232,15 @@ class CapabilityIsolationContractTest {
         val text = doc.readText()
         assertTrue("原型文档必须写明不得进入发布分支", text.contains("不得进入发布分支"))
         assertTrue("原型文档必须引用 Phase 0 门禁", text.contains("Phase 0"))
+        listOf(
+            "L2VpnConfig",
+            "FilterRuleDigest",
+            "FilterRuleSourceVerifier",
+            "filterRulesPath",
+            "@Synchronized",
+        ).forEach { token ->
+            assertTrue("原型文档未同步本轮完善内容：$token", text.contains(token))
+        }
         assertTrue("原型文档必须登记到文档地图", docsReadme().contains("planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md"))
     }
 
@@ -181,6 +251,7 @@ class CapabilityIsolationContractTest {
         val text = api.readText()
         assertFalse("filter-rules 必须是只读路由", text.contains("method === \"PUT\""))
         assertFalse("filter-rules 不得接收上报", text.contains("readBody("))
+        assertTrue("响应必须标注仅原型可用", text.contains("prototypeOnly: true"))
         listOf("queryLog", "dnsQueryHistory", "clientQueries").forEach { token ->
             assertFalse("路由不得暴露 DNS 查询明细：$token", text.contains(token))
         }

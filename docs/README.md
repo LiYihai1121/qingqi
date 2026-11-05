@@ -21,7 +21,7 @@ docs/
 │   ├── ROADMAP-ADS.md             里程碑 / 周次 / 出口条件
 │   ├── DESIGN-PHASE1-SELECTOR.md  L1 技术设计与步骤 A–F
 │   ├── DESIGN-ADS-FILTERING.md    L2/L3/L4 分层边界与 Phase 0 决策提案
-│   ├── DESIGN-L2L3-ISOLATED-PROTOTYPE.md  L2/L3 隔离原型：模块边界 / fail-open 数据面 / 未完成项（不可发布）
+│   ├── DESIGN-L2L3-ISOLATED-PROTOTYPE.md  L2/L3 隔离原型：模块边界 / fail-open 数据面 / 规则源摘要校验 / 未完成项（不可发布）
 │   ├── DESIGN-ARCH-REVIEW.md      整体架构评审与技术设计（含 P1/P2 落地修复规格）
 │   ├── DESIGN-BUILD-FRAMEWORK.md  构建框架工程化（version catalog / build-logic / 模块拆分）
 │   ├── DESIGN-ARCH-EVOLUTION.md   架构演进计划（R1 多模块化 / R2 SQLite 存储 / R3 部署）
@@ -69,7 +69,7 @@ docs/
 | 排查某 App 真机「广告未能跳过」（首发优酷，TOP30 #18） | [testing/YOUKU-SKIP-DIAGNOSIS.md](testing/YOUKU-SKIP-DIAGNOSIS.md)（待真机执行） |
 | 执行真机稳定性测试（耐久/压力/网络/中断/ROM 场景、KPI 阈值、环境清单）或查历史执行记录 | [testing/STABILITY-TEST-PLAN.md](testing/STABILITY-TEST-PLAN.md) |
 | 审查广告治理分层、L2/L3/L4 决策提案与放行条件 | [planning/DESIGN-ADS-FILTERING.md](planning/DESIGN-ADS-FILTERING.md)（提案未获批准） |
-| 查看 L2/L3 隔离原型的模块隔离、fail-open 数据面、只读规则源与未完成项 | [planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md](planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md)（Phase 0 未批准，不得进入发布分支） |
+| 查看 L2/L3 隔离原型的模块隔离、fail-open 数据面、虚拟 DNS 路由、规则源摘要校验与未完成项 | [planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md](planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md)（Phase 0 未批准，不得进入发布分支） |
 | 评审整体架构现状、关键模块契约与待修复项落地设计 | [planning/DESIGN-ARCH-REVIEW.md](planning/DESIGN-ARCH-REVIEW.md) |
 | 查「不做限制」边界变更的证据、风险评估与验证数字 | [planning/ROADMAP-ADS-VERIFY.md](planning/ROADMAP-ADS-VERIFY.md) |
 | 了解构建框架演进方案（version catalog / 约定插件 / 模块拆分） | [planning/DESIGN-BUILD-FRAMEWORK.md](planning/DESIGN-BUILD-FRAMEWORK.md) |

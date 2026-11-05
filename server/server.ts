@@ -17,6 +17,8 @@ export interface StartOptions {
   dataDir?: string;
   config?: Partial<Config>;
   shutdownTimeoutMs?: number;
+  /** L2 隔离原型规则源路径；仅用于测试注入，不传则走仓库内 seed 文件。 */
+  filterRulesPath?: string;
 }
 
 function isLoopbackHost(host: string): boolean {
@@ -78,7 +80,7 @@ export function startServer(options: StartOptions = {}): AppServer {
   const store = createStore(config);
   const limiter = createRateLimiter(config);
   const access = createAccessLog();
-  const { handleApi } = createApi(config, store, limiter, access);
+  const { handleApi } = createApi(config, store, limiter, access, options.filterRulesPath);
   const { withCors, applySecurityHeaders: secureHeaders } = createHttpUtils(config);
   const applySecurityHeaders = (response: Response) => { secureHeaders(response.headers); return response; };
   const { recordAccess } = access;

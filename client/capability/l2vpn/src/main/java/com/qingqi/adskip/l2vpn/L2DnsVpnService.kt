@@ -14,13 +14,13 @@ import java.net.InetAddress
  * L2 本地 DNS 过滤的 VpnService 薄封装（隔离原型）。
  *
  * 设计门禁（DESIGN-ADS-FILTERING.md §9 ADR-ADS-001）：
- * - 不解密、不安装用户 CA、不接管非 DNS 流量：Builder 只把上游 DNS 地址路由进 TUN；
+ * - 不解密、不安装用户 CA、不接管非 DNS 流量：Builder 只把**虚拟 DNS 地址**路由进 TUN；
  * - 默认关闭，且仅在调用方携带显式授权证据时启动；
  * - `setBlocking(false)`，服务停止/崩溃后由系统自行恢复网络，不启用「无 VPN 时阻断」；
  * - 组件只在 `capability/l2vpn` 模块的清单里声明，:app 不依赖本模块，故不进主 APK。
  *
  * **真机未验证**：IPv6、TCP DNS、Private DNS、VPN 冲突、网络切换与断网恢复
- * 均属 Phase 0 放行前的测试项（§7），本实现只保证纯 JVM 数据面可测、可回滚。
+ * 均属 Phase 0 放行前的测试项，本实现只保证纯 JVM 数据面可测、可回滚。
  */
 class L2DnsVpnService : VpnService() {
 
@@ -28,6 +28,9 @@ class L2DnsVpnService : VpnService() {
 
     @Volatile
     private var rules: FilterRuleSet? = null
+
+    @Volatile
+    private var config: L2VpnConfig = L2VpnConfig.DEFAULT
 
     @Volatile
     private var tunnel: ParcelFileDescriptor? = null
@@ -71,24 +74,49 @@ class L2DnsVpnService : VpnService() {
         rules = ruleSet
     }
 
+    /**
+     * 校验并注入服务端下发的规则源载荷（原型文档第 9.4 项的注入链路）。
+     *
+     * **只注入规则，不启动 VPN、不改变授权状态**：启用仍须独立的显式授权流程，
+     * `FilterRuleSourceVerifier.AUTO_ENABLE_ALLOWED` 恒为 false。
+     * 校验失败会清空当前规则（fail-open 全放行）并返回 false。
+     */
+    fun applyVerifiedRules(payload: FilterRuleSourcePayload): Boolean {
+        val verified = FilterRuleSourceVerifier.verify(payload)
+        rules = verified
+        return verified != null
+    }
+
+    /** 显式配置 TUN 与上游；不从网络读取，也不因规则源变化自动改写。 */
+    fun configure(value: L2VpnConfig) {
+        config = value
+    }
+
+    fun currentConfig(): L2VpnConfig = config
+
     fun snapshot(): L2Snapshot = controller.snapshot()
 
-    private fun openTunnel(): ParcelFileDescriptor? = Builder()
-        .setSession("轻启 L2 DNS 过滤（隔离原型）")
-        .addAddress(PRIVATE_ADDRESS, 32)
-        .addDnsServer(UPSTREAM_DNS)
-        .addRoute(UPSTREAM_DNS, 32)
-        .setBlocking(false)
-        .establish()
+    private fun openTunnel(): ParcelFileDescriptor? {
+        val cfg = config
+        return Builder()
+            .setSession(getString(R.string.l2_vpn_session))
+            .addAddress(cfg.tunAddress, 32)
+            .addDnsServer(cfg.virtualDns)
+            .addRoute(cfg.virtualDns, 32)
+            .setBlocking(false)
+            .establish()
+    }
 
     private fun pump(fd: ParcelFileDescriptor) {
+        val cfg = config
         val input = FileInputStream(fd.fileDescriptor)
         val output = FileOutputStream(fd.fileDescriptor)
         val buffer = ByteArray(BUFFER_SIZE)
         val upstream = DatagramSocket()
         try {
-            // 关键：1.1.1.1/32 已被 addRoute 路由进 TUN，上游查询若不绕过 VPN，
-            // 发出的包会被自己重新捕获，形成无限回环。protect() 让该 socket 走真实网络。
+            // 上游 socket 必须绕过本 VPN 与系统级 VPN 策略。虚拟 DNS 与真实上游分离后，
+            // 上游地址本身已不在 addRoute 范围内，但 protect() 仍是显式安全边界，
+            // 且 L2VpnConfig 禁止两者同址——同址会让上游查询再次被 TUN 捕获形成回环。
             if (!protect(upstream)) {
                 controller.record(DnsFilterOutcome(DnsDecision.BYPASS, "vpn protect() failed"))
                 return
@@ -112,13 +140,13 @@ class L2DnsVpnService : VpnService() {
 
                     is DnsTunnelAction.ForwardToUpstream -> {
                         controller.record(DnsFilterOutcome(DnsDecision.ALLOW, "not matched"))
-                        val dns = forwardToUpstream(upstream, action.dnsPayload)
+                        val dns = forwardToUpstream(upstream, action.dnsPayload, cfg)
                         if (dns != null) {
                             DnsTunnelLoop.wrapUpstreamResponse(packet, dns)?.let { output.write(it) }
                         }
                     }
 
-                    // Builder 只把上游 DNS 地址路由进 TUN，其它报文不应出现；出现即不解析、
+                    // Builder 只把虚拟 DNS /32 路由进 TUN，其它报文不应出现；出现即不解析、
                     // 不改写、不回注，只累计 BYPASS（详见 DnsTunnelAction.Unhandled 注释）。
                     DnsTunnelAction.Unhandled ->
                         controller.record(DnsFilterOutcome(DnsDecision.BYPASS, "non dns packet"))
@@ -135,8 +163,8 @@ class L2DnsVpnService : VpnService() {
         }
     }
 
-    private fun forwardToUpstream(socket: DatagramSocket, dns: ByteArray): ByteArray? = runCatching {
-        socket.send(DatagramPacket(dns, dns.size, InetAddress.getByName(UPSTREAM_DNS), DNS_PORT))
+    private fun forwardToUpstream(socket: DatagramSocket, dns: ByteArray, cfg: L2VpnConfig): ByteArray? = runCatching {
+        socket.send(DatagramPacket(dns, dns.size, InetAddress.getByName(cfg.upstreamDns), cfg.upstreamPort))
         val buffer = ByteArray(BUFFER_SIZE)
         val response = DatagramPacket(buffer, buffer.size)
         socket.receive(response)
@@ -150,9 +178,6 @@ class L2DnsVpnService : VpnService() {
 
     companion object {
         const val EXTRA_CONSENT_GRANTED = "com.qingqi.adskip.l2vpn.CONSENT_GRANTED"
-        private const val PRIVATE_ADDRESS = "10.233.0.2"
-        private const val UPSTREAM_DNS = "1.1.1.1"
-        private const val DNS_PORT = 53
         private const val BUFFER_SIZE = 4096
         private const val UPSTREAM_TIMEOUT_MS = 3000
     }

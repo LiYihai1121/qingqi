@@ -15,8 +15,9 @@ sealed interface DnsTunnelAction {
      * 无法识别的报文：原型不解析、不改写。
      *
      * 注意这不是「放行」：TUN 是三层接口，把出站报文原样写回会被协议栈当成入站包，
-     * 因此这里选择不回注，仅累计 BYPASS。Builder 只把 1.1.1.1/32 路由进 TUN，
-     * 普通应用流量不经过本模块；该限制列入原型未完成项，未在真机验证前不得视为发布就绪。
+     * 因此这里选择不回注，仅累计 BYPASS。Builder 只把**虚拟 DNS 地址** /32 路由进 TUN
+     * （见 L2VpnConfig），真实公网流量完全不经过本模块，故影响面仅限发往该虚拟地址的
+     * 非 DNS 报文；该限制仍列入原型未完成项，未在真机验证前不得视为发布就绪。
      */
     data object Unhandled : DnsTunnelAction
 
