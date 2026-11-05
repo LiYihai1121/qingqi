@@ -1,6 +1,6 @@
 # 多 Agent 协作规范（AGENT-WORKFLOW）
 
-> 状态：已生效；最后更新：2026-11-05（新增 `wb-l2l3-prototype` 认领行；2026-10-29 #209 合入后按 `git worktree list` 重建过认领板）。
+> 状态：已生效；最后更新：2026-11-05（`wb-l2l3-prototype` 已推远端并建草稿 PR #227，状态改为「阻塞」；2026-10-29 #209 合入后按 `git worktree list` 重建过认领板）。
 > 适用范围：任何在本仓库并行工作的 AI Agent 或协作者（人类多分支开发同理）。
 > 摘要见 [AGENTS.md](../../AGENTS.md)；分支/提交/门禁/发版规范见 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 
@@ -119,7 +119,7 @@ worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动�
 | 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/docs-audit-guide` | `docs/audit-guide` | `docs/planning`、`docs/development`、`docs/README.md` | 已完成：#209 已吸收其增量，剩余旧包结构描述明确不采纳；工作区仅余 1 项格式化改动待清理 |
 | `wb-top30-acceptance` | `.worktrees/wb-top30-acceptance` | `test/88-real-device-acceptance` | `docs/testing/TOP30-REAL-DEVICE-ACCEPTANCE.md`、本表登记行；本地测试证据放 `.workbuddy-ai/artifacts/`（不入库） | 阻塞：Issue #88；1.2 同签名 Debug 升级及新服务授权完成；自检前台异常作废，等独占确认；正式签名包及其他真机矩阵仍未覆盖 |
-| `wb-l2l3-prototype` | `.worktrees/wb-l2l3-prototype` | `feature/84-l2-l3-isolated-prototype` | `client/capability/`（新增 l2vpn / l3shake 两个隔离模块）、`client/settings.gradle.kts`、`client/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/build-logic/convention/`、`client/app/src/test/java/com/qingqi/adskip/arch/CapabilityIsolationContractTest.kt`（新增）、`client/app/src/test/java/com/qingqi/adskip/arch/ProjectStructureTest.kt`、`server/src/api/index.ts`、`server/src/api/filterRulesApi.ts`（新增）、`server/server.ts`、`server/src/utils/filterRuleSource.ts`（新增）、`server/seed/`、`server/test/filterRulesApi.contract.test.ts`（新增）、`docs/planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md`（新增）、`docs/README.md`、本表登记行 | 进行中：Issue #84 L2/L3 隔离原型；刻意避开 `.worktrees/codex-l2-l3`（另有写入者）；Phase 0 未批准，**不得进入发布分支**、不接入 `:app`、不进主 APK |
+| `wb-l2l3-prototype` | `.worktrees/wb-l2l3-prototype` | `feature/84-l2-l3-isolated-prototype` | `client/capability/`（新增 l2vpn / l3shake 两个隔离模块）、`client/settings.gradle.kts`、`client/build.gradle.kts`、`client/gradle/libs.versions.toml`、`client/build-logic/convention/`、`client/app/src/test/java/com/qingqi/adskip/arch/CapabilityIsolationContractTest.kt`（新增）、`client/app/src/test/java/com/qingqi/adskip/arch/ProjectStructureTest.kt`、`server/src/api/index.ts`、`server/src/api/filterRulesApi.ts`（新增）、`server/server.ts`、`server/src/utils/filterRuleSource.ts`（新增）、`server/seed/`、`server/test/filterRulesApi.contract.test.ts`（新增）、`docs/planning/DESIGN-L2L3-ISOLATED-PROTOTYPE.md`（新增）、`docs/README.md`、本表登记行 | 阻塞：Issue #84 L2/L3 隔离原型已交付（2 提交），远端分支与草稿 [PR #227](https://github.com/LiYihai1121/qingqi/pull/227) 已建、刻意不合入；Phase 0 合规评审未通过（ADR `Proposed`/`Deferred`、Issue #84 `OPEN`），**不得进入发布分支**、不接入 `:app`、不进主 APK；刻意避开 `.worktrees/codex-l2-l3`（另有写入者） |
 | — | — | — | `docs/architecture/ARCHITECTURE.md`、`CHANGELOG.md` | 预留：仅集成者写 |
 
 状态取值：`进行中` / `待合并` / `阻塞` / `已完成`。任务认领与状态广播优先使用协作工具的任务清单与信箱，其次才用本表（避免两处状态打架）。
