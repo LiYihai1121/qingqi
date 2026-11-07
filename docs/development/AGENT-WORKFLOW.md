@@ -114,7 +114,7 @@ worktree 内 `common_dir != git_dir`，`pre-commit` 的主检出拦截会自动�
 
 | Agent | 工作区 | 分支 | 认领路径 | 状态 |
 | --- | --- | --- | --- | --- |
-| `agent-20261107` | `.worktrees/agent-20261107-server-bugs` | `fix/20261107-server-bugs` | `server/src/storage/store.ts`、`server/src/api/rulesApi.ts`、本任务新增的 `server/test/*` 回归测试、本表登记行 | 进行中：2026-11-07 后端整理与缺陷修复；基于 `origin/main`（`6d4e177`），旧 server-reliability 工作区已不存在且修复已随 #219 合入；避开其余现存工作区改动路径 |
+| `agent-20261107` | `.worktrees/agent-20261107-server-bugs` | `fix/20261107-server-bugs` | `server/src/storage/store.ts`、`server/src/api/rulesApi.ts`、本任务新增的 `server/test/*` 回归测试、本表登记行 | 已完成：2026-11-07 修复 v0 迁移丢应用规则（store.ts）与模拟器非对象载荷 500（rulesApi.ts）；整理合并 v0/v1 发布管线、管理后台手势放权、模拟器死字段；7 项提交 dae7e85/c957169/602a945/c46cbad/d688169/00e3f3e，bun test 111 pass，bun run typecheck 通过，markdownlint 0 问题，Gradle arch 契约 BUILD SUCCESSFUL；工作区干净。
 | `codex-iqiyi` | `.worktrees/codex-iqiyi-skip` | `fix/217-iqiyi-splash-skip` | `domain/engine/IqiyiSplashRule.kt`、对应测试、`platform/accessibility/SkipAdService.kt` 的爱奇艺匹配接入 | 进行中：#217，独立真机诊断；沿用现有点击护栏 |
 | `codex` | `.worktrees/codex-server-reliability` | `fix/20261027-server-reliability` | `server/src`（13）、`server/test`（2 + 新增 `reliability.contract.test.ts`）、`server/server.ts`、`server/public`、`docs/api`、`docs/architecture`、`docs/development`、`CHANGELOG.md` | 进行中：未提交 21 文件；分支本身无独有提交 |
 | 未登记 | `.worktrees/remove-cloud-sync` | `refactor/remove-cloud-sync` | `client/app`（25）、`client/gradle`、`README.md`、`docs/api`、`docs/architecture`、`docs/development`、`docs/planning` | 进行中：未提交 31 文件；分支本身无独有提交 |
