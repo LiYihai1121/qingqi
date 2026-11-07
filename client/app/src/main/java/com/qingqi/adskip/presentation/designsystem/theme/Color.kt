@@ -88,14 +88,10 @@ val Neutral00 = Color(0xFFFFFFFF)
 val Neutral05 = Color(0xFFF6F9F7)
 val Neutral10 = Color(0xFFEEF4F0)
 val Neutral20 = Color(0xFFE2EBE6)
-val Neutral30 = Color(0xFFCBD8D1)
 val Neutral40 = Color(0xFF93A79B)
 val Neutral50 = Color(0xFF65786D)
-val Neutral60 = Color(0xFF47584E)
-val Neutral70 = Color(0xFF33443A)
 val Neutral80 = Color(0xFF1E2A23)
 val Neutral90 = Color(0xFF0F1A13)
-val Neutral95 = Color(0xFF020906)
 
 // ==================== 语义辅助色 ====================
 

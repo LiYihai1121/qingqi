@@ -13,22 +13,20 @@ export interface AppRule {
   gestureFallback: boolean;
 }
 
-/** v1 规则体（下发到客户端的核心结构） */
-export interface RuleSetV1 {
-  globalKeywords: string[];
-  globalViewIds: string[];
-  globalSelectors: string[];
-  apps: Record<string, AppRule>;
-  disabled: string[];
-}
-
 /** 完整规则包：v1 体 + v0 兼容字段（keywords/viewIds/packages 与 rules.* 同引用） */
 export interface RulesPackage {
   schemaVersion: number;
   version: number;
   updatedAt: string;
   hash: string;
-  rules: RuleSetV1;
+  /** v1 规则体（下发到客户端的核心结构） */
+  rules: {
+    globalKeywords: string[];
+    globalViewIds: string[];
+    globalSelectors: string[];
+    apps: Record<string, AppRule>;
+    disabled: string[];
+  };
   /** v0 兼容：与 rules.globalKeywords 同引用 */
   keywords: string[];
   /** v0 兼容：与 rules.globalViewIds 同引用 */

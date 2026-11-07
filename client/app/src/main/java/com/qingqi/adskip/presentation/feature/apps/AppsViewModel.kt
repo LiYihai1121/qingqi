@@ -33,31 +33,13 @@ class AppsViewModel(private val container: AppContainer) : ViewModel() {
         val failed: Boolean = false,
         val query: String = "",
         val onlyEnabled: Boolean = false,
-    ) {
-        /** 搜索 + 筛选后的可见列表；匹配包名与应用名，大小写不敏感。 */
-        val visibleItems: List<AppRow>
-            get() {
-                val q = query.trim().lowercase()
-                return items.filter { row ->
-                    (onlyEnabled.not() || row.disabled.not()) &&
-                        (
-                            q.isEmpty() ||
-                                row.label.lowercase().contains(q) ||
-                                row.pkg.lowercase().contains(q)
-                            )
-                }
-            }
-    }
+    )
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState
 
     fun setQuery(query: String) {
         _uiState.update { it.copy(query = query) }
-    }
-
-    fun setOnlyEnabled(onlyEnabled: Boolean) {
-        _uiState.update { it.copy(onlyEnabled = onlyEnabled) }
     }
 
     /**

@@ -51,12 +51,6 @@ class SyncJobService : JobService() {
             context.getSystemService(JobScheduler::class.java).cancel(JOB_ID)
             LogRing.d("Sync", "JobScheduler cancelled")
         }
-
-        /** 检查任务是否已注册 */
-        fun isScheduled(context: Context): Boolean {
-            val scheduler = context.getSystemService(JobScheduler::class.java)
-            return scheduler.allPendingJobs.any { it.id == JOB_ID }
-        }
     }
 
     override fun onStartJob(params: JobParameters): Boolean {

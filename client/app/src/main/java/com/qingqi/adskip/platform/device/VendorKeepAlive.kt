@@ -60,9 +60,6 @@ data class GuideEntry(
         require(cls == null || pkg != null) { "GuideEntry 指定 cls 时必须同时指定 pkg" }
     }
 
-    /** 是否为显式组件跳转（组件名稳定，优先使用）。 */
-    val isComponent: Boolean get() = pkg != null && cls != null
-
     /** 日志用稳定标识。 */
     val key: String get() = "${action ?: "-"}|${pkg ?: "-"}|${cls ?: "-"}"
 }

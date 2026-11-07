@@ -47,14 +47,6 @@ object LocaleApplier {
         }
     }
 
-    /**
-     * 当前应用级语言覆盖。
-     *
-     * 供「跟随系统」判定与测试使用。API 33+ 读平台，低版本返回 null
-     * （低版本没有应用级覆盖这个概念，实际语言由系统决定）。
-     */
-    fun currentOverride(context: Context): LocaleList? = readPlatformOverride(context)
-
     private fun readPlatformOverride(context: Context): LocaleList? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
         return context.getSystemService(LocaleManager::class.java)?.applicationLocales

@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">轻启</string>
     <string name="service_name">轻启 · Skip Splash Ads</string>
-    <string name="service_desc">Automatically detects and clicks the "Skip" button on splash ads. Supports text keyword and ViewID matching. Runs locally only.</string>
 
     <!-- Main page -->
     <string name="home_subtitle">A cleaner app experience, free of ad interruptions</string>

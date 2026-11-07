@@ -28,14 +28,6 @@ const LEVEL_ORDER: Record<Level, number> = {
 
 let currentLevel: Level = "info";
 
-export function setLogLevel(level: Level): void {
-  currentLevel = level;
-}
-
-export function getLogLevel(): Level {
-  return currentLevel;
-}
-
 function formatEntry(level: Level, msg: string, meta?: Record<string, unknown>): LogEntry {
   const entry: LogEntry = {
     level,

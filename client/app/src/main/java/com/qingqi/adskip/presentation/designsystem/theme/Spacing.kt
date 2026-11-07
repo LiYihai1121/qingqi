@@ -132,15 +132,6 @@ object UiSizes {
     /** 首页状态盾牌的外圈直径（设计稿的主视觉尺寸）。 */
     val statusShield = 120.dp
 
-    /**
-     * 状态盾牌内圈直径。
-     *
-     * 与外圈的 120dp 差 8dp，即两侧各 4dp 的环宽——用「两个同心圆叠放」而不是
-     * `Modifier.border` 画环，是为了避免再引入一个描边宽度字面量（间距门禁只放行
-     * 0/4/8/12/16/24/32/40 的 dp 取值，而环宽 4dp 恰好可以转述为直径之差）。
-     */
-    val statusShieldRing = 112.dp
-
     /** 状态盾牌内圈的图标边长。 */
     val statusShieldGlyph = 52.dp
 

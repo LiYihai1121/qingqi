@@ -202,17 +202,3 @@ fun StatusDot(color: Color, modifier: Modifier = Modifier, filled: Boolean = tru
             .clearAndSetSemantics {},
     )
 }
-
-/**
- * 用色阶而不是透明度做「浅色底」。
- *
- * `color.copy(alpha)` 叠在不同容器色上会得到不同结果：同一颗点放在卡片上和
- * 放在页面上是两个颜色，同一枚徽章在浅色卡片和深色浮层上也不同。
- * 与给定的背景色做线性插值可以得到确定值，这才是「同一档色」应有的行为。
- */
-internal fun blendOnto(color: Color, background: Color, fraction: Float): Color = Color(
-    red = color.red * fraction + background.red * (1 - fraction),
-    green = color.green * fraction + background.green * (1 - fraction),
-    blue = color.blue * fraction + background.blue * (1 - fraction),
-    alpha = 1f,
-)

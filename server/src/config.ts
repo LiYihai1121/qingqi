@@ -44,9 +44,7 @@ export interface Config {
   RATE_LIMIT_REPORT_PER_MIN: number;
   RATE_LIMIT_WRITE_PER_MIN: number;
   SCHEMA_VERSION: number;
-  SCHEMA_VERSION_MIN: number;
   MAX_KEYWORD_LEN: number;
-  MAX_VIEWID_LEN: number;
   MAX_VIEWID_RULE_LEN: number;
   MAX_SELECTOR_LEN: number;
   MAX_SELECTORS_PER_LIST: number;
@@ -97,9 +95,7 @@ export const config: Config = {
   // 2 = 载荷含选择器通道（rules.globalSelectors / apps.*.selectors）；
   // MIN 保持 1，旧客户端（不识 selectors）对 schema 2 载荷行为不变。
   SCHEMA_VERSION: 2,
-  SCHEMA_VERSION_MIN: 1,
   MAX_KEYWORD_LEN: 12,
-  MAX_VIEWID_LEN: 256,
   MAX_VIEWID_RULE_LEN: 256,
   MAX_SELECTOR_LEN: 256,
   MAX_SELECTORS_PER_LIST: 128,

@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">轻启</string>
     <string name="service_name">轻启 · 跳过开屏广告</string>
-    <string name="service_desc">自动识别并点击开屏广告的「跳过」按钮。支持文本关键词与控件 ID 两种匹配方式，仅在本机运行。</string>
 
     <!-- 主页 -->
     <string name="home_subtitle">更纯净的应用体验，告别广告打扰</string>
