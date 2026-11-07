@@ -59,7 +59,7 @@
 
 ### POST /api/v1/rules/test  `[admin]`
 
-规则模拟器——与客户端 `RulesRepository.ruleSetFor(pkg)` 同源：全局 + 应用专属关键词/ViewID/选择器合并匹配，禁用开关置 `hit=false`。
+规则模拟器——与客户端 `RulesRepository.ruleSetFor(pkg)` 同源：全局 + 应用专属关键词/ViewID/选择器合并匹配，禁用开关置 `hit=false`。载荷必须是 JSON 对象，`null`/数组/标量按 `400` 拒绝。
 
 ```json
 // 请求 { "pkg": "com.x", "text": "跳过广告", "viewId": "com.x:id/skip" }

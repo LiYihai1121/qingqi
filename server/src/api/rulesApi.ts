@@ -249,6 +249,12 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     } catch (e: any) {
       return errorResponseFrom(e);
     }
+    // 载荷必须是 JSON 对象：null/数组/标量均为非法载荷（400）。不能直接取
+    // 属性——null 会抛 TypeError 落进 server 层兜底变成 500，违背状态码表
+    // 「400=载荷非法」的约定。其余上报/发布端点经 clean* 入口已有同款守卫。
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return errorJson(400, "invalid test payload");
+    }
     // 与客户端 RulesRepository.ruleSetFor(pkg) 同源：全局 + 应用专属 + 禁用开关
     const pkgRaw = typeof parsed.pkg === "string" ? parsed.pkg.trim() : "";
     const pkg = isValidPackage(pkgRaw) ? pkgRaw : "";

@@ -349,6 +349,19 @@ describe("smoke", () => {
     expect(t2.hit).toBe(true);
   });
 
+  it("规则模拟器对非对象 JSON 载荷返回 400 而非 500", async () => {
+    // safeJsonParse 通过校验但结果不是对象时，v1_testRule 不应再取 parsed.pkg
+    // 属性（null 会抛 TypeError → 500），而应判为非法载荷（语义 400）。
+    for (const body of ["null", "[]", "42", '"text"', "true"]) {
+      const res = await fetch(`${base}/api/v1/rules/test`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${TOKEN}` },
+        body,
+      });
+      expect(res.status).toBe(400);
+    }
+  });
+
   it("admin logs 无令牌 401，带令牌返回访问记录", async () => {
     const r1 = await fetch(`${base}/api/v1/admin/logs`);
     expect(r1.status).toBe(401);
