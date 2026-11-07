@@ -111,7 +111,7 @@
 | `1` | 历史 | v1 载荷（`globalKeywords` / `globalViewIds` / `apps` / `disabled`） |
 | `2` | **当前** | 新增 `selectors` 字段（`rules.globalSelectors` + `apps.*.selectors`）；`MIN_SCHEMA_VERSION` 保持 1 |
 
-兼容约定：服务端按 `MIN` 校验、客户端按 `schemaVersion` 决定是否解析新字段；选择器是纯增量字段，旧客户端照常加载并忽略，停发即回退 schema 1 行为。存量 `rules.json` 的 `schemaVersion` 低于当前值时由兼容层单向补齐（`hash` 的计算输入含 `schemaVersion`，客户端会因此多同步一次，属预期）。语法、校验上限与契约夹具见 [DESIGN-PHASE1-SELECTOR.md](../planning/DESIGN-PHASE1-SELECTOR.md)（步骤 C）。
+兼容约定：服务端按 `MIN` 校验、客户端按 `schemaVersion` 决定是否解析新字段；选择器是纯增量字段，旧客户端照常加载并忽略，停发即回退 schema 1 行为。存量 `rules.json` 的 `schemaVersion` 低于当前值时由兼容层单向补齐（`hash` 的计算输入含 `schemaVersion`，客户端会因此多同步一次，属预期）。v0 平铺形状（只有 `keywords`/`viewIds`/`selectors`/`packages`，无 `rules` 体）的存量文件在加载时由平铺 `packages` 提升为 `rules.apps`，并按应用级 `disabled` 标记重建 `rules.disabled`，迁移后形状与发布路径产出完全一致。语法、校验上限与契约夹具见 [DESIGN-PHASE1-SELECTOR.md](../planning/DESIGN-PHASE1-SELECTOR.md)（步骤 C）。
 
 ## v0 兼容协议（旧客户端，形状不变）
 

@@ -463,6 +463,54 @@ describe("seed rules fallback", () => {
     }
   });
 
+  it("v0 存量规则迁移保留平铺 packages 中的应用专属规则", () => {
+    const savedRulesFile = config.RULES_FILE;
+    const savedSeedFile = config.SEED_RULES_FILE;
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "adskip-legacy-"));
+    // v0 形状：只有平铺 keywords/viewIds/packages，没有 v1 的 rules 体。
+    // 兼容层必须把 packages 提升为 rules.apps，否则应用专属规则会被静默清空。
+    fs.writeFileSync(
+      path.join(tmp, "rules.json"),
+      JSON.stringify({
+        keywords: ["全局词"],
+        viewIds: ["global_view"],
+        packages: {
+          "com.legacy.app": {
+            keywords: ["专属词"],
+            viewIds: ["app_view"],
+            selectors: ['[text="跳过"]'],
+            disabled: true,
+            gestureFallback: true,
+          },
+        },
+        version: 4,
+      })
+    );
+    config.RULES_FILE = path.join(tmp, "rules.json");
+    config.SEED_RULES_FILE = path.join(tmp, "missing-seed.json");
+    try {
+      _resetRulesCacheForTests();
+      const r = getRules();
+      const app = r.rules.apps["com.legacy.app"];
+      expect(app).toBeDefined();
+      expect(app.keywords).toEqual(["专属词"]);
+      expect(app.viewIds).toEqual(["app_view"]);
+      expect(app.selectors).toEqual(['[text="跳过"]']);
+      expect(app.disabled).toBe(true);
+      expect(app.gestureFallback).toBe(true);
+      // v0 形状没有 rules.disabled 列表：迁移时由应用级标记派生
+      expect(r.rules.disabled).toContain("com.legacy.app");
+      // v0 平铺字段与 v1 体共享同一份引用（ensureCompatShape 注释约定）
+      expect(r.packages).toBe(r.rules.apps);
+      expect(r.packages["com.legacy.app"].keywords).toEqual(["专属词"]);
+    } finally {
+      config.RULES_FILE = savedRulesFile;
+      config.SEED_RULES_FILE = savedSeedFile;
+      _resetRulesCacheForTests();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it("种子也缺失时使用内置默认规则", () => {
     const savedRulesFile = config.RULES_FILE;
     const savedSeedFile = config.SEED_RULES_FILE;

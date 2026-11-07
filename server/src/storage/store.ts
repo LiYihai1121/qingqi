@@ -101,25 +101,34 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
     const r = rules.rules;
     const legacyKw: string[] = Array.isArray(rules.keywords) ? rules.keywords : [];
     const legacyVid: string[] = Array.isArray(rules.viewIds) ? rules.viewIds : [];
+    // v0 存量文件只有平铺 packages、没有 v1 的 rules.apps：迁移时必须先把它
+    // 提升为 apps 的来源，否则末尾 rules.packages = r.apps 会用空对象反向
+    // 覆盖，应用专属规则（keywords/viewIds/selectors/disabled/gestureFallback）
+    // 被静默清空——管理后台下次保存即把存量规则写没。
+    const legacyApps: Record<string, any> =
+      rules.packages && typeof rules.packages === "object" && !Array.isArray(rules.packages)
+        ? rules.packages
+        : {};
 
     if (!Array.isArray(r.globalKeywords)) r.globalKeywords = legacyKw.slice();
     if (!Array.isArray(r.globalViewIds)) r.globalViewIds = legacyVid.slice();
     if (!Array.isArray(r.globalSelectors)) r.globalSelectors = Array.isArray(rules.selectors) ? rules.selectors.slice() : [];
-    if (!r.apps || typeof r.apps !== "object" || Array.isArray(r.apps)) r.apps = {};
-    if (!Array.isArray(r.disabled)) r.disabled = [];
+    // v1 的 rules.apps 是权威来源，仅在其缺失/非法时才回退到 v0 平铺 packages
+    if (!r.apps || typeof r.apps !== "object" || Array.isArray(r.apps)) r.apps = legacyApps;
+    if (!Array.isArray(r.disabled)) {
+      // v0 形状没有 rules.disabled 平铺列表：由应用级 disabled 标记派生，与
+      // saveRules 产出的形状一致；v1 文件自带该列表时以其为准，不重算。
+      r.disabled = Object.entries(r.apps as Record<string, any>)
+        .filter(([, rule]) => !!rule && typeof rule === "object" && rule.disabled === true)
+        .map(([pkg]) => pkg);
+    }
 
     for (const [pkg, rule] of Object.entries(r.apps as Record<string, any>)) {
       if (!rule || typeof rule !== "object" || Array.isArray(rule)) continue;
       if (!Array.isArray(rule.selectors)) rule.selectors = [];
     }
 
-    if (!Array.isArray(rules.keywords)) rules.keywords = r.globalKeywords.slice();
-    if (!Array.isArray(rules.viewIds)) rules.viewIds = r.globalViewIds.slice();
-    if (!Array.isArray(rules.selectors)) rules.selectors = r.globalSelectors.slice();
-    if (!rules.packages || typeof rules.packages !== "object" || Array.isArray(rules.packages)) {
-      rules.packages = {};
-    }
-
+    // v0 平铺别名统一指向 v1 的同一份引用（见函数头注释）
     rules.keywords = r.globalKeywords;
     rules.viewIds = r.globalViewIds;
     rules.selectors = r.globalSelectors;
