@@ -40,4 +40,14 @@ describe("admin 编辑器字段往返契约（admin.html 源码）", () => {
     }
     expect(collect).toContain(".pkg-gesture");
   });
+
+  it("规则模拟器只发送 /rules/test 声明的 pkg/text/viewId 字段", () => {
+    const sim = fn("runSimulator");
+    // keywords/viewIds 曾被误发给 /api/v1/rules/test，服务端只读 pkg/text/viewId，
+    // 字段被静默忽略且注释误导「用当前表单的规则」
+    expect(sim).not.toContain("keywords:");
+    expect(sim).not.toContain("viewIds:");
+    expect(sim).toContain("text:");
+    expect(sim).toContain("viewId:");
+  });
 });

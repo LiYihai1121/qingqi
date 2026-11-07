@@ -438,16 +438,14 @@ async function runSimulator() {
   const viewId = $('sim-viewid').value.trim();
   if (!text && !viewId) return toast('请输入样本文本或 ViewID');
 
-  // 用当前表单的规则
-  const current = collectRules();
+  // 模拟的是服务端已保存的规则（与客户端 RulesRepository 同源），不是表单草稿；
+  // /api/v1/rules/test 只接受 pkg/text/viewId
   const res = await fetch('/api/v1/rules/test', {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
       text: text || undefined,
       viewId: viewId || undefined,
-      keywords: current.keywords,
-      viewIds: current.viewIds,
     }),
   });
   const data = await res.json();
