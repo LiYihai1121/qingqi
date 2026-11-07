@@ -69,7 +69,11 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     );
   };
 
-  const v0_publish: Handler = async (req, _url, ctx) => {
+  /**
+   * v0/v1 共用发布管线：限流 → 鉴权 → 读体 → 清洗 → If-Match → 写盘 → 回执。
+   * 两路由语义完全一致；任何分叉都必须同步 API 文档与两侧测试。
+   */
+  async function publishRules(req: Request, ctx: { ip: string }): Promise<Response> {
     // 限流先于鉴权：401/503 不计入令牌桶的话，admin token 可被无限速暴力破解
     if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
     const auth = requireAdmin(req);
@@ -92,31 +96,10 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     if (expected && expected !== getRules().hash && expected !== "*") return errorJson(412, "rules changed; reload before publishing");
     const version = saveRules(cleaned);
     return jsonResponse({ ok: true, version, hash: getRules().hash });
-  };
+  }
 
-  const v1_publish: Handler = async (req, _url, ctx) => {
-    if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
-    const auth = requireAdmin(req);
-    if (!auth.ok) return errorJson(auth.status, auth.error);
-    let body: string;
-    try {
-      body = await readBody(req);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    let parsed: any;
-    try {
-      parsed = safeJsonParse(body, config.MAX_APPS * 8 + 20);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    const cleaned = cleanRules(parsed);
-    if (!cleaned) return errorJson(400, "invalid rules payload");
-    const expected = req.headers.get("if-match");
-    if (expected && expected !== getRules().hash && expected !== "*") return errorJson(412, "rules changed; reload before publishing");
-    const version = saveRules(cleaned);
-    return jsonResponse({ ok: true, version, hash: getRules().hash });
-  };
+  const v0_publish: Handler = (req, _url, ctx) => publishRules(req, ctx);
+  const v1_publish: Handler = (req, _url, ctx) => publishRules(req, ctx);
 
   const v0_skip: Handler = async (req, _url, ctx) => {
     if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
