@@ -12,7 +12,7 @@ kotlin = "2.4.21"                   # 仅用于 Compose 编译器插件（含 co
                                     # AGP 9 内置 Kotlin 仍是 2.2.10，映射产物坐标在 :app 显式对齐（见 app/build.gradle.kts）
 
 # AndroidX（BOM 之外的坐标也统一收口）
-composeBom = "2026.09.00"           # Jetpack Compose BOM
+composeBom = "2026.11.01"           # Jetpack Compose BOM
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 navigationCompose = "2.10.2"
