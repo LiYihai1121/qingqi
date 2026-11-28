@@ -83,9 +83,9 @@ android {
         // 单调递增，禁止复用已发布编号。新仓 v1.0.0 = 17、v1.0.1 = 18：
         // 重置前旧仓末版 v3.4.2 = 16（历史归档于仓库同级目录 ui-app.git-backup-20261013-224952，未推远端）；
         // Play Store 要求 versionCode 单调递增，故 git 历史重置不回退 versionCode。
-        versionCode = 20
+        versionCode = 21
         // 展示值用 X.Y（与 CONTRIBUTING「版本策略」一致；server 侧用完整 X.Y.Z）
-        versionName = "1.2"
+        versionName = "1.3"
     }
 
     signingConfigs {

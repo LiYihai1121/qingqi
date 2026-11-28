@@ -41,7 +41,8 @@ class ArchitectureBoundaryTest {
         val windowGuard = "if (activeRoot.packageName?.toString() != pkg || " +
             "activeRoot.windowId != root.windowId) return"
         val recheck = scan.indexOf(windowGuard)
-        val click = scan.indexOf("clickNode(target)")
+        // 点击入口允许携带额外参数（如爱奇艺的 preferGesture），但必须是同一处调用点。
+        val click = scan.indexOf("clickNode(target")
         assertTrue("事件包必须与实际窗口一致，才能选择规则", ownership >= 0 && ownership < rules)
         assertTrue("点击前必须再次确认包名及窗口身份", recheck > rules && recheck < click)
     }

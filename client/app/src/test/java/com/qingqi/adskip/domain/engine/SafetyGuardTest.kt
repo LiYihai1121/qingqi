@@ -214,4 +214,67 @@ class SafetyGuardTest {
         val card = FakeAdNode.node(text = "限时秒杀", children = listOf(button))
         assertTrue(SafetyGuard.canClick(card.children().first(), "com.example.app"))
     }
+
+    // ---------- 优酷开屏场景基线（TOP30 #18 未测；诊断方案见 docs/testing/YOUKU-SKIP-DIAGNOSIS.md） ----------
+
+    @Test
+    fun `youku skip button with aggregated landing copy in parent chain blocked`() {
+        // 优酷开屏的跳过按钮常与「立即下载/开通会员」文案同容器，Android 会把
+        // 子节点文案聚合进父容器的 text；父链黑名单命中「下载/开通」即拦——
+        // 这是真机日志出现 `Safety blocked click on pkg=com.youku.phone` 的预期成因
+        val button = FakeAdNode.node(text = "跳过", clickable = true)
+        val adCard = FakeAdNode.node(text = "立即下载体验 立即开通会员", clickable = true, children = listOf(button))
+        assertFalse(SafetyGuard.canClick(adCard.children().first(), "com.youku.phone"))
+    }
+
+    @Test
+    fun `youku landing copy in sibling does not block skip button`() {
+        // 落地文案与跳过按钮是兄弟节点（不在父链上）时不拦截：
+        // 黑名单只查目标自身 + 祖先链，不扩大到同容器兄弟
+        val skipButton = FakeAdNode.node(text = "跳过", clickable = true)
+        val downloadButton = FakeAdNode.node(text = "立即下载", clickable = true)
+        val adCard = FakeAdNode.node(clickable = false, children = listOf(downloadButton, skipButton))
+        assertTrue(SafetyGuard.canClick(adCard.children().last(), "com.youku.phone"))
+    }
+
+    // ---------- 包级手势放权（gestureFallback；优酷开屏真机实测 2026-10-29） ----------
+    //
+    // 真机证据：优酷开屏广告树（xadsdk SDK）从根到跳过按钮全部 clickable=false，
+    // 触摸由 SDK 自行处理——引擎能匹配「跳过广告」，但可点击路径校验必然拒绝，
+    // 广告永远播完（详见 docs/testing/YOUKU-SKIP-DIAGNOSIS.md）。
+    // gestureFallback 是包级云规则开关：只放行「无可点击路径」这一种拒绝，
+    // 其余护栏（合法性/黑名单/敏感系统界面）语义不变。
+
+    @Test
+    fun `gesture fallback allows engine target without clickable path when opted in`() {
+        val button = FakeAdNode.node(text = "跳过广告")
+        val container = FakeAdNode.node(children = listOf(button))
+        val target = container.children().first()
+        assertTrue(SafetyGuard.canClick(target, "com.youku.phone", allowGestureFallback = true))
+    }
+
+    @Test
+    fun `gesture fallback default off still blocks plain text row`() {
+        val button = FakeAdNode.node(text = "跳过广告")
+        val container = FakeAdNode.node(children = listOf(button))
+        val target = container.children().first()
+        assertFalse(SafetyGuard.canClick(target, "com.youku.phone"))
+    }
+
+    @Test
+    fun `gesture fallback does not bypass deny words`() {
+        val button = FakeAdNode.node(text = "跳过")
+        val card = FakeAdNode.node(text = "立即下载体验", children = listOf(button))
+        assertFalse(
+            SafetyGuard.canClick(card.children().first(), "com.youku.phone", allowGestureFallback = true),
+        )
+    }
+
+    @Test
+    fun `gesture fallback does not bypass package blacklist`() {
+        val button = FakeAdNode.node(text = "跳过", clickable = true)
+        assertFalse(
+            SafetyGuard.canClick(button, "com.eg.android.AlipayGphone", allowGestureFallback = true),
+        )
+    }
 }

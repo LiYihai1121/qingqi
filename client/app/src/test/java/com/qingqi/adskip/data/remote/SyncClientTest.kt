@@ -238,9 +238,39 @@ class SyncClientTest {
         assertEquals("com.test.app", received.getString("pkg"))
     }
 
+    // ---------- 上报离线队列 ----------
+
+    /** 内存版队列存储：单测不碰 SharedPreferences */
+    private class FakeQueueStore : ReportQueue.ReportQueueStore {
+        var items = mutableListOf<ReportQueue.Item>()
+        var seqCounter = 0L
+        override fun load(): List<ReportQueue.Item> = items.toList()
+        override fun save(items: List<ReportQueue.Item>) {
+            this.items = items.toMutableList()
+        }
+        override fun epoch(): String = "test-epoch-0001"
+        override fun nextSeq(): Long {
+            seqCounter++
+            return seqCounter
+        }
+    }
+
+    private fun newQueue(): Pair<ReportQueue, FakeQueueStore> {
+        val store = FakeQueueStore()
+        return ReportQueue(store) to store
+    }
+
+    /** 等待异步 flush 完成：轮询直到条件满足或超时 */
+    private fun await(timeoutMs: Long = 4000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!condition() && System.currentTimeMillis() < deadline) Thread.sleep(20)
+        assertTrue("condition not met within ${timeoutMs}ms", condition())
+    }
+
     @Test
-    fun `reportSkip sends v1 batch with deviceId and label`() {
+    fun `reportSkip sends v1 batch with deviceId label epoch and seq`() {
         server.enqueue(MockResponse().setResponseCode(200))
+        val (queue, _) = newQueue()
 
         SyncClient.reportSkip(
             server.url("/").toString(),
@@ -248,23 +278,29 @@ class SyncClientTest {
             "skip",
             "device-123",
             emptyList(),
+            queue,
         )
 
         val request = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/v1/reports/batch", request.path)
         val body = JSONObject(request.body.readUtf8())
         assertEquals("device-123", body.getString("deviceId"))
+        // A2：epoch + seq 幂等字段必须随批次下发
+        assertEquals("test-epoch-0001", body.getString("epoch"))
         val event = body.getJSONArray("events").getJSONObject(0)
         assertEquals("com.test.app", event.getString("pkg"))
-        // F1：v1 事件必须携带 label，与服务端 cleanReportEvent 对齐
         assertEquals("skip", event.getString("label"))
+        assertEquals(1L, event.getLong("seq"))
+        assertTrue(event.has("ts"))
+        // 2xx 后队列应排空
+        await { queue.size() == 0 }
     }
 
     @Test
-    fun `reportSkip does not fall back to v0 on http status error`() {
-        // §6.5：v1 返回 5xx 时服务端已处理过请求，不再回退 v0——
-        // 回退会让同一跳过事件双份入库、统计计数虚增
+    fun `reportSkip retains queue on http status error`() {
+        // 5xx：服务端可能已处理，事件留在队列等重试；绝不回退 v0（双份入库）
         server.enqueue(MockResponse().setResponseCode(500))
+        val (queue, store) = newQueue()
 
         SyncClient.reportSkip(
             server.url("/").toString(),
@@ -272,18 +308,20 @@ class SyncClientTest {
             "skip",
             "device-123",
             emptyList(),
+            queue,
         )
 
         val req1 = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/v1/reports/batch", req1.path)
-        // 不应产生 v0 请求（给 1s 窗口确认没有回退）
-        assertNull(server.takeRequest(1, TimeUnit.SECONDS))
+        await { store.items.size == 1 }
+        assertNull(server.takeRequest(500, TimeUnit.MILLISECONDS))
     }
 
     @Test
-    fun `reportSkip does not fall back to v0 on rate limit`() {
-        // 429 同样是「服务端已处理」——回退会绕过 v1 的 deviceId 限频口径
+    fun `reportSkip retains queue on rate limit`() {
+        // 429：限流是暂时的，保留队首等待窗口恢复
         server.enqueue(MockResponse().setResponseCode(429))
+        val (queue, store) = newQueue()
 
         SyncClient.reportSkip(
             server.url("/").toString(),
@@ -291,19 +329,51 @@ class SyncClientTest {
             "skip",
             "device-123",
             emptyList(),
+            queue,
         )
 
         val req1 = server.takeRequest(2, TimeUnit.SECONDS)!!
         assertEquals("/api/v1/reports/batch", req1.path)
-        assertNull(server.takeRequest(1, TimeUnit.SECONDS))
+        await { store.items.size == 1 }
+        assertNull(server.takeRequest(500, TimeUnit.MILLISECONDS))
     }
 
     @Test
-    fun `reportSkip falls back to v0 on network failure`() {
-        // 仅网络层异常回退 v0：DISCONNECT_AT_START 模拟连接建立即被拒，
-        // v1 请求根本没到服务端，此时 v0 单条上报是合理的补报通道
+    fun `reportSkip retains queue on network failure and flush retries`() {
+        // 网络层异常：事件已入队不丢；恢复后 flushReportQueue 补报成功并出队
         server.enqueue(MockResponse().setSocketPolicy(okhttp3.mockwebserver.SocketPolicy.DISCONNECT_AT_START))
         server.enqueue(MockResponse().setResponseCode(200))
+        val (queue, store) = newQueue()
+        val base = server.url("/").toString()
+
+        SyncClient.reportSkip(base, "com.test.app", "skip", "device-123", emptyList(), queue)
+        await { store.items.size == 1 }
+
+        // DISCONNECT_AT_START 的连接在读取请求前即被关闭，MockWebServer
+        // 不保证记录到带路径的请求——不依赖请求记录，给 flush 留出完成窗口
+        Thread.sleep(1500)
+        // 失败后队列保留，且绝不回退 v0（断连请求可能被记为 "/" 空请求，排空后逐条检查）
+        assertEquals(1, store.items.size)
+        var recorded = server.takeRequest(300, TimeUnit.MILLISECONDS)
+        while (recorded != null) {
+            assertTrue("unexpected v0 fallback request", recorded.path != "/api/skip")
+            recorded = server.takeRequest(100, TimeUnit.MILLISECONDS)
+        }
+
+        // 网络恢复：手动触发 flush，第二个 200 响应应答，队列排空
+        SyncClient.flushReportQueue(base, "device-123", emptyList(), queue)
+        val retry = server.takeRequest(3, TimeUnit.SECONDS)!!
+        assertEquals("/api/v1/reports/batch", retry.path)
+        val body = JSONObject(retry.body.readUtf8())
+        assertEquals(1, body.getJSONArray("events").length())
+        await { queue.size() == 0 }
+    }
+
+    @Test
+    fun `reportSkip dequeues batch on permanent failure status`() {
+        // 400：载荷被服务端判非法，重试无意义——整批出队防队列毒化
+        server.enqueue(MockResponse().setResponseCode(400))
+        val (queue, store) = newQueue()
 
         SyncClient.reportSkip(
             server.url("/").toString(),
@@ -311,19 +381,11 @@ class SyncClientTest {
             "skip",
             "device-123",
             emptyList(),
+            queue,
         )
 
-        // 断连的连接可能先被记录为空请求（path 为 "/"），轮询直到 v0 回退请求出现
-        val deadline = System.currentTimeMillis() + 4000
-        var v0Request: okhttp3.mockwebserver.RecordedRequest? = null
-        while (System.currentTimeMillis() < deadline && v0Request == null) {
-            val recorded = server.takeRequest(1, TimeUnit.SECONDS)
-            if (recorded != null && recorded.path == "/api/skip") v0Request = recorded
-        }
-        assertNotNull("network failure must trigger v0 fallback", v0Request)
-        val body = JSONObject(v0Request!!.body.readUtf8())
-        assertEquals("com.test.app", body.getString("pkg"))
-        assertEquals("skip", body.getString("label"))
+        server.takeRequest(2, TimeUnit.SECONDS)!!
+        await { store.items.isEmpty() }
     }
 
     @Test
@@ -344,15 +406,18 @@ class SyncClientTest {
         val savedClient = SyncClient.testClient
         SyncClient.testClient = null
         try {
+            val (queue, store) = newQueue()
             SyncClient.reportSkip(
                 server.url("/").toString(),
                 "com.test.app",
                 "skip",
                 "device-123",
                 emptyList(),
+                queue,
             )
-            // fail-closed 在入队前同步 return，不应产生任何请求
+            // fail-closed 在入队前同步 return：不发请求也不积压队列
             assertEquals(0, server.requestCount)
+            assertTrue(store.items.isEmpty())
         } finally {
             SyncClient.testClient = savedClient
         }
@@ -376,5 +441,26 @@ class SyncClientTest {
         SyncClient.testClient!!.newCall(req2).execute().close()
 
         assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `parseRulesResponse reads per-package gesture fallback`() {
+        // 安全契约：gestureFallback 默认 false，仅服务端显式下发 true 的包放权
+        val apps = JSONObject()
+        apps.put(
+            "com.youku.phone",
+            JSONObject()
+                .put("keywords", org.json.JSONArray().put("跳过广告"))
+                .put("gestureFallback", true),
+        )
+        apps.put("com.other.app", JSONObject().put("keywords", org.json.JSONArray().put("跳过")))
+        val body = JSONObject()
+            .put("schemaVersion", 2)
+            .put("rules", JSONObject().put("apps", apps))
+            .toString()
+
+        val parsed = SyncClient.parseRulesResponse(body)
+        assertTrue(parsed.pkgRules["com.youku.phone"]!!.gestureFallback)
+        assertFalse(parsed.pkgRules["com.other.app"]!!.gestureFallback)
     }
 }

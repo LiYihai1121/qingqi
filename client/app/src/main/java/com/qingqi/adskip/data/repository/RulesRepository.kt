@@ -45,7 +45,12 @@ class RulesRepository(private val store: RulesStore) {
         val selectors = (store.globalSelectors() + store.pkgSelectors(pkg))
             .filter { it.isNotBlank() }
             .mapNotNull { SelectorParser.parse(it) }
-        val ruleSet = RuleSet(keywords, viewIds, selectors)
+        val ruleSet = RuleSet(
+            keywords = keywords,
+            viewIds = viewIds,
+            selectors = selectors,
+            gestureFallback = store.pkgGestureFallback(pkg),
+        )
         cache[cacheKey] = ruleSet
         return ruleSet
     }

@@ -4,8 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.qingqi.adskip.R
 import com.qingqi.adskip.core.storage.SecureStore
+import com.qingqi.adskip.data.remote.ReportQueue
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 /**
  * 关键词/规则/日志/统计的本地存储。
@@ -31,6 +33,9 @@ object Prefs {
     private const val KEY_DND_START = "dnd_start_minute"
     private const val KEY_DND_END = "dnd_end_minute"
     private const val KEY_DEVICE_ID = "device_id"
+    private const val KEY_REPORT_QUEUE = "report_queue"
+    private const val KEY_REPORT_EPOCH = "report_epoch"
+    private const val KEY_REPORT_SEQ = "report_seq"
     private const val KEY_RULES_HASH = "rules_hash"
     private const val KEY_RULES_SIGNING_KEY = "rules_signing_key"
     private const val KEY_CERT_PINS = "cert_pins"
@@ -39,6 +44,7 @@ object Prefs {
     private const val PREFIX_PKG_KEYWORDS = "pkg_kw:"
     private const val PREFIX_PKG_VIEW_IDS = "pkg_vid:"
     private const val PREFIX_PKG_SELECTORS = "pkg_sel:"
+    private const val PREFIX_PKG_GESTURE = "pkg_gesture:"
     private const val PREFIX_PKG_COUNT = "pkg_count:"
 
     private const val LOG_CAP = 200
@@ -116,6 +122,9 @@ object Prefs {
     fun getPkgSelectors(context: Context, pkg: String): List<String> =
         sp(context).getStringSet(PREFIX_PKG_SELECTORS + pkg, null)?.toList() ?: emptyList()
 
+    fun getPkgGestureFallback(context: Context, pkg: String): Boolean =
+        sp(context).getBoolean(PREFIX_PKG_GESTURE + pkg, false)
+
     fun isPackageDisabled(context: Context, pkg: String): Boolean =
         sp(context).getStringSet(KEY_DISABLED, emptySet())?.contains(pkg) == true
 
@@ -150,7 +159,7 @@ object Prefs {
         // 旧云端包规则键先在同一次 edit 内全部摘除，再写入新集合，杜绝「旧包残留」
         for (key in prefs.all.keys) {
             if (key.startsWith(PREFIX_PKG_KEYWORDS) || key.startsWith(PREFIX_PKG_VIEW_IDS) ||
-                key.startsWith(PREFIX_PKG_SELECTORS)
+                key.startsWith(PREFIX_PKG_SELECTORS) || key.startsWith(PREFIX_PKG_GESTURE)
             ) {
                 editor.remove(key)
             }
@@ -159,6 +168,7 @@ object Prefs {
             editor.putStringSet(PREFIX_PKG_KEYWORDS + pkg, rule.keywords.toSet())
             editor.putStringSet(PREFIX_PKG_VIEW_IDS + pkg, rule.viewIds.toSet())
             editor.putStringSet(PREFIX_PKG_SELECTORS + pkg, rule.selectors.toSet())
+            editor.putBoolean(PREFIX_PKG_GESTURE + pkg, rule.gestureFallback)
         }
         editor.putStringSet(KEY_DISABLED, disabled.toSet())
         editor.apply()
@@ -305,6 +315,43 @@ object Prefs {
             prefs.edit().putString(KEY_DEVICE_ID, id).apply()
         }
         return id
+    }
+
+    // ---------- 上报离线队列（PLAN-OFFLINE-SYNC §3.3 / DESIGN §5.1 A1） ----------
+
+    /**
+     * 生产环境的队列存储：队列 JSON、epoch、seq 都落在加密 SharedPreferences。
+     *
+     * epoch 是安装期随机标识（32 位 hex，满足服务端 EPOCH_RE），重装后
+     * seq 从 1 重来但 epoch 变化，服务端高水位不会把新装设备的事件误判重复。
+     * seq 先于队列条目持久化：两者之间崩溃只会产生 seq 空洞，
+     * 服务端对空洞是「接受但不推进」，不丢数据。
+     */
+    fun reportQueueStore(context: Context): ReportQueue.ReportQueueStore {
+        val prefs = sp(context)
+        return object : ReportQueue.ReportQueueStore {
+            override fun load(): List<ReportQueue.Item> = ReportQueue.decode(prefs.getString(KEY_REPORT_QUEUE, null))
+
+            override fun save(items: List<ReportQueue.Item>) {
+                prefs.edit()
+                    .putString(KEY_REPORT_QUEUE, ReportQueue.encode(items))
+                    .apply()
+            }
+
+            override fun epoch(): String {
+                val existing = prefs.getString(KEY_REPORT_EPOCH, null)
+                if (!existing.isNullOrEmpty()) return existing
+                val created = UUID.randomUUID().toString().replace("-", "")
+                prefs.edit().putString(KEY_REPORT_EPOCH, created).apply()
+                return created
+            }
+
+            override fun nextSeq(): Long {
+                val next = prefs.getLong(KEY_REPORT_SEQ, 0L) + 1L
+                prefs.edit().putLong(KEY_REPORT_SEQ, next).apply()
+                return next
+            }
+        }
     }
 
     // ---------- 规则哈希（If-None-Match 同步） ----------

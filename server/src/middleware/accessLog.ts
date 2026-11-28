@@ -9,14 +9,21 @@ export interface AccessEntry {
   ms: number;
 }
 
-const MAX_ENTRIES = 200;
-const ring: AccessEntry[] = [];
 
-export function recordAccess(e: Omit<AccessEntry, "ts">): void {
-  ring.unshift({ ...e, ts: new Date().toISOString() });
-  if (ring.length > MAX_ENTRIES) ring.length = MAX_ENTRIES;
+export function createAccessLog() {
+  const MAX_ENTRIES = 200;
+  const ring: AccessEntry[] = [];
+
+  function recordAccess(e: Omit<AccessEntry, "ts">): void {
+    ring.unshift({ ...e, ts: new Date().toISOString() });
+    if (ring.length > MAX_ENTRIES) ring.length = MAX_ENTRIES;
+  }
+
+  function recentAccess(): AccessEntry[] {
+    return ring.slice();
+  }
+
+  return { recordAccess, recentAccess };
 }
 
-export function recentAccess(): AccessEntry[] {
-  return ring.slice();
-}
+export const { recordAccess, recentAccess } = createAccessLog();

@@ -70,6 +70,8 @@ class RulesRepositoryTest {
             return pkgRules[pkg]?.selectors ?: emptyList()
         }
 
+        override fun pkgGestureFallback(pkg: String): Boolean = pkgRules[pkg]?.gestureFallback ?: false
+
         override fun isPackageDisabled(pkg: String): Boolean = pkg in disabled
 
         override fun saveKeywords(list: List<String>) {
@@ -221,5 +223,28 @@ class RulesRepositoryTest {
         repo.setDisabled("com.a", true)
         assertTrue(repo.ruleSetFor("com.a").disabled)
         assertTrue(repo.ruleSetFor("com.a").isEmpty)
+    }
+
+    @Test
+    fun `applyCloudRules persists gesture fallback and exposes it in ruleSet`() {
+        // 包级手势放权（优酷开屏：广告树无可点击节点）必须整包原子落地，
+        // 且只对开启的包生效，其他包护栏语义不变
+        val store = FakeStore()
+        val repo = newRepo(store)
+
+        val ok = repo.applyCloudRules(
+            keywords = listOf("跳过"),
+            viewIds = listOf("skip"),
+            pkgRules = mapOf(
+                "com.youku.phone" to CloudPkgRule(keywords = listOf("跳过广告"), gestureFallback = true),
+                "com.other.app" to CloudPkgRule(keywords = listOf("跳过")),
+            ),
+        )
+
+        assertTrue(ok)
+        assertTrue(store.pkgRules["com.youku.phone"]!!.gestureFallback)
+        assertFalse(store.pkgRules["com.other.app"]!!.gestureFallback)
+        assertTrue(repo.ruleSetFor("com.youku.phone").gestureFallback)
+        assertFalse(repo.ruleSetFor("com.other.app").gestureFallback)
     }
 }

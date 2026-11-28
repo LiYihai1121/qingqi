@@ -61,11 +61,48 @@ export interface Config {
   TLS_CERT: string;
   /** TLS 私钥路径（空字符串表示禁用 HTTPS）。 */
   TLS_KEY: string;
+  /**
+   * 统计日键的 IANA 时区（env STATS_TZ，默认 Asia/Shanghai）。
+   * 「今天」是产品语义，必须跟部署地一致；固定偏移在 DST 地区会错一小时。
+   */
+  STATS_TZ: string;
+  /**
+   * 事件时间归日开关（env STATS_EVENT_TIME=off 关闭）。
+   * 开启时上报事件按客户端 ts（钳制到 7 天窗口）归入事件发生日；
+   * 关闭时回退到服务端到达时间（旧行为）。
+   */
+  STATS_EVENT_TIME: boolean;
+  /**
+   * 上报幂等开关（env REPORT_IDEMPOTENCY=off 关闭）。
+   * 开启时按 (deviceId, epoch) + seq 高水位去重；关闭时走旧路径
+   * （仅 eventId 内容去重，无 seq 语义）。
+   */
+  REPORT_IDEMPOTENCY: boolean;
+}
+
+/** env 布尔开关：默认开，置 "off"/"0"/"false"/"no" 关闭 */
+function envFlagOn(name: string): boolean {
+  const v = (process.env[name] ?? "").toLowerCase();
+  return !(v === "off" || v === "0" || v === "false" || v === "no");
+}
+
+/**
+ * PORT 解析：非法值在启动期快速失败并给出可读原因。
+ * 此前 `Number("abc")` → NaN 会在 Bun.serve 深处抛错，堆栈不指向配置。
+ */
+function parsePort(raw: string | undefined): number {
+  const n = Number(raw ?? 3210);
+  if (!Number.isInteger(n) || n < 1 || n > 65535) {
+    throw new Error(
+      `PORT must be an integer in 1..65535, got ${JSON.stringify(raw ?? "3210")}`
+    );
+  }
+  return n;
 }
 
 export const config: Config = {
-  PORT: Number(process.env.PORT ?? 3210),
-  HOST: process.env.HOST ?? "0.0.0.0",
+  PORT: parsePort(process.env.PORT),
+  HOST: process.env.HOST ?? "127.0.0.1",
   ROOT,
   DATA_DIR: path.join(ROOT, "data"),
   RULES_FILE: path.join(ROOT, "data", "rules.json"),
@@ -111,4 +148,7 @@ export const config: Config = {
   MAX_BODY_DEPTH: 5,
   TLS_CERT: process.env.TLS_CERT ?? "",
   TLS_KEY: process.env.TLS_KEY ?? "",
+  STATS_TZ: process.env.STATS_TZ ?? "Asia/Shanghai",
+  STATS_EVENT_TIME: envFlagOn("STATS_EVENT_TIME"),
+  REPORT_IDEMPOTENCY: envFlagOn("REPORT_IDEMPOTENCY"),
 };

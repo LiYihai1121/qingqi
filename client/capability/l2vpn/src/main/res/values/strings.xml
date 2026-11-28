@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="l2_vpn_session">轻启 L2 DNS 过滤（隔离原型）</string>
+</resources>
