@@ -8,10 +8,12 @@ export interface Config {
   HOST: string;
   ROOT: string;
   DATA_DIR: string;
+  DB_FILE: string;
   RULES_FILE: string;
   /** 入库的初始规则种子；运行时 RULES_FILE 缺失时兜底（不随 dataDir 注入改变） */
   SEED_RULES_FILE: string;
   STATS_DIR: string;
+  STATS_TZ: string;
   PUBLIC_DIR: string;
   APK_FILE: string;
   MAX_BODY: number;
@@ -34,7 +36,7 @@ export interface Config {
    */
   RULES_SIGNING_KEY: string;
   /**
-   * 受信反向代理 IP 列表（env TRUSTED_PROXIES，逗号分隔）。
+   * 受信反向代理 IP列表（env TRUSTED_PROXIES，逗号分隔）。
    * 只有来自这些 IP 的请求才采信 X-Forwarded-For；空 = 任何人伪造的 XFF 都不认，
    * 限流一律以 socket 对端 IP 为键（B 链修复：否则所有限流可被绕过）。
    */
@@ -63,14 +65,39 @@ export interface Config {
   TLS_KEY: string;
 }
 
+export function validateConfig(cfg: Config): void {
+  if (process.env.PORT !== undefined) {
+    const rawPort = Number(process.env.PORT);
+    if (!Number.isInteger(rawPort) || rawPort < 0 || rawPort > 65535) {
+      throw new Error(`Invalid PORT environment variable: "${process.env.PORT}". Must be an integer between 0 and 65535.`);
+    }
+  }
+  if (!Number.isInteger(cfg.PORT) || cfg.PORT < 0 || cfg.PORT > 65535) {
+    throw new Error(`Invalid PORT: ${cfg.PORT}. Must be an integer between 0 and 65535.`);
+  }
+  if (!Number.isFinite(cfg.MAX_BODY) || cfg.MAX_BODY <= 0) {
+    throw new Error(`Invalid MAX_BODY: ${cfg.MAX_BODY}. Must be a positive number.`);
+  }
+  if (!Number.isFinite(cfg.STATS_RETENTION_DAYS) || cfg.STATS_RETENTION_DAYS < 0) {
+    throw new Error(`Invalid STATS_RETENTION_DAYS: ${cfg.STATS_RETENTION_DAYS}. Must be non-negative.`);
+  }
+  const hasCert = Boolean(cfg.TLS_CERT);
+  const hasKey = Boolean(cfg.TLS_KEY);
+  if (hasCert !== hasKey) {
+    throw new Error("TLS_CERT and TLS_KEY must both be configured");
+  }
+}
+
 export const config: Config = {
   PORT: Number(process.env.PORT ?? 3210),
   HOST: process.env.HOST ?? "127.0.0.1",
   ROOT,
   DATA_DIR: path.join(ROOT, "data"),
+  DB_FILE: process.env.DB_FILE ?? path.join(ROOT, "data", "adskip.db"),
   RULES_FILE: path.join(ROOT, "data", "rules.json"),
   SEED_RULES_FILE: path.join(ROOT, "seed", "rules.json"),
   STATS_DIR: path.join(ROOT, "data", "stats"),
+  STATS_TZ: process.env.STATS_TZ ?? "Asia/Shanghai",
   PUBLIC_DIR: path.join(ROOT, "public"),
   APK_FILE: path.join(ROOT, "..", "AdSkip-latest.apk"),
   MAX_BODY: 1024 * 1024,

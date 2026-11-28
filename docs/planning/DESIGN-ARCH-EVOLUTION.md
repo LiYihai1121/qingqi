@@ -58,6 +58,7 @@ v3.4.0 刚完成 monorepo 解耦、`applicationId` 迁移与安全加固批次�
 - **前置**：新增迁移设计小节（本文件第 4 节扩展）；`server/src/storage/store.ts` 接口不变、实现替换——`bun test` 87 项中的存储相关用例先行改写为失败态。
 - **验收**：`bun test` + `bun run typecheck` 全绿；API 响应逐字节等价（以现有契约测试为准）；旧 JSON 数据提供一次性迁移脚本；`backupStamp` 命名机制保留。
 - **风险**：并发写（统计上报 + 规则轮转）——SQLite WAL + 单写者队列；迁移失败回滚 = 保留 JSON 路径一个版本周期。
+- **实施状态（2026-11-28，分支 `refactor/sqlite-storage`，待评审）**：`src/storage/` 拆为 `db` / `schema` / `migration` / `rulesRepo` / `statsRepo`，`store.ts` 对外接口不变；单库 `adskip.db`（WAL，`DB_FILE` 可配）；启动时空库自动导入旧 `rules.json` 与按天分片；过渡期继续写 JSON 快照作为回滚路径；批量上报与去重在同一事务内提交。同批完成：上报处理拆出 `api/reportsApi.ts`、`STATS_TZ` 时区日键、`validateConfig` 启动期配置校验。契约测试：`test/sqlite.contract.test.ts`、`test/config.test.ts`。
 
 ### R3 — 部署与可观测批次
 

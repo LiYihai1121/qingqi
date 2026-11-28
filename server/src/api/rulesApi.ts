@@ -5,22 +5,23 @@ import * as defaultLimiter from "../middleware/rateLimit";
 import { createHttpUtils, type Handler } from "../utils/httpUtil";
 import { createValidator } from "../utils/validate";
 import { createSigner } from "../utils/sign";
+import { createReportsApi } from "./reportsApi";
 
-
-export function createRulesApi(config: Config = defaultConfig, store: ReturnType<typeof defaultStore.createStore> = defaultStore, limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter) {
-  const { getRules, saveRules, recordBatch } = store;
+export function createRulesApi(
+  config: Config = defaultConfig,
+  store: ReturnType<typeof defaultStore.createStore> = defaultStore,
+  limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter
+) {
+  const { getRules, saveRules } = store;
   const { requireAdmin } = createAuth(config);
-  const { limitRead, limitWrite, limitReport, probeReportIp } = limiter;
+  const { limitRead, limitWrite } = limiter;
   const { jsonResponse, errorJson, statusResponse, readBody, safeJsonParse, errorResponseFrom } = createHttpUtils(config);
-  const { cleanRules, cleanBatchReport, cleanReportEvent, cleanLabel, isValidPackage } = createValidator(config);
+  const { cleanRules, isValidPackage } = createValidator(config);
   const { RULES_SIGNATURE_HEADER, signRulesBody } = createSigner(config);
+  const reportsApi = createReportsApi(config, store, limiter);
+
   /**
    * 规则下发响应：对「即将发出的字节串原文」做 HMAC-SHA256 签名。
-   *
-   * 为什么先序列化再签发：签名必须覆盖客户端收到的那串字节。若签的是重新
-   * 序列化的对象，两端键序/数字格式一旦漂移就会出现假失配。密钥未配置
-   * （RULES_SIGNING_KEY 为空）时不下发签名头——客户端配了密钥会失败关闭
-   * 拒载；两端都没配则退回历史明文生态。
    */
   function signedRulesJson(
     payload: unknown,
@@ -45,8 +46,6 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
       updatedAt: r.updatedAt,
       keywords: r.keywords,
       viewIds: r.viewIds,
-      // v0 平铺形状的选择器字段：管理后台按 legacy 形状编辑，缺失会导致已配的
-      // 选择器在编辑页「看不见」——保存一次就被清空。
       selectors: r.selectors,
       packages: r.packages,
     });
@@ -70,7 +69,6 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
   };
 
   const v0_publish: Handler = async (req, _url, ctx) => {
-    // 限流先于鉴权：401/503 不计入令牌桶的话，admin token 可被无限速暴力破解
     if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
     const auth = requireAdmin(req);
     if (!auth.ok) return errorJson(auth.status, auth.error);
@@ -89,7 +87,9 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     const cleaned = cleanRules(parsed);
     if (!cleaned) return errorJson(400, "invalid rules payload");
     const expected = req.headers.get("if-match");
-    if (expected && expected !== getRules().hash && expected !== "*") return errorJson(412, "rules changed; reload before publishing");
+    if (expected && expected !== getRules().hash && expected !== "*") {
+      return errorJson(412, "rules changed; reload before publishing");
+    }
     const version = saveRules(cleaned);
     return jsonResponse({ ok: true, version, hash: getRules().hash });
   };
@@ -113,91 +113,30 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     const cleaned = cleanRules(parsed);
     if (!cleaned) return errorJson(400, "invalid rules payload");
     const expected = req.headers.get("if-match");
-    if (expected && expected !== getRules().hash && expected !== "*") return errorJson(412, "rules changed; reload before publishing");
+    if (expected && expected !== getRules().hash && expected !== "*") {
+      return errorJson(412, "rules changed; reload before publishing");
+    }
     const version = saveRules(cleaned);
     return jsonResponse({ ok: true, version, hash: getRules().hash });
   };
 
-  const v0_skip: Handler = async (req, _url, ctx) => {
-    if (!limitWrite(req, ctx.ip)) return errorJson(429, "rate limited");
-    let body: string;
-    try {
-      body = await readBody(req);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    let parsed: any;
-    try {
-      parsed = safeJsonParse(body);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    const ev = cleanReportEvent(parsed);
-    if (!ev) return errorJson(400, "invalid skip payload");
-    // label 会持久化并经统计接口下发到所有端：cleanReportEvent 已做截断/回退，
-    // 再过 cleanLabel 剥控制字符（跨端 UI/日志 注入防护）后入库
-    recordBatch("legacy", [{ ...ev, label: cleanLabel(ev.label), eventId: undefined }]);
-    return jsonResponse({ ok: true });
-  };
-
-  const v1_batchReport: Handler = async (req, _url, ctx) => {
-    // 读体之前先按来源 IP 探测容量（不扣减），阻断未认证的大请求体内存放大
-    if (!probeReportIp(req, ctx.ip)) return errorJson(429, "rate limited");
-    let body: string;
-    try {
-      body = await readBody(req);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    let parsed: any;
-    try {
-      parsed = safeJsonParse(body, config.MAX_BATCH_EVENTS * 8 + 20);
-    } catch (e: any) {
-      return errorResponseFrom(e);
-    }
-    const cleaned = cleanBatchReport(parsed);
-    if (!cleaned) return errorJson(400, "invalid batch report");
-    if (!limitReport(req, ctx.ip, cleaned.deviceId)) {
-      return errorJson(429, "rate limited");
-    }
-    const accepted = recordBatch(cleaned.deviceId, cleaned.events);
-    return jsonResponse({ ok: true, accepted, duplicates: cleaned.events.length - accepted });
-  };
-
   /** 简单选择器：`[key]`、`[key op "value"]`；op ∈ `=` `*` `^` `$`（与客户端文法一致） */
   const SIMPLE_SELECTOR_RE = /\[(text|desc|vid|click)(?:([*^$]?=)"([^"]*)")?\]/g;
-
-  /** 与客户端 `SelectorParser.MAX_VALUE_LENGTH` 对齐：text/desc 超长直接不匹配 */
   const SELECTOR_MAX_VALUE_LEN = 64;
 
   type SelectorVerdict = { verdict: "hit" | "miss" | "unevaluable"; reason: string };
 
-  /**
-   * 选择器求值（服务端**近似**，只覆盖能判的子集）。
-   *
-   * 语法权威在客户端 `SelectorParser` / `SelectorMatcher`——组合符要靠节点树
-   * （parent / previousSibling）才能判，服务端没有节点树。因此本函数只判定
-   * 「单个 compound 且只用 text/vid」，其余一律回报 `unevaluable` 并给出原因，
-   * 而不是硬凑一个 hit/miss。
-   *
-   * 上一版用正则去切选择器字符串再 `sample.includes(...)`：正则不匹配时
-   * `String.replace` 原样返回，判定退化成「样本文本是否包含整条选择器」，
-   * 会稳定误报；且只覆盖 text 一个通道。
-   */
   function evalSelector(expr: string, sample: string, viewId: string): SelectorVerdict {
     const simples = [...expr.matchAll(SIMPLE_SELECTOR_RE)];
     if (simples.length === 0) {
       return { verdict: "unevaluable", reason: "表达式里没有可识别的简单选择器" };
     }
-    // 覆盖性检查：简单选择器拼起来若不等于整条表达式，说明混进了组合符
-    // （空白/>/+）或非选择器字符——这些都需要节点树，判不了。
     if (simples.map((m) => m[0]).join("") !== expr.trim()) {
       return { verdict: "unevaluable", reason: "含组合符（后代/子/前序兄弟）或非选择器字符，需要节点树才能判定" };
     }
 
     for (const m of simples) {
       const key = m[1]!;
-      // 捕获组含等号（`*=`/`=`），判定时只取运算符本身
       const op = m[2] === undefined ? undefined : m[2][0];
       const value = m[3];
       if (key === "desc") {
@@ -233,7 +172,6 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
   }
 
   const v1_testRule: Handler = async (req, _url, ctx) => {
-    // 同 v*_publish：限流先于鉴权，堵住未认证暴力尝试
     if (!limitRead(req, ctx.ip)) return errorJson(429, "rate limited");
     const auth = requireAdmin(req);
     if (!auth.ok) return errorJson(auth.status, auth.error);
@@ -249,7 +187,6 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     } catch (e: any) {
       return errorResponseFrom(e);
     }
-    // 与客户端 RulesRepository.ruleSetFor(pkg) 同源：全局 + 应用专属 + 禁用开关
     const pkgRaw = typeof parsed.pkg === "string" ? parsed.pkg.trim() : "";
     const pkg = isValidPackage(pkgRaw) ? pkgRaw : "";
     const sample = String(parsed.text ?? "").toLowerCase();
@@ -278,14 +215,21 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
       if (v.verdict === "hit") {
         hits.push({ match: "selector", rule: selector, field: "text" });
       } else if (v.verdict === "unevaluable") {
-        // 如实回报「服务端判不了」，避免规则模拟器给出「未命中」的假象
         selectorNotes.push({ rule: selector, reason: v.reason });
       }
     }
     return jsonResponse({ hits, hit: !disabled && hits.length > 0, disabled, selectorNotes });
   };
 
-  return { v0_latest, v1_latest, v0_publish, v1_publish, v0_skip, v1_batchReport, v1_testRule };
+  return {
+    v0_latest,
+    v1_latest,
+    v0_publish,
+    v1_publish,
+    v0_skip: reportsApi.v0_skip,
+    v1_batchReport: reportsApi.v1_batchReport,
+    v1_testRule,
+  };
 }
 
 export const { v0_latest, v1_latest, v0_publish, v1_publish, v0_skip, v1_batchReport, v1_testRule } = createRulesApi();

@@ -2,7 +2,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import { isIP } from "node:net";
-import { config as defaultConfig, type Config } from "./src/config";
+import { config as defaultConfig, validateConfig, type Config } from "./src/config";
 import { createApi } from "./src/api";
 import { createHttpUtils, errorJson } from "./src/utils/httpUtil";
 import { createStore } from "./src/storage/store";
@@ -70,10 +70,13 @@ export function startServer(options: StartOptions = {}): AppServer {
   if (options.apkFile !== undefined) config.APK_FILE = options.apkFile;
   if (options.dataDir !== undefined) {
     config.DATA_DIR = options.dataDir;
+    config.DB_FILE = path.join(options.dataDir, "adskip.db");
     config.RULES_FILE = path.join(options.dataDir, "rules.json");
     config.STATS_DIR = path.join(options.dataDir, "stats");
     config.BACKUP_DIR = path.join(options.dataDir, "backups");
   }
+
+  validateConfig(config);
 
   const store = createStore(config);
   const limiter = createRateLimiter(config);

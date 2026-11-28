@@ -3,19 +3,26 @@ import { createAuth } from "../middleware/auth";
 import * as defaultLimiter from "../middleware/rateLimit";
 import * as defaultAccess from "../middleware/accessLog";
 import { createRulesApi } from "./rulesApi";
+import { createReportsApi } from "./reportsApi";
 import { createStatsApi } from "./statsApi";
 import { createHealthApi } from "./healthApi";
 import * as defaultStore from "../storage/store";
 import { config as defaultConfig, type Config } from "../config";
 
-
-export function createApi(config: Config = defaultConfig, store: ReturnType<typeof defaultStore.createStore> = defaultStore, limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter, access: ReturnType<typeof defaultAccess.createAccessLog> = defaultAccess) {
+export function createApi(
+  config: Config = defaultConfig,
+  store: ReturnType<typeof defaultStore.createStore> = defaultStore,
+  limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter,
+  access: ReturnType<typeof defaultAccess.createAccessLog> = defaultAccess
+) {
   const rulesApi = createRulesApi(config, store, limiter);
+  const reportsApi = createReportsApi(config, store, limiter);
   const statsApi = createStatsApi(config, store, limiter);
   const healthApi = createHealthApi(store, limiter);
   const { requireAdmin } = createAuth(config);
   const { limitRead } = limiter;
   const { recentAccess } = access;
+
   /** API 路由分发（v1 优先，回退 v0；均精确匹配 pathname） */
   async function handleApi(
     req: Request,
@@ -35,7 +42,7 @@ export function createApi(config: Config = defaultConfig, store: ReturnType<type
       return rulesApi.v1_testRule(req, url, ctx);
     }
     if (method === "POST" && p === "/api/v1/reports/batch") {
-      return rulesApi.v1_batchReport(req, url, ctx);
+      return reportsApi.v1_batchReport(req, url, ctx);
     }
     if (method === "GET" && p === "/api/v1/stats/summary") {
       return statsApi.summary(req, url, ctx);
@@ -57,7 +64,7 @@ export function createApi(config: Config = defaultConfig, store: ReturnType<type
       return rulesApi.v0_publish(req, url, ctx);
     }
     if (method === "POST" && p === "/api/skip") {
-      return rulesApi.v0_skip(req, url, ctx);
+      return reportsApi.v0_skip(req, url, ctx);
     }
     if (method === "GET" && p === "/api/stats/summary") {
       return statsApi.summary(req, url, ctx);

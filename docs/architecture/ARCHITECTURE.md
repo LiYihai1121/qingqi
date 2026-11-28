@@ -206,32 +206,33 @@ Doze 模式 → 系统推迟到维护窗口执行
 
 | 模块 | 职责 |
 | --- | --- |
-| `server.ts` | Bun.serve 入口、路由分发、优雅停机（SIGTERM/SIGINT → store.flush()） |
-| `src/api/` | 路由拆分：rulesApi（v0+v1）/ statsApi / healthApi |
+| `server.ts` | Bun.serve 入口、配置强校验、路由分发、优雅停机（SIGTERM/SIGINT → store.flush()） |
+| `src/api/` | 路由拆分：rulesApi（v0+v1 下发/发布/测试）/ reportsApi（批量与单条上报）/ statsApi / healthApi |
 | `src/middleware/auth.ts` | Bearer token 鉴权（常数时间比较），保护写接口 |
 | `src/middleware/rateLimit.ts` | 内存令牌桶：per-IP（读/写）+ per-deviceId（上报）+ 读体前 IP 预检 |
 | `src/middleware/accessLog.ts` | 内存访问日志环形缓冲（200 条），`/api/v1/admin/logs` 暴露 |
 | `src/utils/validate.ts` | 载荷校验（PKG_RE / VID_RE / 长度上限 / body 键数/深度上限） |
-| `src/storage/store.ts` | 规则（缓存+备份轮转）/ 统计（分日分片+内存缓存+延迟刷盘） |
-| `src/utils/httpUtil.ts` | CORS 白名单、安全 JSON 解析、响应构建工具 |
-| `src/config.ts` | 全部可调参数（env 覆盖） |
+| `src/storage/` | 存储层分层：基于 `bun:sqlite` 的 WAL 单库（adskip.db）引擎，含 db / schema / migration / rulesRepo / statsRepo / store |
+| `src/utils/httpUtil.ts` | CORS 白名单、安全头单点事实源、安全 JSON 解析、响应构建工具 |
+| `src/config.ts` | 全部可调参数（env 覆盖）与启动期强校验（validateConfig） |
 
 **Bun 特性利用**：
 
 - `Bun.serve()` 单进程 HTTP 服务器，自带 TLS/HTTP2 支持
 - `Bun.file()` 零拷贝静态文件服务
+- `bun:sqlite` 内置嵌入式 SQLite（WAL 模式），提供零运行时依赖的事务存储与高效聚合查询
 - `bun:test` 内置测试运行器，in-process 冒烟测试（无需外部进程管理）
 - `server.requestIP(req)` 获取客户端真实 IP（支持反向代理）
 
-### 4.1 实例、存储与生命周期（2026-10-27）
+### 4.1 实例、存储与生命周期（2026-11-23 演进）
 
-`startServer` 为每个实例复制配置，显式装配存储、限流、访问日志与 API 工厂。请求处理不再修改进程级配置或共用运行缓存；测试可以在同一进程启动不同数据目录、不同令牌的服务。模块级默认导出仅供兼容直接调用与单元测试。创建失败及 `closeGracefully()` 都会回收实例定时器。
+`startServer` 为每个实例复制配置并执行启动期强校验（端口、请求上限、TLS 证书成对检查），显式装配 SQLite 存储（独立实例 `DB_FILE`）、限流、访问日志与 API 工厂。测试可以在同一进程启动不同数据目录、不同令牌的完全隔离服务。模块级默认导出仅供兼容直接调用与单元测试。创建失败及 `closeGracefully()` 都会释放 SQLite 句柄并回收实例定时器。
 
-部署边界仍为**一个数据目录只允许一个服务实例写入**，JSON 文件和内存限流不支持多进程共享或分布式一致性。默认监听 `127.0.0.1:3210`；非回环监听仍强制 TLS。需要多实例或更高吞吐时，应先迁移事务存储并集中限流，不能直接增加副本。
+存储层已完成从纯 JSON 多文件分片向 `bun:sqlite` 的演进（R2 阶段）。单数据库文件 `adskip.db` 启用 WAL 模式与 5 秒繁忙超时；规则存储在 `rules` 表并通过 `rules_backup` 表保留历史版本；跳过事件流水存入 `stats_events` 表，按天汇总存入 `stats_daily_apps` 表，批量上报去重记录入 `stats_dedup` 表。事务保证了批量事件入库与去重记录的原子性，写失败立即回滚不污染计数。为保障单版本周期内的平滑过渡与测试夹具兼容，存储层保留启动期旧 JSON 自动导入迁移机制，并在后台刷盘时执行 WAL checkpoint 与分片快照持久化。
 
-规则持久化采用临时文件、文件 fsync 与 rename；统计 HTTP 上报成功前同步保存计数和可选去重 ID，失败回滚本批内存状态。内部合批写入保留 5 秒窗口，失败保留 dirty 状态、按指数退避重试（最长间隔 60 秒）并向健康检查暴露已知故障。成功写入清除对应日期的故障状态。统计清理同时移除过期磁盘分片、内存缓存和去重索引；汇总缓存跨 UTC 日期自动失效。`total` 是保留窗口内累计量，不是永久历史总量。
+部署边界仍为一个数据目录只允许一个服务实例写入。默认监听 `127.0.0.1:3210`；非回环监听仍强制 TLS。
 
-停机顺序：停止接收新请求 → 等待在途请求（默认最多 10 秒）→ 超时强制关闭连接 → 刷新统计 → 释放定时器。刷新失败时进程退出码为非零，不报告成功。`closeGracefully()` 可重复调用并返回同一个完成结果。
+停机顺序：停止接收新请求 → 等待在途请求（默认最多 10 秒）→ 超时强制关闭连接 → 刷新统计并执行 WAL checkpoint → 关闭数据库并释放定时器。刷新失败时进程退出码为非零。`closeGracefully()` 可重复调用并返回同一个完成结果。
 
 协议增量为可选事件 ID、`selector` 上报通道及可选 `If-Match` 发布保护，详见 [API.md](../api/API.md)。旧客户端兼容，但其无 ID 上报仍不具备去重能力。HMAC 继续用于受控自建场景；公共分发的非对称签名迁移、SQLite 和增量汇总需要独立设计及容量证据，本次不改变签名信任模型。
 
