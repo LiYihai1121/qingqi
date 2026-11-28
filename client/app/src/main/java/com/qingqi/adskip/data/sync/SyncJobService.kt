@@ -62,6 +62,14 @@ class SyncJobService : JobService() {
         container.executors.io.execute {
             try {
                 container.syncClient.syncRulesSilently(this, serverUrl, container.rulesRepo)
+                // 顺带冲刷上报离线队列：Job 已声明 NETWORK_TYPE_ANY，
+                // 有网时把积压的跳过事件补报出去（A1 触发点之一）
+                container.syncClient.flushReportQueue(
+                    serverUrl,
+                    Prefs.getDeviceId(this),
+                    Prefs.getCertPins(this),
+                    container.reportQueue,
+                )
             } catch (e: Exception) {
                 LogRing.e("Sync", "job failed: ${e.message}")
             } finally {

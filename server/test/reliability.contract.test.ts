@@ -16,6 +16,18 @@ function portOf(server: { port?: number }): number {
   return server.port;
 }
 
+/** 与 store.getDayKey 同口径的日键（STATS_TZ），供断言分片文件名 */
+function statsDayKey(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: config.STATS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 /**
  * 实例隔离：token / 规则 / 统计 / 访问日志必须各自属于自己那台服务。
  *
@@ -182,7 +194,7 @@ test("background flush retries disk failures and clears degraded health", async 
     await until(() => !store.storageHealthy());
     fs.unlinkSync(cfg.STATS_DIR);
     await until(() => store.storageHealthy());
-    const day = new Date().toISOString().slice(0, 10);
+    const day = statsDayKey();
     expect(JSON.parse(fs.readFileSync(path.join(cfg.STATS_DIR, `${day}.json`), "utf8")).byApp["com.example"].count).toBe(1);
   } finally {
     console.error = originalError;
@@ -211,7 +223,7 @@ test("graceful shutdown drains an in-flight upload before disposing storage", as
     upload.end(body.slice(5));
     expect(await response).toBe(200);
     await closing;
-    const day = new Date().toISOString().slice(0, 10);
+    const day = statsDayKey();
     expect(JSON.parse(fs.readFileSync(path.join(dir, "stats", `${day}.json`), "utf8")).byApp["com.example"].count).toBe(1);
   } finally {
     await server.closeGracefully();

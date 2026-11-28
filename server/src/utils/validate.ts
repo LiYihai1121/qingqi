@@ -127,12 +127,16 @@ export function createValidator(config: Config = defaultConfig) {
       .slice(0, 256);
   }
 
+  /** 幂等 epoch：安装期随机标识，8–64 字符；缺失/非法时整个批次不带幂等语义 */
+  const EPOCH_RE = /^[A-Za-z0-9_-]{8,64}$/;
+
   function cleanReportEvent(input: unknown): {
     pkg: string;
     label: string;
     channel: string;
     ts: number;
     eventId?: string;
+    seq?: number;
   } | null {
     if (!input || typeof input !== "object") return null;
     const pkgRaw = String((input as any).pkg ?? "").trim().slice(0, 256);
@@ -148,12 +152,27 @@ export function createValidator(config: Config = defaultConfig) {
     const label = String((input as any).label ?? "").trim().slice(0, 256) || pkgRaw;
     const eventId = (input as any).eventId;
     if (eventId !== undefined && (typeof eventId !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(eventId))) return null;
-    return { pkg: pkgRaw, label: cleanLabel(label), channel, ts, ...(eventId === undefined ? {} : { eventId }) };
+    // seq：客户端单调计数器（epoch 内唯一）。非法值不判整个事件为非法——
+    // 该事件退化为「无 seq」，仍走 eventId 去重路径，避免一条坏 seq 毒杀整批。
+    const seqRaw = (input as any).seq;
+    const seq =
+      typeof seqRaw === "number" && Number.isSafeInteger(seqRaw) && seqRaw >= 0
+        ? seqRaw
+        : undefined;
+    return {
+      pkg: pkgRaw,
+      label: cleanLabel(label),
+      channel,
+      ts,
+      ...(eventId === undefined ? {} : { eventId }),
+      ...(seq === undefined ? {} : { seq }),
+    };
   }
 
   function cleanBatchReport(input: unknown): {
     deviceId: string;
-    events: Array<{ pkg: string; label: string; channel: string; ts: number; eventId?: string }>;
+    epoch?: string;
+    events: Array<{ pkg: string; label: string; channel: string; ts: number; eventId?: string; seq?: number }>;
   } | null {
     if (!input || typeof input !== "object") return null;
     const deviceId = String((input as any).deviceId ?? "").trim().slice(0, 128);
@@ -161,7 +180,10 @@ export function createValidator(config: Config = defaultConfig) {
     if (!Array.isArray((input as any).events) || (input as any).events.length === 0) {
       return null;
     }
-    const events: Array<{ pkg: string; label: string; channel: string; ts: number; eventId?: string }> = [];
+    const epochRaw = (input as any).epoch;
+    const epoch =
+      typeof epochRaw === "string" && EPOCH_RE.test(epochRaw) ? epochRaw : undefined;
+    const events: Array<{ pkg: string; label: string; channel: string; ts: number; eventId?: string; seq?: number }> = [];
     for (const e of (input as any).events) {
       const cleaned = cleanReportEvent(e);
       if (cleaned) {
@@ -170,7 +192,7 @@ export function createValidator(config: Config = defaultConfig) {
       }
     }
     if (events.length === 0) return null;
-    return { deviceId, events };
+    return { deviceId, ...(epoch === undefined ? {} : { epoch }), events };
   }
 
   return { PKG_RE, VID_RE, isValidKeyword, isValidViewIdRule, isValidSelector, isValidPackage, cleanRules, cleanLabel, cleanReportEvent, cleanBatchReport };
