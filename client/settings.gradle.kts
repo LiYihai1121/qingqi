@@ -37,3 +37,9 @@ rootProject.name = "AdSkip-main"
 includeBuild("build-logic")
 
 include(":app")
+
+// L2/L3 隔离原型：独立模块、互不依赖，且刻意不被 :app 依赖。
+// Phase 0 合规评审通过前，能力层不得进入主 APK 或发布分支（Issue #84）。
+// 顺序要求：:app 必须排在最前，ProjectStructureTest.appModule() 依赖该顺序。
+include(":capability:l2vpn")
+include(":capability:l3shake")
