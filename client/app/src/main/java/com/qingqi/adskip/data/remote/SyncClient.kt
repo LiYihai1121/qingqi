@@ -49,6 +49,13 @@ object SyncClient {
     private const val MAX_RESPONSE_BYTES = 2L * 1024 * 1024
 
     /**
+     * 上报队列「永久失败」状态码：服务端明确拒绝且重试无意义，整批出队
+     * （DESIGN-SERVER-MOBILE-READINESS §5.1 A4）。408/429/5xx 不在列——
+     * 保留队首等待重试。
+     */
+    private val REPORT_DEQUEUE_STATUSES = setOf(400, 401, 403, 413, 415, 422)
+
+    /**
      * 云端规则载荷条目上限（与服务端 config 对齐：MAX_APPS=2000、
      * MAX_RULES_PER_APP=512、MAX_SELECTORS_PER_LIST=128、条目 256 字符）。
      * 服务端已清洗，但客户端不能假设对端可信（MITM/被劫持服务器）：
@@ -252,40 +259,70 @@ object SyncClient {
         }
     }
 
-    /** 静默上报一次跳过（带 deviceId，v1 批量格式）。 */
-    fun reportSkip(serverUrl: String, pkg: String, label: String, deviceId: String, pins: List<String>) {
+    /** 静默上报一次跳过（带 deviceId）：先入离线队列，再立即尝试冲刷。 */
+    fun reportSkip(
+        serverUrl: String,
+        pkg: String,
+        label: String,
+        deviceId: String,
+        pins: List<String>,
+        queue: ReportQueue,
+    ) {
         if (serverUrl.isBlank()) return
         // S1：上报同样走证书锁定——未配 pins 且非测试注入时拒发，防 MITM 窃取/篡改用户行为
         if (pins.isEmpty() && testClient == null) return
+        // 先入队再 flush：即使本次发送失败，事件已持久化，
+        // 由 JobService / 网络恢复回调 / 下次跳过触发补报（A1）。
+        queue.enqueue(pkg, label, "text", System.currentTimeMillis())
+        flushReportQueue(serverUrl, deviceId, pins, queue)
+    }
+
+    /** 同一时刻只允许一个 flush 在飞：防止 peek 到同一批后双发 */
+    private val reportFlushInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * 冲刷离线上报队列：取最旧 ≤[ReportQueue.DEFAULT_BATCH_SIZE] 条
+     * POST /api/v1/reports/batch（epoch + seq 幂等，服务端高水位去重）。
+     *
+     * 出队分类（DESIGN-SERVER-MOBILE-READINESS §5.1 A4）：
+     *  - 2xx                          → 出队（含 accepted=0 的全重复批次）
+     *  - 400/401/403/413/415/422      → 出队（永久失败，重试无意义）
+     *  - 408/429/5xx/网络异常/超时     → 保留队首，下次触发再试
+     */
+    fun flushReportQueue(serverUrl: String, deviceId: String, pins: List<String>, queue: ReportQueue) {
+        if (serverUrl.isBlank()) return
+        if (pins.isEmpty() && testClient == null) return
+        if (!reportFlushInFlight.compareAndSet(false, true)) return
+        // io 单线程：flush 天然串行，与 in-flight 守卫双保险
         executors.io.execute {
             try {
+                val batch = queue.peekBatch()
+                if (batch.isEmpty()) return@execute
                 val base = serverUrl.trimEnd('/')
-                val payload = JSONObject()
-                val event = JSONObject()
-                event.put("pkg", pkg)
-                event.put("label", label) // F1：v1 事件补 label，与服务端 cleanReportEvent 对齐
-                event.put("channel", "text")
-                event.put("ts", System.currentTimeMillis())
-                payload.put("deviceId", deviceId)
-                payload.put("events", JSONArray().put(event))
-                try {
-                    httpPost("$base/api/v1/reports/batch", payload.toString(), pins)
-                } catch (e: IOException) {
-                    // 仅网络层异常（连接失败/读写中断——服务端大概率未处理该请求）
-                    // 才回退 v0 单条上报。HTTP 状态错误（429/4xx/5xx）说明服务端
-                    // 已处理过请求，回退会让同一跳过事件双份入库、统计计数虚增
-                    // （DESIGN-ARCH-REVIEW §6.5）。
-                    try {
-                        val v0Payload = JSONObject()
-                        v0Payload.put("pkg", pkg)
-                        v0Payload.put("label", label)
-                        httpPost("$base/api/skip", v0Payload.toString(), pins)
-                    } catch (e2: Exception) {
-                        // 静默失败
-                    }
+                val events = JSONArray()
+                for (item in batch) {
+                    events.put(
+                        JSONObject()
+                            .put("seq", item.seq)
+                            .put("pkg", item.pkg)
+                            .put("label", item.label)
+                            .put("channel", item.channel)
+                            .put("ts", item.ts),
+                    )
                 }
+                val payload = JSONObject()
+                    .put("deviceId", deviceId)
+                    .put("epoch", queue.epoch())
+                    .put("events", events)
+                val status = httpPostStatus("$base/api/v1/reports/batch", payload.toString(), pins)
+                if (status in 200..299 || status in REPORT_DEQUEUE_STATUSES) {
+                    queue.removeFirst(batch.size)
+                }
+                // 其余状态码：保留队首等待重试
             } catch (e: Exception) {
-                // 静默失败
+                // 网络异常/超时/证书校验失败：保留队列，等待下次触发
+            } finally {
+                reportFlushInFlight.set(false)
             }
         }
     }
@@ -417,6 +454,12 @@ object SyncClient {
     }
 
     private fun httpPost(url: String, body: String, pins: List<String>) {
+        val status = httpPostStatus(url, body, pins)
+        if (status !in 200..299) throw Exception("HTTP $status")
+    }
+
+    /** POST 返回 HTTP 状态码（不读响应体）；网络层异常照常抛出 */
+    private fun httpPostStatus(url: String, body: String, pins: List<String>): Int {
         require(ServerEndpoint.isValid(url)) { "Only valid HTTPS URLs are allowed" }
         // S1：上报走证书锁定（与 httpGetWithETagBlocking 同构）；测试注入 testClient 时绕过 pin
         val host = hostOf(url)
@@ -426,7 +469,7 @@ object SyncClient {
             .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
         httpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw Exception("HTTP " + response.code)
+            return response.code
         }
     }
 

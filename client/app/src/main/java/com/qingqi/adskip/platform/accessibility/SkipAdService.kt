@@ -17,6 +17,7 @@ import com.qingqi.adskip.core.common.Clock
 import com.qingqi.adskip.core.common.LogRing
 import com.qingqi.adskip.core.events.AppEvents
 import com.qingqi.adskip.data.local.Prefs
+import com.qingqi.adskip.data.remote.ReportQueue
 import com.qingqi.adskip.data.remote.SyncClient
 import com.qingqi.adskip.data.repository.RulesRepository
 import com.qingqi.adskip.data.repository.StatsRepository
@@ -85,6 +86,7 @@ class SkipAdService : AccessibilityService() {
     private lateinit var rulesRepo: RulesRepository
     private lateinit var statsRepo: StatsRepository
     private lateinit var syncClient: SyncClient
+    private lateinit var reportQueue: ReportQueue
 
     private val snapshotReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -146,6 +148,7 @@ class SkipAdService : AccessibilityService() {
         rulesRepo = container.rulesRepo
         statsRepo = container.statsRepo
         syncClient = container.syncClient
+        reportQueue = container.reportQueue
         running = true
         AppEvents.setServiceRunning(true)
         snapshotHandle.register()
@@ -271,7 +274,14 @@ class SkipAdService : AccessibilityService() {
             Toast.makeText(this, getString(R.string.toast_skipped, label), Toast.LENGTH_SHORT).show()
         }
         // S1：上报经证书锁定通道——取已配 pins 传入，未配时 reportSkip 内部 fail-closed 拒发
-        syncClient.reportSkip(Prefs.getServerUrl(this), pkg, label, Prefs.getDeviceId(this), Prefs.getCertPins(this))
+        syncClient.reportSkip(
+            Prefs.getServerUrl(this),
+            pkg,
+            label,
+            Prefs.getDeviceId(this),
+            Prefs.getCertPins(this),
+            reportQueue,
+        )
         AppEvents.emitSkipped(label)
         // 广播一律 setPackage 收窄到本应用：ACTION_SKIPPED 携带用户正在使用的应用名，
         // 不加限制会让任意第三方应用注册同名 action 即可监听（隐私泄露）。

@@ -8,6 +8,7 @@ import com.qingqi.adskip.core.common.SystemClockAdapter
 import com.qingqi.adskip.data.local.Prefs
 import com.qingqi.adskip.data.local.PrefsRulesStore
 import com.qingqi.adskip.data.local.PrefsStatsStore
+import com.qingqi.adskip.data.remote.ReportQueue
 import com.qingqi.adskip.data.remote.SyncClient
 import com.qingqi.adskip.data.repository.RulesRepository
 import com.qingqi.adskip.data.repository.SettingsRepository
@@ -32,4 +33,11 @@ class AppContainer(val app: Application, context: Context) {
     val statsRepo = StatsRepository(PrefsStatsStore(context.applicationContext), executors.io)
     val settingsRepo = SettingsRepository(context.applicationContext, rulesRepo)
     val syncClient = SyncClient // object 单例
+
+    /**
+     * 上报离线队列（PLAN-OFFLINE-SYNC §3.3）：跳过事件先持久化再发送，
+     * 失败由 JobService / 网络恢复回调 / 下次跳过触发补报。
+     * 存储走 Prefs（加密 SharedPreferences），epoch/seq 与队列同生共死。
+     */
+    val reportQueue = ReportQueue(Prefs.reportQueueStore(context.applicationContext))
 }

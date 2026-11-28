@@ -15,9 +15,19 @@
 
 ## [Unreleased]
 
+上报可靠性 P0（`DESIGN-SERVER-MOBILE-READINESS` §5.1 A1/A2/A4）：服务端支持事件时间归属与 `epoch + seq` 幂等，客户端跳过上报改为离线队列优先。协议向后兼容——旧客户端不带 `epoch`/`seq` 时服务端退回逐次计数；`versionCode` 待发布时递增。
+
+### Added (Unreleased)
+
+- **事件时间归属**：服务端接受客户端 `ts` 并按 `STATS_TZ`（默认 `Asia/Shanghai`）钳制到最近 7 天归入对应日期分片，跨天到达的事件计入发生日；`STATS_EVENT_TIME=off` 可回退为按接收时间归档。
+- **上报幂等 `epoch + seq`**：`POST /api/v1/reports/batch` 支持可选 `epoch`（安装期标识）与事件 `seq`（epoch 内单调），服务端按 `(deviceId, epoch)` 高水位判重，响应新增 `gaps` 字段；`REPORT_IDEMPOTENCY=off` 可关闭。
+- **客户端离线上报队列**：跳过事件先持久化（容量 500、保留 7 天）再发送，失败按状态码分类——2xx 与永久失败（400/401/403/413/415/422）出队，408/429/5xx/网络异常保留队首；触发点为入队即试、12h Job、网络恢复回调。
+
 ### Fixed (Unreleased)
 
 - **微博开屏广告无法跳过（Issue #216）**：真机快照（D1 / Mi 9）实证根因——微博开屏的「跳过」控件是 `clickable=false` 且**整条祖先链都不可点击**的 TextView（触摸由广告 SDK 的 `OnTouchListener` 处理），引擎文本通道虽能命中，但 `SafetyGuard` 的「可点击路径校验」会将其拦截，点击永不执行。修复：`SkipRuleEngine.findTarget` 返回命中通道；护栏对**选择器通道**命中的目标（逐条人工编写、快照驱动、可审计）允许无点击路径时走坐标手势兜底；文本 / ViewID 通道维持原契约不放行。服务端种子升级为 v1 形状（legacy `packages` 条目本会被兼容层静默丢弃）并新增 `com.sina.weibo` 专属选择器规则（`[text="跳过"]` / `[desc="跳过"]` 精确匹配，控制误触面）。规则经云同步下发后生效。
+- **`PORT` 配置校验**：非法值（非整数或越界）启动即报错，不再静默回退 3210。
+- **上报不再回退 v0**：v1 批量失败时事件留在队列重试，消除「网络抖动导致同一事件双份入库」的窗口。
 
 ## [1.3.0] - 2026-10-30
 

@@ -248,8 +248,62 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
     }
   }
 
+  /**
+   * 日键时区：STATS_TZ（IANA）。「今天」是产品语义，跟部署地一致；
+   * 固定偏移在 DST 地区会错一小时，UTC 则与用户直觉错位 8 小时（R2）。
+   * 非法时区名在 store 创建期快速失败，而不是在首次上报时炸掉。
+   */
+  const dayFormatter = (() => {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: config.STATS_TZ,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+    } catch {
+      throw new Error(`STATS_TZ must be a valid IANA timezone, got ${JSON.stringify(config.STATS_TZ)}`);
+    }
+  })();
+
   function getDayKey(date: Date = new Date()): string {
-    return date.toISOString().slice(0, 10);
+    const parts = dayFormatter.formatToParts(date);
+    const y = parts.find((p) => p.type === "year")?.value ?? "0000";
+    const m = parts.find((p) => p.type === "month")?.value ?? "00";
+    const d = parts.find((p) => p.type === "day")?.value ?? "00";
+    return `${y}-${m}-${d}`;
+  }
+
+  /** 事件时间归日的钳制窗口：离线队列上限 7 天，对齐客户端队列语义 */
+  const EVENT_TS_PAST_MS = 7 * 24 * 3600 * 1000;
+  const EVENT_TS_FUTURE_MS = 5 * 60 * 1000;
+
+  /**
+   * 解析上报事件的归日时间（A3）。
+   *
+   * 上报端点无鉴权，客户端自报 ts 不可信：窗口内（now-7d ~ now+5min）
+   * 才采信事件时间，越界一律回退到服务端当前时间并计 clamped——
+   * 既防止伪造 ts 造出海量日分片（磁盘 DoS），也保证离线补报不错日。
+   * STATS_EVENT_TIME=off 时整体回退旧行为（忽略 ts）。
+   */
+  function resolveEventTime(
+    eventTs: number | undefined,
+    now: number = Date.now()
+  ): { ts: number; day: string; clamped: boolean } {
+    const todayKey = getDayKey(new Date(now));
+    const fallback = { ts: now, day: todayKey, clamped: false };
+    if (!config.STATS_EVENT_TIME) return fallback;
+    if (typeof eventTs !== "number" || !Number.isFinite(eventTs)) return fallback;
+    const windowMs = Math.min(EVENT_TS_PAST_MS, config.STATS_RETENTION_DAYS * 24 * 3600 * 1000);
+    if (windowMs <= 0) return fallback;
+    if (eventTs < now - windowMs || eventTs > now + EVENT_TS_FUTURE_MS) {
+      return { ts: now, day: todayKey, clamped: true };
+    }
+    const day = getDayKey(new Date(eventTs));
+    // 未来 5 分钟跨零点时 day 会落到「明天」：分片只允许 [today-retention, today]，
+    // 越界回退今天，防止单个请求制造窗口外日键。
+    if (day > todayKey) return { ts: now, day: todayKey, clamped: true };
+    return { ts: eventTs, day, clamped: false };
   }
 
   function loadDayStats(day: string): StatsDay {
@@ -279,7 +333,18 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
   /** 当日 byApp 条目数到顶后，超限上报聚合到该保留键（不是合法包名，不会与真实条目冲突） */
   const OVERFLOW_APP_KEY = "_other";
 
-  function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string, day = getDayKey()): void {
+  /**
+   * 写入一条跳过记录到指定日分片。
+   * eventTsMs 必须是已钳制的事件时间（resolveEventTime 的产物），
+   * SkipEvent.ts 记录事件发生时间而非到达时间，recent 列表才不失真。
+   */
+  function recordSkipOnDay(
+    pkgRaw: string,
+    labelRaw: string,
+    channelRaw: string,
+    day: string,
+    eventTsMs: number
+  ): void {
     const c = getCachedDay(day);
     const pkg = String(pkgRaw).slice(0, 256);
     const label = String(labelRaw ?? "").slice(0, 256);
@@ -297,13 +362,19 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
     entry.count += 1;
     entry.byChannel[channel] = (entry.byChannel[channel] ?? 0) + 1;
 
-    c.data.events.unshift({ ts: new Date().toISOString(), pkg, label, channel });
+    c.data.events.unshift({ ts: new Date(eventTsMs).toISOString(), pkg, label, channel });
     if (c.data.events.length > config.RECENT_CAP) {
       c.data.events.length = config.RECENT_CAP;
     }
     c.dirty = true;
     summaryCache = null;
     scheduleFlush(day);
+  }
+
+  /** 单条上报入口：事件时间缺失/越界时回退服务端当前时间（见 resolveEventTime） */
+  function recordSkip(pkgRaw: string, labelRaw: string, channelRaw: string, eventTs?: number): void {
+    const resolved = resolveEventTime(eventTs);
+    recordSkipOnDay(pkgRaw, labelRaw, channelRaw, resolved.day, resolved.ts);
   }
 
   function listStatsDays(): string[] {
@@ -371,11 +442,7 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
   }
 
   function cleanupOldStats(now = new Date()): void {
-    const cutoff = new Date(
-      now.getTime() - config.STATS_RETENTION_DAYS * 24 * 3600 * 1000
-    )
-      .toISOString()
-      .slice(0, 10);
+    const cutoff = getDayKey(new Date(now.getTime() - config.STATS_RETENTION_DAYS * 24 * 3600 * 1000));
     for (const [day, cached] of statsCache) {
       if (day < cutoff) {
         if (cached.timer) clearTimeout(cached.timer);
@@ -467,43 +534,63 @@ export function createStore(config: Config = defaultConfig, options: { flushDela
     for (const c of statsCache.values()) if (c.timer) clearTimeout(c.timer);
   }
 
-  /** Persist counters and optional device-scoped dedup IDs in the same daily shard. */
-  function recordBatch(deviceId: string, events: Array<{ pkg: string; label: string; channel: string; eventId?: string }>): number {
-    const day = getDayKey();
-    const current = getCachedDay(day);
-    const before = structuredClone(current.data);
-    const wasDirty = current.dirty;
+  /**
+   * Persist counters and optional device-scoped dedup IDs in the daily shards.
+   *
+   * 事件按各自 ts 归日（resolveEventTime 钳制后），一个批次可能跨多个日分片
+   * （离线补报的典型形态）。按日分组后逐日「快照 → 写入 → flushDay → 更新索引」，
+   * 单日失败只回滚该日；已成功的日分片在重试时经 eventIndex 去重，不会双计。
+   */
+  function recordBatch(
+    deviceId: string,
+    events: Array<{ pkg: string; label: string; channel: string; ts?: number; eventId?: string }>
+  ): number {
     if (!indexLoaded) {
       for (const existingDay of listStatsDays()) {
         for (const id of getCachedDay(existingDay).data.eventIds ?? []) eventIndex.set(id, existingDay);
       }
       indexLoaded = true;
     }
-    const newKeys = new Set<string>();
-    let accepted = 0;
-    try {
-      for (const event of events) {
-        const key = event.eventId
-          ? crypto.createHash("sha256").update(JSON.stringify([deviceId, event.eventId])).digest("hex")
-          : undefined;
-        if (key && (eventIndex.has(key) || newKeys.has(key))) continue;
-        current.data.eventIds ??= [];
-        if (key && current.data.eventIds.length >= 20000) throw Object.assign(new Error("daily event ID capacity exceeded"), { statusCode: 503 });
-        recordSkip(event.pkg, event.label, event.channel, day);
-        if (key) { current.data.eventIds.push(key); newKeys.add(key); }
-        accepted++;
-      }
-      flushDay(day);
-      for (const key of newKeys) eventIndex.set(key, day);
-      return accepted;
-    } catch (error) {
-      current.data = before;
-      current.dirty = wasDirty;
-      summaryCache = null;
-      throw error;
+    // 先统一解析归日：同一批内 now 只取一次，避免跨零点时同批事件拆到不同「今天」
+    const now = Date.now();
+    const byDay = new Map<string, Array<{ pkg: string; label: string; channel: string; ts: number; eventId?: string }>>();
+    for (const event of events) {
+      const resolved = resolveEventTime(event.ts, now);
+      const item = { pkg: event.pkg, label: event.label, channel: event.channel, ts: resolved.ts, eventId: event.eventId };
+      const list = byDay.get(resolved.day);
+      if (list) list.push(item);
+      else byDay.set(resolved.day, [item]);
     }
+    let accepted = 0;
+    for (const [day, dayEvents] of byDay) {
+      const current = getCachedDay(day);
+      const before = structuredClone(current.data);
+      const wasDirty = current.dirty;
+      const newKeys = new Set<string>();
+      try {
+        for (const event of dayEvents) {
+          const key = event.eventId
+            ? crypto.createHash("sha256").update(JSON.stringify([deviceId, event.eventId])).digest("hex")
+            : undefined;
+          if (key && (eventIndex.has(key) || newKeys.has(key))) continue;
+          current.data.eventIds ??= [];
+          if (key && current.data.eventIds.length >= 20000) throw Object.assign(new Error("daily event ID capacity exceeded"), { statusCode: 503 });
+          recordSkipOnDay(event.pkg, event.label, event.channel, day, event.ts);
+          if (key) { current.data.eventIds.push(key); newKeys.add(key); }
+          accepted++;
+        }
+        flushDay(day);
+        for (const key of newKeys) eventIndex.set(key, day);
+      } catch (error) {
+        current.data = before;
+        current.dirty = wasDirty;
+        summaryCache = null;
+        throw error;
+      }
+    }
+    return accepted;
   }
-  const _internal = { computeHash, listStatsDays };
+  const _internal = { computeHash, listStatsDays, getDayKey, resolveEventTime };
 
   return { computeHash, getRules, saveRules, recordSkip, recordBatch, storageHealthy, dispose, statsSummary, cleanupOldStats, _resetSummaryCacheForTests, _resetStatsCacheForTests, _resetRulesCacheForTests, _rotateStatsBackupForTests, flush, _internal };
 }
