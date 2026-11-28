@@ -5,6 +5,7 @@ import * as defaultLimiter from "../middleware/rateLimit";
 import { createHttpUtils, type Handler } from "../utils/httpUtil";
 import { createValidator } from "../utils/validate";
 import { createSigner } from "../utils/sign";
+import { createReportSeqTracker } from "../reportSeq";
 
 
 export function createRulesApi(config: Config = defaultConfig, store: ReturnType<typeof defaultStore.createStore> = defaultStore, limiter: ReturnType<typeof defaultLimiter.createRateLimiter> = defaultLimiter) {
@@ -14,6 +15,11 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
   const { jsonResponse, errorJson, statusResponse, readBody, safeJsonParse, errorResponseFrom } = createHttpUtils(config);
   const { cleanRules, cleanBatchReport, cleanReportEvent, cleanLabel, isValidPackage } = createValidator(config);
   const { RULES_SIGNATURE_HEADER, signRulesBody } = createSigner(config);
+  /**
+   * 上报幂等高水位（epoch+seq，REPORT_IDEMPOTENCY=off 时置空走旧路径）。
+   * 每实例一份：水位是运行期状态，重启即丢（设计 §7-4 接受的取舍）。
+   */
+  const seqTracker = config.REPORT_IDEMPOTENCY ? createReportSeqTracker(config) : null;
   /**
    * 规则下发响应：对「即将发出的字节串原文」做 HMAC-SHA256 签名。
    *
@@ -143,8 +149,25 @@ export function createRulesApi(config: Config = defaultConfig, store: ReturnType
     if (!limitReport(req, ctx.ip, cleaned.deviceId)) {
       return errorJson(429, "rate limited");
     }
-    const accepted = recordBatch(cleaned.deviceId, cleaned.events);
-    return jsonResponse({ ok: true, accepted, duplicates: cleaned.events.length - accepted });
+    // 幂等过滤（纯增量）：仅当客户端携带合法 epoch 且全部事件带 seq 时启用；
+    // 旧客户端（无 epoch/seq）原样进入存储层，响应字段保持兼容。
+    let events = cleaned.events;
+    let seqDuplicates = 0;
+    let gaps = 0;
+    if (seqTracker && cleaned.epoch && events.every((e) => e.seq !== undefined)) {
+      const filtered = seqTracker.filter(cleaned.deviceId, cleaned.epoch, events, (e) => e.seq!);
+      events = filtered.events;
+      seqDuplicates = filtered.duplicates;
+      gaps = filtered.gaps;
+    }
+    const accepted = recordBatch(cleaned.deviceId, events);
+    // duplicates = seq 高水位判重 + eventId 内容判重（两层去重口径不同，求和上报）
+    return jsonResponse({
+      ok: true,
+      accepted,
+      duplicates: seqDuplicates + (events.length - accepted),
+      gaps,
+    });
   };
 
   /** 简单选择器：`[key]`、`[key op "value"]`；op ∈ `=` `*` `^` `$`（与客户端文法一致） */
